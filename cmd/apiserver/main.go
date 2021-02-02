@@ -17,7 +17,10 @@ func (s *Server) InitDB(db string, dsn string) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	//s.DB.Debug().DropTable(&model.Video{}, &model.Task{}, &model.Worker{})
 	s.DB.Debug().AutoMigrate(&model.Video{}, &model.Task{}, &model.Worker{})
+	s.DB.Debug().AutoMigrate(&model.Task{}).AddForeignKey("video", "videos(id)", "CASCADE", "CASCADE")
+
 }
 
 var server = Server{}
