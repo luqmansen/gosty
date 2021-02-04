@@ -1,7 +1,7 @@
 package inspector
 
 import (
-	"github.com/luqmansen/gosty/apiserver/services"
+	"github.com/luqmansen/gosty/apiserver/services/inspector"
 	"net/http"
 )
 
@@ -11,10 +11,10 @@ type WorkerHandler interface {
 }
 
 type handler struct {
-	inspectorService services.InspectorService
+	inspectorService inspector.VideoInspectorService
 }
 
-func NewInspectorHandler(inspectorSvc services.InspectorService) WorkerHandler {
+func NewInspectorHandler(inspectorSvc inspector.VideoInspectorService) WorkerHandler {
 	return &handler{inspectorSvc}
 
 }

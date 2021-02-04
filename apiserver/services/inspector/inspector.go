@@ -1,10 +1,10 @@
-package services
+package inspector
 
 import (
 	"bytes"
 	"github.com/luqmansen/gosty/apiserver/model"
 )
 
-type InspectorService interface {
+type VideoInspectorService interface {
 	Inspect(file *bytes.Buffer) model.Video
 }
