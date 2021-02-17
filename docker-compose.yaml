@@ -1,32 +1,38 @@
 version: '3.7'
 services:
-  db:
-    image: library/postgres:13.1-alpine
+  mysql:
+    image: mysql:5.7
     restart: always
     environment:
-      POSTGRES_PASSWORD: 'password'
-      POSTGRES_DB: 'gosty'
+      MYSQL_DATABASE: 'gosty'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - ./docker/db:/var/lib/postgresql/data
-    networks:
-      - postgres
+      - ./docker/db:/var/lib/mysql
 
-  pgadmin:
-    container_name: pgadmin_container
-    image: dpage/pgadmin4
+  nginx:
+    image: nginx:1.19.6-alpine
+    restart: always
+    volumes:
+      - ./docker/nginx/storage:/media/
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+    - "8001:80"
+
+  rabbitmq:
+    image: rabbitmq:3.8.12-management-alpine
+    volumes:
+      - ./docker/rabbitmq/etc/:/etc/rabbitmq/
+      - ./docker/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./docker/rabbitmq/logs/:/var/log/rabbitmq/
+      - ./docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    volumes:
-      - /docker/pgadmin:/root/.pgadmin
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
-      - '5050:80'
-    networks:
-      - postgres
-    restart: unless-stopped
-
-networks:
-  postgres:
-    driver: bridge
+      - "5672:5672"
+      - "15672:15672"
