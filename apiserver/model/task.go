@@ -15,7 +15,7 @@ const (
 
 type Task struct {
 	gorm.Model
-	VideoId        uint       `gorm:"ForeignKey:VideoId;AssociationForeignKey:id"`
+	Video          Video      `gorm:"foreignKey:ID"`
 	TargetRes      string     `gorm:"size:255;" json:"target_res"`
 	TargetBitrate  string     `gorm:"size:255;" json:"target_bitrate"`
 	TargetEncoding string     `json:"target_encoding"`

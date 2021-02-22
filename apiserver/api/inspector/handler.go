@@ -2,6 +2,7 @@ package inspector
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/h2non/filetype"
@@ -88,5 +89,18 @@ func (h handler) UploadVideo(w http.ResponseWriter, r *http.Request) {
 	if err := f.Close(); err != nil {
 		log.Println(err.Error())
 	}
+	// inspect
+	vid := h.inspectorService.Inspect(f.Name())
+	//fmt.Println(vid)
+	// save to db
+	// pub
+
+	resp, err := json.Marshal(vid)
+	if err != nil {
+		// handle error
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
 
 }

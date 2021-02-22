@@ -1,17 +1,15 @@
 version: '3.7'
 services:
-  mysql:
-    image: mysql:5.7
+  pg:
+    image: library/postgres:13.1-alpine
     restart: always
     environment:
-      MYSQL_DATABASE: 'gosty'
-      MYSQL_USER: 'user'
-      MYSQL_PASSWORD: 'password'
-      MYSQL_ROOT_PASSWORD: 'password'
+      POSTGRES_PASSWORD: 'password'
+      POSTGRES_DB: 'gosty'
     ports:
-      - '3306:3306'
+      - '5432:5432'
     volumes:
-      - ./docker/db:/var/lib/mysql
+      - ./docker/db:/var/lib/postgresql/data
 
   nginx:
     image: nginx:1.19.6-alpine

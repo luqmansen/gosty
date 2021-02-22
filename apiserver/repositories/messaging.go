@@ -1,6 +1,6 @@
 package repositories
 
 type MessageBrokerRepository interface {
-	Publish(topic string, msg interface{}) error
+	Publish(topic string, data interface{}) error
 	Subscribe(topic string)
 }
