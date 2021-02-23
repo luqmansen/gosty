@@ -1,15 +1,27 @@
 version: '3.7'
 services:
-  pg:
-    image: library/postgres:13.1-alpine
+#  pg:
+#    image: library/postgres:13.1-alpine
+#    restart: always
+#    environment:
+#      POSTGRES_PASSWORD: 'password'
+#      POSTGRES_DB: 'gosty'
+#    ports:
+#      - '5432:5432'
+#    volumes:
+#      - ./docker/db:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:4.4.4-bionic
     restart: always
     environment:
-      POSTGRES_PASSWORD: 'password'
-      POSTGRES_DB: 'gosty'
+      MONGO_INITDB_DATABASE: gosty
+      MONGO_INITDB_ROOT_USERNAME: username
+      MONGO_INITDB_ROOT_PASSWORD: password
     ports:
-      - '5432:5432'
+    - "27017:27017"
     volumes:
-      - ./docker/db:/var/lib/postgresql/data
+      - ./docker/mongo:/data/db
 
   nginx:
     image: nginx:1.19.6-alpine
@@ -28,9 +40,9 @@ services:
       - ./docker/rabbitmq/logs/:/var/log/rabbitmq/
       - ./docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
 
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+#    environment:
+#      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+#      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
       - "5672:5672"
       - "15672:15672"

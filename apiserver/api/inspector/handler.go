@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/h2non/filetype"
-	"github.com/luqmansen/gosty/apiserver/services/inspector"
+	"github.com/luqmansen/gosty/apiserver/services"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,10 +20,10 @@ type VideoInspectorHandler interface {
 }
 
 type handler struct {
-	inspectorService inspector.VideoInspectorService
+	inspectorService services.VideoInspectorService
 }
 
-func NewInspectorHandler(inspectorSvc inspector.VideoInspectorService) VideoInspectorHandler {
+func NewInspectorHandler(inspectorSvc services.VideoInspectorService) VideoInspectorHandler {
 	return &handler{inspectorSvc}
 
 }
@@ -92,7 +92,6 @@ func (h handler) UploadVideo(w http.ResponseWriter, r *http.Request) {
 	// inspect
 	vid := h.inspectorService.Inspect(f.Name())
 	//fmt.Println(vid)
-	// save to db
 	// pub
 
 	resp, err := json.Marshal(vid)

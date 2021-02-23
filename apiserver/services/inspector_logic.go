@@ -1,4 +1,4 @@
-package inspector
+package services
 
 import (
 	"encoding/json"
@@ -11,18 +11,18 @@ import (
 )
 
 type videoInspectorServices struct {
-	vidRepo repositories.VideoRepository
+	vidRepo      repositories.VideoRepository
+	schedulerSvc SchedulerService
 }
 
-func NewInspectorService(vidRepo repositories.VideoRepository) VideoInspectorService {
-	return &videoInspectorServices{vidRepo}
+func NewInspectorService(vidRepo repositories.VideoRepository, schedulerSvc SchedulerService) VideoInspectorService {
+	return &videoInspectorServices{vidRepo, schedulerSvc}
 }
 
 func (v videoInspectorServices) Inspect(file string) model.Video {
 
 	//only get video stream (v:0 means video stream idx 0)
 	cmd := exec.Command("/usr/bin/ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v:0", file)
-	fmt.Println(cmd)
 	stdout, err := cmd.Output()
 	if err != nil {
 		fmt.Println(err)
@@ -66,7 +66,22 @@ func (v videoInspectorServices) Inspect(file string) model.Video {
 		Height:   int(streams["coded_height"].(float64)),
 	}
 
-	v.vidRepo.Add(&video)
+	err = v.vidRepo.Add(&video)
+	if err != nil {
+		panic(err)
+	}
+	//
+	//task := model.Task{
+	//	Video:          video,
+	//	TargetRes:      "",
+	//	TargetBitrate:  "",
+	//	TargetEncoding: "",
+	//	Status:         0,
+	//	Worker:         "",
+	//	CompletedAt:    time.Time{},
+	//	TaskDuration:   0,
+	//}
+	//v.schedulerSvc.CreateSplitTask()
 
 	return video
 }

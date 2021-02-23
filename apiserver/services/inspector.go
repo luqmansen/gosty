@@ -1,4 +1,4 @@
-package inspector
+package services
 
 import (
 	"github.com/luqmansen/gosty/apiserver/model"

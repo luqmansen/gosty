@@ -1,9 +1,13 @@
 package services
 
-import "github.com/luqmansen/gosty/apiserver/model"
+import (
+	"github.com/luqmansen/gosty/apiserver/model"
+)
 
 type SchedulerService interface {
-	CreateTask(task *model.Task) error
+	CreateSplitTask(task *model.Task) error
+	//CreateCombineTask
+	//CreateTranscodeTask
 	UpdateTask(taskId uint) error
 	DeleteTask(taskId uint) error
 }

@@ -1,7 +1,7 @@
 package inspector
 
 import (
-	"github.com/luqmansen/gosty/apiserver/services/inspector"
+	"github.com/luqmansen/gosty/apiserver/services"
 	"net/http"
 )
 
@@ -11,10 +11,10 @@ type SchedulerHandler interface {
 }
 
 type handler struct {
-	inspectorService inspector.VideoInspectorService
+	inspectorService services.VideoInspectorService
 }
 
-func NewInspectorHandler(inspectorSvc inspector.VideoInspectorService) SchedulerHandler {
+func NewInspectorHandler(inspectorSvc services.VideoInspectorService) SchedulerHandler {
 	return &handler{inspectorSvc}
 
 }

@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+//This repo is currently deprecated, we use mongo now
+
 type postgresRepository struct {
 	connUrl string
 	timeout time.Duration

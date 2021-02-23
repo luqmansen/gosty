@@ -4,7 +4,7 @@ import "github.com/luqmansen/gosty/apiserver/model"
 
 type VideoRepository interface {
 	Get(videoId uint) model.Video
-	Add(video *model.Video)
+	Add(video *model.Video) error
 	Update(videoId uint) error
 	Delete(videoId uint) error
 }
