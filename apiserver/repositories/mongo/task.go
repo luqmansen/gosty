@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"github.com/luqmansen/gosty/apiserver/model"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
@@ -26,18 +27,24 @@ func NewTaskRepository(uri, db string, mongoTimeout int) (repositories.TaskRepos
 	return repo, nil
 }
 
-func (t taskRepository) Get(taskId uint) model.Task {
+func (r taskRepository) Get(taskId uint) model.Task {
 	panic("implement me")
 }
 
-func (t taskRepository) Add(task *model.Task) error {
+func (r taskRepository) Add(task *model.Task) error {
+	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
+	defer cancel()
+	c := r.db.client.Database(r.db.database).Collection(task.TableName())
+	if _, e := c.InsertOne(ctx, task); e != nil {
+		return errors.Wrap(e, "repository.Task.Add")
+	}
 	return nil
 }
 
-func (t taskRepository) Update(taskId uint) error {
+func (r taskRepository) Update(taskId uint) error {
 	panic("implement me")
 }
 
-func (t taskRepository) Delete(taskId uint) error {
+func (r taskRepository) Delete(taskId uint) error {
 	panic("implement me")
 }

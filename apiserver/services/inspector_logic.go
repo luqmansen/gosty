@@ -70,18 +70,11 @@ func (v videoInspectorServices) Inspect(file string) model.Video {
 	if err != nil {
 		panic(err)
 	}
-	//
-	//task := model.Task{
-	//	Video:          video,
-	//	TargetRes:      "",
-	//	TargetBitrate:  "",
-	//	TargetEncoding: "",
-	//	Status:         0,
-	//	Worker:         "",
-	//	CompletedAt:    time.Time{},
-	//	TaskDuration:   0,
-	//}
-	//v.schedulerSvc.CreateSplitTask()
+
+	err = v.schedulerSvc.CreateSplitTask(&video)
+	if err != nil {
+		panic(err)
+	}
 
 	return video
 }

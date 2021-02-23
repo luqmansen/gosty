@@ -8,9 +8,18 @@ import (
 type TaskStatus int
 
 const (
-	TaskStatusDone TaskStatus = iota
+	TaskQueued TaskStatus = iota
+	TaskStatusDone
 	TaskStatusOnprogress
 	TaskStatusFailed
+)
+
+type TaskKind int
+
+const (
+	TaskSplit TaskKind = iota
+	TaskMerge
+	TaskTranscode
 )
 
 type (
@@ -18,7 +27,7 @@ type (
 		Id bson.ObjectId `bson:"_id,omitempty" json:"id"`
 
 		// Task kind, either split, transcode, or merge task
-		Kind          string `json:"kind"`
+		Kind          TaskKind `json:"kind"`
 		TaskSplit     SplitTask
 		TaskTranscode TranscodeTask
 		TaskMerge     MergeTask
@@ -32,9 +41,9 @@ type (
 	SplitTask struct {
 		Video Video
 		// Split to X chunk
-		TargetChunk    int `json:"target_chunk"`
-		DurationPerVid int `json:"duration_per_vid"`
-		DurationLeft   int `json:"duration_left"`
+		TargetChunk int `json:"target_chunk"`
+		SizePerVid  int `json:"size_per_vid"`
+		SizeLeft    int `json:"size_left"`
 	}
 
 	MergeTask struct {
@@ -48,3 +57,7 @@ type (
 		TargetEncoding string `json:"target_encoding"`
 	}
 )
+
+func (t *Task) TableName() string {
+	return "task"
+}
