@@ -17,6 +17,9 @@
 #jetbrain
 .idea
 
-docker
+.docker
 
 tmp/
+/.docker/
+/worker/tmp/
+/fileserver/storage/
