@@ -4,12 +4,25 @@ import (
 	"fmt"
 	inspectorApi "github.com/luqmansen/gosty/apiserver/api/inspector"
 	"github.com/luqmansen/gosty/apiserver/repositories/mongo"
+	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"
+	"os"
 
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	//log.SetFormatter(&log.JSONFormatter{})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
+}
 func main() {
 	mongoUri := "mongodb://username:password@localhost:27017/gosty?authSource=admin"
 	vidRepo, err := mongo.NewVideoRepository(mongoUri, "gosty", 2)
@@ -20,7 +33,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	schedulerSvc := services.NewSchedulerService(taskRepo)
+
+	messagingRepo := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")
+
+	schedulerSvc := services.NewSchedulerService(taskRepo, messagingRepo)
 	insSvc := services.NewInspectorService(vidRepo, schedulerSvc)
 	insHandler := inspectorApi.NewInspectorHandler(insSvc)
 

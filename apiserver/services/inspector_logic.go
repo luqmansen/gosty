@@ -3,7 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/luqmansen/gosty/apiserver/model"
+	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"os/exec"
 	"strconv"
@@ -19,7 +19,7 @@ func NewInspectorService(vidRepo repositories.VideoRepository, schedulerSvc Sche
 	return &videoInspectorServices{vidRepo, schedulerSvc}
 }
 
-func (v videoInspectorServices) Inspect(file string) model.Video {
+func (v videoInspectorServices) Inspect(file string) models.Video {
 
 	//only get video stream (v:0 means video stream idx 0)
 	cmd := exec.Command("/usr/bin/ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v:0", file)
@@ -56,7 +56,7 @@ func (v videoInspectorServices) Inspect(file string) model.Video {
 	//file is full path of the file, we only need the actual name
 	fileName := strings.Split(file, "/")
 
-	video := model.Video{
+	video := models.Video{
 		FileName: fileName[len(fileName)-1],
 		Size:     int(size),
 		//mkv doesn't contains metadata for bitrate, and we don't really need it right now

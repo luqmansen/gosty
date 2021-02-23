@@ -1,9 +1,9 @@
 package services
 
 import (
-	"github.com/luqmansen/gosty/apiserver/model"
+	"github.com/luqmansen/gosty/apiserver/models"
 )
 
 type VideoInspectorService interface {
-	Inspect(filePath string) model.Video
+	Inspect(filePath string) models.Video
 }

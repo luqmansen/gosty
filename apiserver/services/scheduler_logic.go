@@ -1,21 +1,26 @@
 package services
 
 import (
-	"github.com/luqmansen/gosty/apiserver/model"
+	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
+	"log"
 	"math"
 	"time"
 )
 
 type schedulerServices struct {
 	repo repositories.TaskRepository
+	mb   repositories.MessageBrokerRepository
 }
 
-func NewSchedulerService(repo repositories.TaskRepository) SchedulerService {
-	return &schedulerServices{repo: repo}
+func NewSchedulerService(repo repositories.TaskRepository, mb repositories.MessageBrokerRepository) SchedulerService {
+	return &schedulerServices{
+		repo: repo,
+		mb:   mb,
+	}
 }
 
-func (s schedulerServices) CreateSplitTask(video *model.Video) error {
+func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
 	var sizePerVid int
 	var sizeLeft int
@@ -34,28 +39,32 @@ func (s schedulerServices) CreateSplitTask(video *model.Video) error {
 		sizeLeft = video.Size % minSize
 	}
 
-	task := model.Task{
-		Kind: model.TaskSplit,
-		TaskSplit: model.SplitTask{
+	task := models.Task{
+		Kind: models.TaskSplit,
+		TaskSplit: models.SplitTask{
 			Video:       *video,
 			TargetChunk: int(math.Ceil(float64(video.Size) / float64(minSize))),
 			SizePerVid:  sizePerVid,
 			SizeLeft:    sizeLeft,
 		},
-		Status:       model.TaskQueued,
+		Status:       models.TaskQueued,
 		CompletedAt:  time.Time{},
 		TaskDuration: 0,
 	}
 	//save to db
 	err := s.repo.Add(&task)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	//publish
+	err = s.mb.Publish(task, "task")
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
-func (s schedulerServices) CreateTranscodeTask(video *model.Video) error {
+func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	panic("implement me")
 }
 

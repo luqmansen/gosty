@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"github.com/luqmansen/gosty/apiserver/model"
+	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
 	"time"
@@ -27,11 +27,11 @@ func NewVideoRepository(uri, db string, timeout int) (repositories.VideoReposito
 	return vidRepo, nil
 }
 
-func (r videoRepository) Get(videoId uint) model.Video {
+func (r videoRepository) Get(videoId uint) models.Video {
 	panic("implement me")
 }
 
-func (r videoRepository) Add(video *model.Video) error {
+func (r videoRepository) Add(video *models.Video) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
 	defer cancel()
 	c := r.db.client.Database(r.db.database).Collection(video.TableName())

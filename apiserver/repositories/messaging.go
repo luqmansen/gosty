@@ -1,8 +1,6 @@
 package repositories
 
-import "github.com/luqmansen/gosty/apiserver/model"
-
 type MessageBrokerRepository interface {
-	PublishTask(task *model.Task) error
-	ReadMessage(res chan<- []byte)
+	Publish(data interface{}, queueName string) error
+	ReadMessage(res chan<- []byte, queueName string)
 }
