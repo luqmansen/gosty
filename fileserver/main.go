@@ -5,16 +5,25 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/google/uuid"
-	"github.com/h2non/filetype"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
-	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
+
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	//log.SetFormatter(&log.JSONFormatter{})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
+}
 
 func main() {
 	r := chi.NewRouter()
@@ -77,41 +86,29 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if p.FormName() != "video" {
+		log.Println("video field is expected")
 		http.Error(w, "video field is expected", http.StatusBadRequest)
+		return
+	}
+	//
+
+	params, _ := url.ParseQuery(r.URL.RawQuery)
+	fileName := params.Get("filename")
+	fmt.Println(fileName)
+	f, err := os.Create("./fileserver/storage/" + fileName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	buf := bufio.NewReader(p)
-	sniff, _ := buf.Peek(512)
-	if !filetype.IsVideo(sniff) {
-		http.Error(w, "video file expected", http.StatusBadRequest)
-		return
-	}
-
-	ext, err := mime.ExtensionsByType(p.Header.Get("Content-Type"))
-	if len(ext) == 0 {
-		contentType := http.DetectContentType(sniff)
-		ext, err = mime.ExtensionsByType(contentType)
-	}
-
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	//TODO: hash to MD5, skip if already exists
-	f, err := ioutil.TempFile("./fileserver/storage", fmt.Sprintf("%s-*%s", uuid.NewString(), ext[0]))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	var maxSize int64 = 32 << 20
 	lmt := io.MultiReader(buf, io.LimitReader(p, maxSize-511))
 
-	_, err = io.Copy(f, lmt)
-	if err != nil && err != io.EOF {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	written, err := f.ReadFrom(lmt)
+	log.Debugf("Written %s byte" , written)
+	if err != nil {
+		log.Error(err)
 	}
 
 	if err := f.Close(); err != nil {

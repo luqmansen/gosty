@@ -2,9 +2,11 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -35,9 +37,12 @@ func (r taskRepository) Add(task *models.Task) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
 	defer cancel()
 	c := r.db.client.Database(r.db.database).Collection(task.TableName())
-	if _, e := c.InsertOne(ctx, task); e != nil {
+	res, e := c.InsertOne(ctx, task);
+	if e != nil {
 		return errors.Wrap(e, "repository.Task.Add")
 	}
+	fmt.Println(res.InsertedID)
+	task.Id = res.InsertedID.(primitive.ObjectID)
 	return nil
 }
 

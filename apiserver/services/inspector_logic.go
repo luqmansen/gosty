@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
+	log "github.com/sirupsen/logrus"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -22,33 +24,35 @@ func NewInspectorService(vidRepo repositories.VideoRepository, schedulerSvc Sche
 func (v videoInspectorServices) Inspect(file string) models.Video {
 
 	//only get video stream (v:0 means video stream idx 0)
-	cmd := exec.Command("/usr/bin/ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v:0", file)
-	stdout, err := cmd.Output()
+	wd, _ := os.Getwd()
+	cmd := exec.Command("/usr/bin/ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v:0", wd + "/" + file)
+	//cmd.Dir = wd
+	//stdout, err := cmd.Output()
+	stdout, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		log.Fatal(fmt.Sprint(err) + ": " + string(stdout))
 	}
 
 	// json to map string
 	var result map[string]interface{}
 	err = json.Unmarshal([]byte(stdout), &result)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	format := result["format"].(map[string]interface{})
 	duration, err := strconv.ParseFloat(format["duration"].(string), 32)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 	size, err := strconv.ParseInt(format["size"].(string), 10, 32)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	bitrate, err := strconv.ParseInt(format["bit_rate"].(string), 10, 32)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	streams := result["streams"].([]interface{})[0].(map[string]interface{})
@@ -68,12 +72,12 @@ func (v videoInspectorServices) Inspect(file string) models.Video {
 
 	err = v.vidRepo.Add(&video)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	err = v.schedulerSvc.CreateSplitTask(&video)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	return video

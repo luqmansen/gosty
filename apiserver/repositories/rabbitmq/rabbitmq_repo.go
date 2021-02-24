@@ -1,9 +1,7 @@
 package rabbitmq
 
 import (
-	"bytes"
-	"encoding/gob"
-	"github.com/luqmansen/gosty/apiserver/models"
+	"encoding/json"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
@@ -39,12 +37,10 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 		false,     // no-wait
 		nil,       // arguments
 	)
-	var byteData bytes.Buffer
-	gob.Register(models.Task{})
-	enc := gob.NewEncoder(&byteData) // Will write to byteData.
-	err = enc.Encode(&data)
+
+	dataToSend, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 
 	err = ch.Publish(
@@ -54,7 +50,7 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        byteData.Bytes(),
+			Body:        dataToSend,
 		},
 	)
 	log.Debug("Success publish message")

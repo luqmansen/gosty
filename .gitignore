@@ -23,3 +23,5 @@ tmp/
 /.docker/
 /worker/tmp/
 /fileserver/storage/
+/split.bash
+/test.go

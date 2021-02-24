@@ -1,12 +1,12 @@
 package models
 
 import (
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Video struct {
 	//gorm.Model, changed to mongodb
-	Id       bson.ObjectId `bson:"_id,omitempty" json:"id"`
+	Id       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	FileName string        `gorm:"size:255;not null;unique" json:"file_name"`
 	// File size in Byte
 	Size     int     `json:"size"`

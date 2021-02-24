@@ -1,7 +1,7 @@
 package models
 
 import (
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -24,7 +24,7 @@ const (
 
 type (
 	Task struct {
-		Id bson.ObjectId `bson:"_id,omitempty" json:"id"`
+		Id primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 
 		// Task kind, either split, transcode, or merge task
 		Kind          TaskKind `json:"kind"`

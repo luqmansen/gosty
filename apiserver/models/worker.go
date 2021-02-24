@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/jinzhu/gorm"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -14,7 +14,7 @@ const (
 )
 
 type Worker struct {
-	gorm.Model
+	Id           primitive.ObjectID
 	ContainerId  string
 	Status       WorkerStatus
 	LastAssigned time.Time

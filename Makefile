@@ -1,6 +1,9 @@
 GOPATH:=$(shell go env GOPATH)
 
 .PHONY: dev
-dev:
+server:
 	nodemon --exec go run cmd/apiserver/main.go --signal SIGTERM
+
+wrk:
+	nodemon --exec go run worker/main.go --signal SIGTERM
 
