@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 )
 
 func init() {
@@ -80,25 +81,25 @@ func processTaskSplit(d []byte) {
 
 	//download file
 	filePath := fmt.Sprintf("./worker/tmp/%s", task.TaskSplit.Video.FileName)
-	err = DownloadFile(filePath, "http://localhost:8001/files/" + task.TaskSplit.Video.FileName)
+	err = downloadFile(filePath, "http://localhost:8001/files/"+task.TaskSplit.Video.FileName)
 	if err != nil {
 		log.Error(err)
 	}
 
 	log.Debugf("Processing task id:", task.Id.Hex())
 	wd, _ := os.Getwd()
-	dockerVol := fmt.Sprintf("%s:/work/tmp/", wd)
+	dockerVol := fmt.Sprintf("%s/worker/tmp:/work/", wd)
 	cmd := exec.Command(
-		"docker","run", "--rm", "-v", dockerVol,
-		"sambaiz/mp4box", "-splits", fmt.Sprintf("%d", 1024 <<5),
-		filePath)
+		"docker", "run", "--rm", "-v", dockerVol,
+		"sambaiz/mp4box", "-splits", strconv.Itoa(task.TaskSplit.SizePerVid/1024), // Split size in KB
+		task.TaskSplit.Video.FileName)
 	log.Debug(cmd.String())
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	cmd.Dir = fmt.Sprintf("%s/worker/tmp",wd)
+	cmd.Dir = fmt.Sprintf("%s/worker/tmp", wd)
 	fmt.Println(cmd.Dir)
 	err = cmd.Run()
 	if err != nil {
@@ -109,7 +110,7 @@ func processTaskSplit(d []byte) {
 	return
 }
 
-func DownloadFile(filepath string, url string) error {
+func downloadFile(filepath string, url string) error {
 
 	// Get the data
 	resp, err := http.Get(url)

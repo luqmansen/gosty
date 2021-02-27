@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/h2non/filetype"
 	"github.com/luqmansen/gosty/apiserver/services"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-"github.com/google/uuid"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -83,8 +83,8 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	//	log.Fatal(err.Error())
 	//}
 
-	fileName :=  fmt.Sprintf("%s-*%s",uuid.NewString(), ext[0])
-	f, err := ioutil.TempFile("./tmp/" , fileName)
+	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext[0])
+	f, err := ioutil.TempFile("./tmp/", fileName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -100,10 +100,15 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = f.Seek(0, io.SeekStart)
+	if err != nil {
+		log.Errorf("Error seeking file")
+	}
+
 	//upload to file server
-	values := map[string]io.Reader{"video":  f}
+	values := map[string]io.Reader{"video": f}
 	actualFileName := strings.Split(f.Name(), "/")[1] // remove /tmp/ on filepath
-	err = Upload("http://localhost:8001/upload?filename=" + actualFileName, values)
+	err = Upload("http://localhost:8001/upload?filename="+actualFileName, values)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -181,7 +186,7 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	}
 
 	// Check the response
-	if res.StatusCode >=400 {
+	if res.StatusCode >= 400 {
 		err = fmt.Errorf("bad status: %s . res.Status")
 		b, err := ioutil.ReadAll(res.Body)
 		if err != nil {

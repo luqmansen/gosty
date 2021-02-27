@@ -7,3 +7,6 @@ server:
 wrk:
 	nodemon --exec go run worker/main.go --signal SIGTERM
 
+fs:
+	nodemon --exec go run fileserver/main.go --signal SIGTERM
+
