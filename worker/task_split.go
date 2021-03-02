@@ -131,6 +131,7 @@ func processTaskSplit(task *models.Task) error {
 		wg.Wait()
 		task.TaskDuration = time.Since(start)
 		task.CompletedAt = time.Now()
+		task.Status = models.TaskStatusDone
 		return nil
 	}
 }

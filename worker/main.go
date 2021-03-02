@@ -19,16 +19,14 @@ func main() {
 	mq := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")
 
 	newTaskData := make(chan interface{})
-	finishedTaskData := make(chan interface{})
 	go mq.ReadMessage(newTaskData, services.TaskNew)
-	go mq.ReadMessage(finishedTaskData, services.TaskFinished)
 
 	forever := make(chan bool)
 	go func() {
-		var task models.Task
 
 		for t := range newTaskData {
 			msg := t.(amqp.Delivery)
+			var task models.Task
 			err := json.Unmarshal(msg.Body, &task)
 			if err != nil {
 				log.Error(err)
@@ -47,7 +45,7 @@ func main() {
 			}
 
 			if err == nil {
-				if err = msg.Ack(true); err != nil {
+				if err = msg.Ack(false); err != nil {
 					log.Error(err)
 				}
 			}

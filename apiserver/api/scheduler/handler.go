@@ -14,7 +14,7 @@ type handler struct {
 	inspectorService services.VideoInspectorService
 }
 
-func NewInspectorHandler(inspectorSvc services.VideoInspectorService) SchedulerHandler {
+func NewSchedulerHandler(inspectorSvc services.VideoInspectorService) SchedulerHandler {
 	return &handler{inspectorSvc}
 
 }

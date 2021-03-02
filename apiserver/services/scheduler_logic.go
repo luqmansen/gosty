@@ -1,9 +1,11 @@
 package services
 
 import (
+	"encoding/json"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
-	"log"
+	log "github.com/sirupsen/logrus"
+	"github.com/streadway/amqp"
 	"math"
 	"time"
 )
@@ -23,6 +25,32 @@ func NewSchedulerService(repo repositories.TaskRepository, mb repositories.Messa
 		repo: repo,
 		mb:   mb,
 	}
+}
+
+func (s schedulerServices) ReadMessages() {
+	log.Debugf("Starting read message from %s", TaskFinished)
+	finishedTask := make(chan interface{})
+	forever := make(chan bool, 1)
+
+	go s.mb.ReadMessage(finishedTask, TaskFinished)
+	go func() {
+		for msg := range finishedTask {
+			m := msg.(amqp.Delivery)
+			var task models.Task
+			json.Unmarshal(m.Body, &task)
+			log.Debugf("Updating finished task %s", task.Id.String())
+			err := s.repo.Update(&task)
+			if err != nil {
+				log.Error(err)
+			}
+			err = m.Ack(false)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	}()
+
+	<-forever
 }
 
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {
@@ -69,14 +97,10 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	return nil
 }
 
+func (s schedulerServices) DeleteTask(taskId string) error {
+	panic("implement me")
+}
+
 func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
-	panic("implement me")
-}
-
-func (s schedulerServices) UpdateTask(taskId uint) error {
-	panic("implement me")
-}
-
-func (s schedulerServices) DeleteTask(taskId uint) error {
 	panic("implement me")
 }

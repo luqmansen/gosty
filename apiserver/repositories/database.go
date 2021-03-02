@@ -10,10 +10,10 @@ type VideoRepository interface {
 }
 
 type TaskRepository interface {
-	Get(taskId uint) models.Task
+	Get(taskId string) models.Task
 	Add(task *models.Task) error
-	Update(taskId uint) error
-	Delete(taskId uint) error
+	Update(task *models.Task) error
+	Delete(taskId string) error
 }
 
 type WorkerRepository interface {

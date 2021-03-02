@@ -34,9 +34,14 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	messagingRepo := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")
+	mb := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")
 
-	schedulerSvc := services.NewSchedulerService(taskRepo, messagingRepo)
+	schedulerSvc := services.NewSchedulerService(taskRepo, mb)
+	//reading message from rabbit
+	go func() {
+		schedulerSvc.ReadMessages()
+	}()
+
 	insSvc := services.NewInspectorService(vidRepo, schedulerSvc)
 	insHandler := inspectorApi.NewInspectorHandler(insSvc)
 

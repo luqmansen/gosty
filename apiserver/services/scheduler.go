@@ -8,6 +8,7 @@ type SchedulerService interface {
 	CreateSplitTask(video *models.Video) error
 	CreateTranscodeTask(video *models.Video) error
 	//CreateCombineTask
-	UpdateTask(taskId uint) error
-	DeleteTask(taskId uint) error
+	ReadMessages()
+	//UpdateTask(task *models.Task) error
+	DeleteTask(taskId string) error
 }
