@@ -25,3 +25,4 @@ tmp/
 /fileserver/storage/
 /split.bash
 /test.go
+/test2.go

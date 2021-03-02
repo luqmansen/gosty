@@ -27,11 +27,11 @@ func main() {
 	mongoUri := "mongodb://username:password@localhost:27017/gosty?authSource=admin"
 	vidRepo, err := mongo.NewVideoRepository(mongoUri, "gosty", 2)
 	if err != nil {
-		panic(err)
+		log.Fatalf(err.Error())
 	}
 	taskRepo, err := mongo.NewTaskRepository(mongoUri, "gosty", 2)
 	if err != nil {
-		panic(err)
+		log.Fatalf(err.Error())
 	}
 
 	messagingRepo := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")

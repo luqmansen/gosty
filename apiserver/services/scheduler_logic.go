@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	TaskNew      = "task_new"
+	TaskFinished = "task_finished"
+)
+
 type schedulerServices struct {
 	repo repositories.TaskRepository
 	mb   repositories.MessageBrokerRepository
@@ -57,7 +62,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		log.Fatal(err)
 	}
 	//publish
-	err = s.mb.Publish(task, "task")
+	err = s.mb.Publish(task, TaskNew)
 	if err != nil {
 		log.Fatal(err)
 	}

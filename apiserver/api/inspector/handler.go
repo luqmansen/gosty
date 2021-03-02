@@ -2,19 +2,17 @@ package inspector
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/h2non/filetype"
+	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/services"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"mime"
-	"mime/multipart"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -108,9 +106,9 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	//upload to file server
 	values := map[string]io.Reader{"video": f}
 	actualFileName := strings.Split(f.Name(), "/")[1] // remove /tmp/ on filepath
-	err = Upload("http://localhost:8001/upload?filename="+actualFileName, values)
+	err = pkg.Upload("http://localhost:8001/upload?filename="+actualFileName, values)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 		return
 	}
 
@@ -133,66 +131,4 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 	return
 
-}
-
-func Upload(url string, values map[string]io.Reader) (err error) {
-	// Prepare a form that you will submit to that URL.
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	for key, r := range values {
-		var fw io.Writer
-		if x, ok := r.(io.Closer); ok {
-			defer x.Close()
-		}
-		// Add an image file
-		if x, ok := r.(*os.File); ok {
-			if fw, err = w.CreateFormFile(key, x.Name()); err != nil {
-				return
-			}
-		} else {
-			// Add other fields
-			if fw, err = w.CreateFormField(key); err != nil {
-				return
-			}
-		}
-		if _, err = io.Copy(fw, r); err != nil {
-			return err
-		}
-
-	}
-	// Don't forget to close the multipart writer.
-	// If you don't close it, your request will be missing the terminating boundary.
-	err = w.Close()
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	// Now that you have a form, you can submit it to your handler.
-	req, err := http.NewRequest("POST", url, &b)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	// Don't forget to set the content type, this will contain the boundary.
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	// Submit the request
-	client := http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	// Check the response
-	if res.StatusCode >= 400 {
-		err = fmt.Errorf("bad status: %s . res.Status")
-		b, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatal(string(b))
-		}
-	}
-	log.Debug("Upload file success")
-	return
 }

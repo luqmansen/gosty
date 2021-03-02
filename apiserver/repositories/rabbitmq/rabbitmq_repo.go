@@ -16,7 +16,7 @@ func NewRabbitMQRepo(uri string) repositories.MessageBrokerRepository {
 	//TODO defer close connection somewhere
 	conn, err := amqp.Dial(uri)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
 	}
 	return &rabbitRepo{
 		conn: conn,
@@ -31,7 +31,7 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 
 	q, err := ch.QueueDeclare(
 		queueName, // queueName
-		false,     // durable
+		true,      // durable
 		false,     // delete when unused
 		false,     // exclusive
 		false,     // no-wait
@@ -49,11 +49,12 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 		false,
 		false,
 		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        dataToSend,
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "text/plain",
+			Body:         dataToSend,
 		},
 	)
-	log.Debug("Success publish message")
+	log.Debugf("Success publish message to %s queue", q.Name)
 
 	if err != nil {
 		log.Fatal(err)
@@ -62,31 +63,46 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 	return err
 }
 
-func (r rabbitRepo) ReadMessage(res chan<- []byte, queueName string) {
+func (r rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 	ch, err := r.conn.Channel()
 	if (err != nil) || (ch == nil) {
 		log.Fatal(err, ch)
 	}
 
-	msgs, err := ch.Consume(
-		queueName,
+	//declare queue name, in  case the queue haven't created
+	q, err := ch.QueueDeclare(
+		queueName, // queueName
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	msg, err := ch.Consume(
+		q.Name,
 		"",
-		true,
+		false,
 		false,
 		false,
 		false,
 		nil,
 	)
-	log.Errorf("Failed to register a consumer: %s", err)
+
+	if err != nil {
+		log.Errorf("Failed to register a consumer: %s", err)
+	}
 
 	forever := make(chan bool)
 
 	go func() {
-		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
+		for d := range msg {
+			res <- d
 		}
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
 }

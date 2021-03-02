@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	log "github.com/sirupsen/logrus"
@@ -14,14 +13,7 @@ import (
 )
 
 func init() {
-	// Log as JSON instead of the default ASCII formatter.
-	//log.SetFormatter(&log.JSONFormatter{})
-
-	// Output to stdout instead of the default stderr
-	// Can be any io.Writer, see below for File example
 	log.SetOutput(os.Stdout)
-
-	// Only log the warning severity or above.
 	log.SetLevel(log.DebugLevel)
 }
 
@@ -38,10 +30,10 @@ func main() {
 		}
 	}
 
-	r.Post("/upload", UploadVideo)
+	r.Post("/upload", handleUpload)
 
 	filesDir := http.Dir(path)
-	FileServer(r, "/files", filesDir)
+	fileServer(r, "/files", filesDir)
 
 	err := http.ListenAndServe(":8001", r)
 	if err != nil {
@@ -49,9 +41,9 @@ func main() {
 	}
 }
 
-func FileServer(r chi.Router, path string, root http.FileSystem) {
+func fileServer(r chi.Router, path string, root http.FileSystem) {
 	if strings.ContainsAny(path, "{}*") {
-		panic("FileServer does not permit any URL parameters.")
+		panic("fileServer does not permit any URL parameters.")
 	}
 
 	if path != "/" && path[len(path)-1] != '/' {
@@ -68,7 +60,7 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	})
 }
 
-func UploadVideo(w http.ResponseWriter, r *http.Request) {
+func handleUpload(w http.ResponseWriter, r *http.Request) {
 	// uncomment to give upload limit
 	//r.Body = http.MaxBytesReader(w, r.Body, 32 << 20+1024)
 
@@ -94,7 +86,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
 	params, _ := url.ParseQuery(r.URL.RawQuery)
 	fileName := params.Get("filename")
-	fmt.Println(fileName)
+
 	f, err := os.Create("./fileserver/storage/" + fileName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -106,7 +98,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	lmt := io.MultiReader(buf, io.LimitReader(p, maxSize-511))
 
 	written, err := f.ReadFrom(lmt)
-	log.Debugf("Written %s byte" , written)
+	log.Debugf("Written %s byte", written)
 	if err != nil {
 		log.Error(err)
 	}
