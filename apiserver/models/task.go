@@ -53,7 +53,7 @@ type (
 	TranscodeTask struct {
 		Video          Video
 		TargetRes      string `gorm:"size:255;" json:"target_res"`
-		TargetBitrate  string `gorm:"size:255;" json:"target_bitrate"`
+		TargetBitrate  int    `gorm:"size:255;" json:"target_bitrate"`
 		TargetEncoding string `json:"target_encoding"`
 	}
 )

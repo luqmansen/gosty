@@ -1,13 +1,11 @@
 package services
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
+	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
 	log "github.com/sirupsen/logrus"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -25,19 +23,9 @@ func (v videoInspectorServices) Inspect(file string) models.Video {
 
 	//only get video stream (v:0 means video stream idx 0)
 	wd, _ := os.Getwd()
-	cmd := exec.Command("/usr/bin/ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v:0", wd + "/" + file)
-	//cmd.Dir = wd
-	//stdout, err := cmd.Output()
-	stdout, err := cmd.CombinedOutput()
+	result, err := fluentffmpeg.Probe(wd + "/" + file)
 	if err != nil {
-		log.Fatal(fmt.Sprint(err) + ": " + string(stdout))
-	}
-
-	// json to map string
-	var result map[string]interface{}
-	err = json.Unmarshal([]byte(stdout), &result)
-	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	format := result["format"].(map[string]interface{})

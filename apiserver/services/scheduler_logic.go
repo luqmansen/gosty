@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"math"
-	"time"
+	"sync"
 )
 
 const (
@@ -37,9 +37,13 @@ func (s schedulerServices) ReadMessages() {
 		for msg := range finishedTask {
 			m := msg.(amqp.Delivery)
 			var task models.Task
-			json.Unmarshal(m.Body, &task)
+			err := json.Unmarshal(m.Body, &task)
+			if err != nil {
+				log.Error(err)
+			}
+
 			log.Debugf("Updating finished task %s", task.Id.String())
-			err := s.repo.Update(&task)
+			err = s.repo.Update(&task)
 			if err != nil {
 				log.Error(err)
 			}
@@ -47,6 +51,8 @@ func (s schedulerServices) ReadMessages() {
 			if err != nil {
 				log.Error(err)
 			}
+			//	TODO: check if next step is merge or transcode
+
 		}
 	}()
 
@@ -57,7 +63,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
 	var sizePerVid int
 	var sizeLeft int
-	var minSize = 1024 << 10 // 10 MB
+	var minSize = 10240 << 10 // 10 MB
 
 	// if video size less than min file size, forward to transcode task
 	if video.Size < minSize {
@@ -80,9 +86,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 			SizePerVid:  sizePerVid,
 			SizeLeft:    sizeLeft,
 		},
-		Status:       models.TaskQueued,
-		CompletedAt:  time.Time{},
-		TaskDuration: 0,
+		Status: models.TaskQueued,
 	}
 	//save to db
 	err := s.repo.Add(&task)
@@ -97,10 +101,61 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	return nil
 }
 
-func (s schedulerServices) DeleteTask(taskId string) error {
-	panic("implement me")
+func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
+	//2 scenario, from inspector, and from finished task
+	//if from inspector, run directly
+	//if from finished task
+	//Create multiple task for multiple resolution
+	target := []map[string]interface{}{
+		{"res": "640x360", "br": 400000},
+		{"res": "960x540", "br": 800000},
+		{"res": "1280x720", "br": 1500000},
+	}
+	var taskList []*models.Task
+
+	for _, t := range target {
+		taskList = append(taskList, &models.Task{
+			Kind: models.TaskTranscode,
+			TaskTranscode: models.TranscodeTask{
+				Video:          *video,
+				TargetRes:      t["res"].(string),
+				TargetBitrate:  t["br"].(int),
+				TargetEncoding: "",
+			},
+			Status: models.TaskQueued,
+		})
+	}
+	var wg sync.WaitGroup
+	errChan := make(chan error, 1)
+
+	for _, task := range taskList {
+		wg.Add(1)
+		go func(t *models.Task, w *sync.WaitGroup) {
+			err := s.repo.Add(t)
+			if err != nil {
+				log.Error(err)
+				errChan <- err
+				return
+			}
+			err = s.mb.Publish(t, TaskNew)
+			if err != nil {
+				log.Error(err)
+				errChan <- err
+				return
+			}
+			wg.Done()
+		}(task, &wg)
+
+	}
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		wg.Wait()
+		return nil
+	}
 }
 
-func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
+func (s schedulerServices) DeleteTask(taskId string) error {
 	panic("implement me")
 }

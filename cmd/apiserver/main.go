@@ -29,7 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	taskRepo, err := mongo.NewTaskRepository(mongoUri, "gosty", 2)
+	taskRepo, err := mongo.NewTaskRepository(mongoUri, "gosty", 20)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

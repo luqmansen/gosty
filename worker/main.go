@@ -19,6 +19,8 @@ func main() {
 	mq := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")
 
 	newTaskData := make(chan interface{})
+	defer close(newTaskData)
+
 	go mq.ReadMessage(newTaskData, services.TaskNew)
 
 	forever := make(chan bool)
@@ -36,22 +38,37 @@ func main() {
 				if err != nil {
 					log.Error(err)
 				}
+				if err == nil {
+					if err = msg.Ack(false); err != nil {
+						log.Error(err)
+					}
+				}
+				if err = mq.Publish(&task, services.TaskFinished); err != nil {
+					log.Error(err)
+
+				}
 			} else if task.Kind == models.TaskTranscode {
-
+				err = processTaskTranscode(&task)
+				if err != nil {
+					log.Error(err)
+				}
+				if err == nil {
+					if err = msg.Ack(false); err != nil {
+						log.Error(err)
+					}
+				}
+				if err = mq.Publish(&task, services.TaskFinished); err != nil {
+					log.Error(err)
+				}
 			} else if task.Kind == models.TaskMerge {
-
+				panic("Not implemented")
 			} else {
 				log.Error("No task kind found")
-			}
-
-			if err == nil {
-				if err = msg.Ack(false); err != nil {
+				if err = msg.Nack(false, true); err != nil {
 					log.Error(err)
 				}
 			}
-			if err = mq.Publish(&task, services.TaskFinished); err != nil {
-				log.Error(err)
-			}
+
 		}
 	}()
 
