@@ -74,7 +74,6 @@ func processTaskSplit(task *models.Task) error {
 
 	var tempFiles []string
 	for _, f := range files {
-
 		name := strings.Split(strings.Split(f.Name(), ".")[0], "_")[0]
 		if name == strings.Split(task.TaskSplit.Video.FileName, ".")[0] {
 			tempFiles = append(tempFiles, f.Name())
@@ -83,7 +82,6 @@ func processTaskSplit(task *models.Task) error {
 	}
 	errChan := make(chan error, 1)
 	var wg sync.WaitGroup
-
 	for _, file := range tempFiles[1:] { // skip original file
 		wg.Add(1)
 		go func(f string, w *sync.WaitGroup) {
@@ -124,6 +122,13 @@ func processTaskSplit(task *models.Task) error {
 		w.Done()
 	}(&wg)
 
+	var videoList []models.Video
+	for _, file := range tempFiles[1:] {
+		videoList = append(videoList, models.Video{
+			FileName: file,
+		})
+	}
+
 	select {
 	case err = <-errChan:
 		return err
@@ -132,6 +137,7 @@ func processTaskSplit(task *models.Task) error {
 		task.TaskDuration = time.Since(start)
 		task.CompletedAt = time.Now()
 		task.Status = models.TaskStatusDone
+		task.TaskSplit.VideoList = videoList
 		return nil
 	}
 }

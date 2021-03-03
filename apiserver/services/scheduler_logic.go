@@ -51,12 +51,33 @@ func (s schedulerServices) ReadMessages() {
 			if err != nil {
 				log.Error(err)
 			}
-			//	TODO: check if next step is merge or transcode
+			if task.Kind == models.TaskSplit {
+				s.createTranscodeTaskFromSplitTask(&task)
+			} else if task.Kind == models.TaskTranscode {
+				//	check if previously is split task, then merge,
+				//	else, create dash task
+			}
 
 		}
 	}()
 
 	<-forever
+}
+
+func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) {
+	var wg sync.WaitGroup
+	for _, vid := range task.TaskSplit.VideoList {
+		wg.Add(1)
+		go func(v models.Video, w *sync.WaitGroup) {
+			err := s.CreateTranscodeTask(&v)
+			if err != nil {
+				log.Error(err)
+			}
+			w.Done()
+		}(vid, &wg)
+	}
+
+	wg.Wait()
 }
 
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {
@@ -101,11 +122,9 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	return nil
 }
 
+// Transcode video input to all representation, each of video repr as task
 func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
-	//2 scenario, from inspector, and from finished task
-	//if from inspector, run directly
-	//if from finished task
-	//Create multiple task for multiple resolution
+
 	target := []map[string]interface{}{
 		{"res": "640x360", "br": 400000},
 		{"res": "960x540", "br": 800000},
@@ -154,6 +173,10 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 		wg.Wait()
 		return nil
 	}
+}
+
+func (s schedulerServices) CreateMergeTask(video *models.Video) error {
+	panic("implement me")
 }
 
 func (s schedulerServices) DeleteTask(taskId string) error {

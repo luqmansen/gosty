@@ -7,7 +7,7 @@ import (
 type SchedulerService interface {
 	CreateSplitTask(video *models.Video) error
 	CreateTranscodeTask(video *models.Video) error
-	//CreateCombineTask
+	CreateMergeTask(video *models.Video) error
 	ReadMessages()
 	//UpdateTask(task *models.Task) error
 	DeleteTask(taskId string) error

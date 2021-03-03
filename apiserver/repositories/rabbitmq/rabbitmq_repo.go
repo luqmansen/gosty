@@ -9,6 +9,7 @@ import (
 
 type rabbitRepo struct {
 	conn *amqp.Connection
+	uri  string
 	//queue string
 }
 
@@ -18,12 +19,21 @@ func NewRabbitMQRepo(uri string) repositories.MessageBrokerRepository {
 	if err != nil {
 		log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
 	}
+
 	return &rabbitRepo{
 		conn: conn,
+		uri:  uri,
 	}
 }
 
 func (r rabbitRepo) Publish(data interface{}, queueName string) error {
+	var err error
+	if r.conn.IsClosed() {
+		r.conn, err = amqp.Dial(r.uri)
+		if err != nil {
+			log.Fatalf("Failed to re-connect to rabbitmq: %s", err.Error())
+		}
+	}
 	ch, err := r.conn.Channel()
 	if (err != nil) || (ch == nil) {
 		log.Fatal(err, ch)

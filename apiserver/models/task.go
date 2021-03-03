@@ -41,9 +41,10 @@ type (
 	SplitTask struct {
 		Video Video
 		// Split to X chunk
-		TargetChunk int `json:"target_chunk"`
-		SizePerVid  int `json:"size_per_vid"`
-		SizeLeft    int `json:"size_left"`
+		TargetChunk int     `json:"target_chunk"`
+		SizePerVid  int     `json:"size_per_vid"`
+		SizeLeft    int     `json:"size_left"`
+		VideoList   []Video `json:"video_list"`
 	}
 
 	MergeTask struct {
@@ -52,9 +53,10 @@ type (
 
 	TranscodeTask struct {
 		Video          Video
-		TargetRes      string `gorm:"size:255;" json:"target_res"`
-		TargetBitrate  int    `gorm:"size:255;" json:"target_bitrate"`
-		TargetEncoding string `json:"target_encoding"`
+		TargetRes      string  `gorm:"size:255;" json:"target_res"`
+		TargetBitrate  int     `gorm:"size:255;" json:"target_bitrate"`
+		TargetEncoding string  `json:"target_encoding"`
+		TranscodeVideo []Video `json:"transcode_video"`
 	}
 )
 
