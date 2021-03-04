@@ -22,6 +22,13 @@ const (
 	TaskTranscode
 )
 
+type TaskTranscodeType int
+
+const (
+	TranscodeVideo TaskTranscodeType = iota
+	TranscodeAudio
+)
+
 type (
 	Task struct {
 		Id primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -52,6 +59,7 @@ type (
 	}
 
 	TranscodeTask struct {
+		TranscodeType  TaskTranscodeType
 		Video          Video
 		TargetRes      string  `gorm:"size:255;" json:"target_res"`
 		TargetBitrate  int     `gorm:"size:255;" json:"target_bitrate"`

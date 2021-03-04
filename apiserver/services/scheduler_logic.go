@@ -80,8 +80,31 @@ func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) {
 	wg.Wait()
 }
 
+func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
+	task := models.Task{
+		Kind: models.TaskTranscode,
+		TaskTranscode: models.TranscodeTask{
+			TranscodeType: models.TranscodeAudio,
+			Video:         *video,
+		},
+		Status: models.TaskQueued,
+	}
+	err := s.repo.Add(&task)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	err = s.mb.Publish(task, TaskNew)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
+
 	var sizePerVid int
 	var sizeLeft int
 	var minSize = 10240 << 10 // 10 MB
@@ -92,11 +115,21 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		if err != nil {
 			return err
 		}
+		if err := s.createTranscodeAudioTask(video); err != nil {
+			log.Error(err)
+			return err
+		}
 		return nil
 	} else {
 		//split per 10 MB files
 		sizePerVid = minSize
 		sizeLeft = video.Size % minSize
+	}
+
+	// Must transcode audio, else the video will have no audio
+	if err := s.createTranscodeAudioTask(video); err != nil {
+		log.Error(err)
+		return err
 	}
 
 	task := models.Task{
@@ -109,20 +142,22 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		},
 		Status: models.TaskQueued,
 	}
-	//save to db
+
 	err := s.repo.Add(&task)
 	if err != nil {
 		log.Fatal(err)
+		return err
 	}
-	//publish
+
 	err = s.mb.Publish(task, TaskNew)
 	if err != nil {
 		log.Fatal(err)
+		return err
 	}
 	return nil
 }
 
-// Transcode video input to all representation, each of video repr as task
+// Transcode video input to all representation, each of video represent as task
 func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 
 	target := []map[string]interface{}{
@@ -136,6 +171,7 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 		taskList = append(taskList, &models.Task{
 			Kind: models.TaskTranscode,
 			TaskTranscode: models.TranscodeTask{
+				TranscodeType:  models.TranscodeVideo,
 				Video:          *video,
 				TargetRes:      t["res"].(string),
 				TargetBitrate:  t["br"].(int),

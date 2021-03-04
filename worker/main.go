@@ -33,7 +33,9 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
-			if task.Kind == models.TaskSplit {
+
+			switch taskKind := task.Kind; taskKind {
+			case models.TaskSplit:
 				err = processTaskSplit(&task)
 				if err != nil {
 					log.Error(err)
@@ -42,27 +44,46 @@ func main() {
 					if err = msg.Ack(false); err != nil {
 						log.Error(err)
 					}
-				}
-				if err = mq.Publish(&task, services.TaskFinished); err != nil {
-					log.Error(err)
-
-				}
-			} else if task.Kind == models.TaskTranscode {
-				err = processTaskTranscode(&task)
-				if err != nil {
-					log.Error(err)
-				}
-				if err == nil {
-					if err = msg.Ack(false); err != nil {
+					if err = mq.Publish(&task, services.TaskFinished); err != nil {
 						log.Error(err)
 					}
 				}
-				if err = mq.Publish(&task, services.TaskFinished); err != nil {
-					log.Error(err)
+
+			case models.TaskTranscode:
+				switch txType := task.TaskTranscode.TranscodeType; txType {
+				case models.TranscodeVideo:
+					err = processTaskTranscodeVideo(&task)
+					if err != nil {
+						log.Error(err)
+					}
+					if err == nil {
+						if err = msg.Ack(false); err != nil {
+							log.Error(err)
+						}
+						if err = mq.Publish(&task, services.TaskFinished); err != nil {
+							log.Error(err)
+						}
+					}
+
+				case models.TranscodeAudio:
+					err = processTaskTranscodeAudio(&task)
+					if err != nil {
+						log.Error(err)
+					}
+					if err == nil {
+						if err = msg.Ack(false); err != nil {
+							log.Error(err)
+						}
+						if err = mq.Publish(&task, services.TaskFinished); err != nil {
+							log.Error(err)
+						}
+					}
+
 				}
-			} else if task.Kind == models.TaskMerge {
+
+			case models.TaskMerge:
 				panic("Not implemented")
-			} else {
+			default:
 				log.Error("No task kind found")
 				if err = msg.Nack(false, true); err != nil {
 					log.Error(err)
