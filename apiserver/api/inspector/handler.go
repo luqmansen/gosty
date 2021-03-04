@@ -104,7 +104,7 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//upload to file server
-	values := map[string]io.Reader{"video": f}
+	values := map[string]io.Reader{"file": f}
 	actualFileName := strings.Split(f.Name(), "/")[1] // remove /tmp/ on filepath
 	err = pkg.Upload("http://localhost:8001/upload?filename="+actualFileName, values)
 	if err != nil {

@@ -83,21 +83,22 @@ func processTaskTranscodeVideo(task *models.Task) error {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func() {
+	go func(w *sync.WaitGroup) {
 		if err = os.Remove(outputPath); err != nil {
 			log.Error(err)
 			return
 		}
-		wg.Done()
-	}()
+		w.Done()
+	}(&wg)
+
 	wg.Add(1)
-	go func() {
+	go func(w *sync.WaitGroup) {
 		if err = os.Remove(inputPath); err != nil {
 			log.Error(err)
 			return
 		}
-		wg.Done()
-	}()
+		w.Done()
+	}(&wg)
 
 	task.TaskDuration = time.Since(start)
 	task.CompletedAt = time.Now()

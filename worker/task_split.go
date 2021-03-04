@@ -94,7 +94,7 @@ func processTaskSplit(task *models.Task) error {
 			}
 			defer fileReader.Close()
 
-			values := map[string]io.Reader{"video": fileReader}
+			values := map[string]io.Reader{"file": fileReader}
 			url := fmt.Sprintf("http://localhost:8001/upload?filename=%s", f)
 			log.Debugf("Sending file to %s", url)
 			if err = pkg.Upload(url, values); err != nil {
