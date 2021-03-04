@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -20,6 +21,12 @@ func init() {
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 
 	workDir, _ := os.Getwd()
 	path := workDir + "/fileserver/storage"
@@ -77,9 +84,9 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if p.FormName() != "video" {
-		log.Println("video field is expected")
-		http.Error(w, "video field is expected", http.StatusBadRequest)
+	if p.FormName() != "file" {
+		log.Println("file field is expected")
+		http.Error(w, "file field is expected", http.StatusBadRequest)
 		return
 	}
 	//
