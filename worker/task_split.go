@@ -7,6 +7,7 @@ import (
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -38,7 +39,8 @@ func processTaskSplit(task *models.Task) error {
 	workdir := fmt.Sprintf("%s/worker/tmp", wd)
 
 	filePath := fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName)
-	err := pkg.Download(filePath, "http://localhost:8001/files/"+task.TaskSplit.Video.FileName)
+	url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), task.TaskSplit.Video.FileName)
+	err := pkg.Download(filePath, url)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -80,31 +82,37 @@ func processTaskSplit(task *models.Task) error {
 		}
 
 	}
-	errChan := make(chan error, 1)
+	errCh := make(chan error, 1)
 	var wg sync.WaitGroup
 	for _, file := range tempFiles[1:] { // skip original file
 		wg.Add(1)
-		go func(f string, w *sync.WaitGroup) {
-			fileName := fmt.Sprintf("%s/%s", workdir, f)
-			fileReader, err := os.Open(fileName)
+		go func(fileName string, w *sync.WaitGroup) {
+			filePath := fmt.Sprintf("%s/%s", workdir, fileName)
+			fileReader, err := os.Open(filePath)
 			if err != nil {
 				log.Error(err)
-				errChan <- err
+				errCh <- err
 				return
 			}
-			defer fileReader.Close()
+
+			defer func() {
+				if err := fileReader.Close(); err != nil {
+					log.Error(err)
+					errCh <- err
+				}
+			}()
 
 			values := map[string]io.Reader{"file": fileReader}
-			url := fmt.Sprintf("http://localhost:8001/upload?filename=%s", f)
+			url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), fileName)
 			log.Debugf("Sending file to %s", url)
 			if err = pkg.Upload(url, values); err != nil {
 				log.Error(err)
-				errChan <- err
+				errCh <- err
 				return
 			}
-			if err = os.Remove(fileName); err != nil {
+			if err = os.Remove(filePath); err != nil {
 				log.Error(err)
-				errChan <- err
+				errCh <- err
 				return
 			}
 			w.Done()
@@ -117,7 +125,7 @@ func processTaskSplit(task *models.Task) error {
 		err = os.Remove(filePath)
 		if err != nil {
 			log.Error(err)
-			errChan <- err
+			errCh <- err
 		}
 		w.Done()
 	}(&wg)
@@ -130,7 +138,7 @@ func processTaskSplit(task *models.Task) error {
 	}
 
 	select {
-	case err = <-errChan:
+	case err = <-errCh:
 		return err
 	default:
 		wg.Wait()

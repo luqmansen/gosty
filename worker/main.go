@@ -3,20 +3,17 @@ package main
 import (
 	"encoding/json"
 	"github.com/luqmansen/gosty/apiserver/models"
+	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
-	"os"
 )
 
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
-}
-
 func main() {
-	mq := rabbitmq.NewRabbitMQRepo("amqp://guest:guest@localhost:5672/")
+	pkg.InitConfig()
+	mq := rabbitmq.NewRabbitMQRepo(viper.GetString("mb"))
 
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)

@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"github.com/luqmansen/gosty/apiserver/models"
+	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
 	"time"
@@ -12,14 +13,14 @@ type videoRepository struct {
 	db mongoRepository
 }
 
-func NewVideoRepository(uri, db string, timeout int) (repositories.VideoRepository, error) {
+func NewVideoRepository(cfg pkg.Database) (repositories.VideoRepository, error) {
 	vidRepo := &videoRepository{
 		db: mongoRepository{
-			timeout:  time.Duration(timeout) * time.Second,
-			database: db,
+			timeout:  time.Duration(cfg.Timeout) * time.Second,
+			database: cfg.Database,
 		},
 	}
-	client, e := newMongoClient(uri, timeout)
+	client, e := newMongoClient(cfg.URI, cfg.Timeout)
 	if e != nil {
 		return nil, errors.Wrap(e, "repository.NewVideoRepository")
 	}

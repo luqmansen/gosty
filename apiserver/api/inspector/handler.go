@@ -9,6 +9,7 @@ import (
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/services"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -51,7 +52,7 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if p.FormName() != "video" {
+	if p.FormName() != "file" {
 		http.Error(w, "video field is expected", http.StatusBadRequest)
 		return
 	}
@@ -73,13 +74,6 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err.Error())
 	}
-
-	//hash := md5.New()
-	//n, err := io.Copy(hash, buf)
-	//log.Debugf("Byte written for hash: ", n)
-	//if err != nil {
-	//	log.Fatal(err.Error())
-	//}
 
 	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext[0])
 	f, err := ioutil.TempFile("./tmp/", fileName)
@@ -106,7 +100,8 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	//upload to file server
 	values := map[string]io.Reader{"file": f}
 	actualFileName := strings.Split(f.Name(), "/")[1] // remove /tmp/ on filepath
-	err = pkg.Upload("http://localhost:8001/upload?filename="+actualFileName, values)
+	url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), actualFileName)
+	err = pkg.Upload(url, values)
 	if err != nil {
 		log.Error(err)
 		return
@@ -120,15 +115,18 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	//defer func() {
-	//	if err := f.Close(); err != nil {
-	//		log.Error(err)
-	//	}
-	//}()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		log.Error(err)
+	}
 	return
 
 }

@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"github.com/luqmansen/gosty/apiserver/models"
+	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,14 +15,14 @@ type taskRepository struct {
 	db mongoRepository
 }
 
-func NewTaskRepository(uri, db string, mongoTimeout int) (repositories.TaskRepository, error) {
+func NewTaskRepository(cfg pkg.Database) (repositories.TaskRepository, error) {
 	repo := &taskRepository{
 		db: mongoRepository{
-			timeout:  time.Duration(mongoTimeout) * time.Second,
-			database: db,
+			timeout:  time.Duration(cfg.Timeout) * time.Second,
+			database: cfg.Database,
 		},
 	}
-	client, e := newMongoClient(uri, mongoTimeout)
+	client, e := newMongoClient(cfg.URI, cfg.Timeout)
 	if e != nil {
 		return nil, errors.Wrap(e, "repository.NewNewsRepository")
 	}

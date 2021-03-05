@@ -1,0 +1,22 @@
+<html>
+<body>
+<div id="playerContainer"></div>
+<script src="https://cdn.jsdelivr.net/npm/indigo-player@1/lib/indigo-player.js"></script>
+<script>
+    const config = {
+        sources: [
+            // Play a Dash manifest
+            {
+                type: 'dash',
+                src: 'http://localhost:8001/files/movie-dash.mpd',
+            },
+        ],
+    };
+
+    const element = document.getElementById('playerContainer');
+    const player = IndigoPlayer.init(element, config);
+
+    // You can use the player object now to access the player and it's methods (play, pause, ...)
+</script>
+</body>
+</html>
