@@ -115,12 +115,6 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(resp)

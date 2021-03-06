@@ -63,7 +63,7 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 
 	// Check the response
 	if res.StatusCode >= 400 {
-		err = fmt.Errorf("bad status: %s . res.Status")
+		err = fmt.Errorf("bad status: %s", res.Status)
 		b, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			logrus.Fatal(string(b))

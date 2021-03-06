@@ -14,8 +14,6 @@ type Video struct {
 	Duration float32 `json:"duration"`
 	Width    int     `json:"width"`
 	Height   int     `json:"height"`
-
-	//TranscodeVideo []Video `json:"transcode_video"`
 }
 
 func (m *Video) TableName() string {

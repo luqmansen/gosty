@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"math"
+	"strings"
 	"sync"
 )
 
@@ -34,10 +35,10 @@ func (s schedulerServices) ReadMessages() {
 
 	go s.mb.ReadMessage(finishedTask, TaskFinished)
 	go func() {
-		for msg := range finishedTask {
-			m := msg.(amqp.Delivery)
+		for t := range finishedTask {
+			msg := t.(amqp.Delivery)
 			var task models.Task
-			err := json.Unmarshal(m.Body, &task)
+			err := json.Unmarshal(msg.Body, &task)
 			if err != nil {
 				log.Error(err)
 			}
@@ -47,15 +48,25 @@ func (s schedulerServices) ReadMessages() {
 			if err != nil {
 				log.Error(err)
 			}
-			err = m.Ack(false)
+			err = msg.Ack(false)
 			if err != nil {
 				log.Error(err)
 			}
-			if task.Kind == models.TaskSplit {
+
+			switch taskKind := task.Kind; taskKind {
+			case models.TaskSplit:
 				s.createTranscodeTaskFromSplitTask(&task)
-			} else if task.Kind == models.TaskTranscode {
-				//	check if previously is split task, then merge,
+			case models.TaskTranscode:
+				//	check if previously is split task, merge,
+				if task.PrevTask == models.TaskSplit {
+
+				} else {
+					s.CreateDashTask(task.TaskTranscode.TranscodedVideo)
+				}
 				//	else, create dash task
+			case models.TaskMerge:
+				//	create dash task
+				s.CreateDashTask(task.TaskMerge.ListVideo)
 			}
 
 		}
@@ -66,10 +77,10 @@ func (s schedulerServices) ReadMessages() {
 
 func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) {
 	var wg sync.WaitGroup
-	for _, vid := range task.TaskSplit.VideoList {
+	for _, vid := range task.TaskSplit.SplitedVideo {
 		wg.Add(1)
-		go func(v models.Video, w *sync.WaitGroup) {
-			err := s.CreateTranscodeTask(&v)
+		go func(v *models.Video, w *sync.WaitGroup) {
+			err := s.CreateTranscodeTask(v)
 			if err != nil {
 				log.Error(err)
 			}
@@ -83,9 +94,9 @@ func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) {
 func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 	task := models.Task{
 		Kind: models.TaskTranscode,
-		TaskTranscode: models.TranscodeTask{
+		TaskTranscode: &models.TranscodeTask{
 			TranscodeType: models.TranscodeAudio,
-			Video:         *video,
+			Video:         video,
 		},
 		Status: models.TaskQueued,
 	}
@@ -104,7 +115,6 @@ func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
-
 	var sizePerVid int
 	var sizeLeft int
 	var minSize = 10240 << 10 // 10 MB
@@ -134,13 +144,14 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 
 	task := models.Task{
 		Kind: models.TaskSplit,
-		TaskSplit: models.SplitTask{
-			Video:       *video,
+		TaskSplit: &models.SplitTask{
+			Video:       video,
 			TargetChunk: int(math.Ceil(float64(video.Size) / float64(minSize))),
 			SizePerVid:  sizePerVid,
 			SizeLeft:    sizeLeft,
 		},
-		Status: models.TaskQueued,
+		PrevTask: models.TaskNew,
+		Status:   models.TaskQueued,
 	}
 
 	err := s.repo.Add(&task)
@@ -159,25 +170,35 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 
 // Transcode video input to all representation, each of video represent as task
 func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
+	// check if previously from task split
+	// file name on task split contain random-name_001
+	fileName := strings.Split(video.FileName, "_")
+	var prevTask models.TaskKind
+	if len(fileName) == 1 {
+		prevTask = models.TaskNew
+	} else {
+		prevTask = models.TaskSplit
+	}
 
 	target := []map[string]interface{}{
 		{"res": "640x360", "br": 400000},
-		{"res": "960x540", "br": 800000},
-		{"res": "1280x720", "br": 1500000},
+		//{"res": "960x540", "br": 800000},
+		//{"res": "1280x720", "br": 1500000},
 	}
 	var taskList []*models.Task
 
 	for _, t := range target {
 		taskList = append(taskList, &models.Task{
 			Kind: models.TaskTranscode,
-			TaskTranscode: models.TranscodeTask{
+			TaskTranscode: &models.TranscodeTask{
 				TranscodeType:  models.TranscodeVideo,
-				Video:          *video,
+				Video:          video,
 				TargetRes:      t["res"].(string),
 				TargetBitrate:  t["br"].(int),
 				TargetEncoding: "",
 			},
-			Status: models.TaskQueued,
+			PrevTask: prevTask,
+			Status:   models.TaskQueued,
 		})
 	}
 	var wg sync.WaitGroup
@@ -212,6 +233,10 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 }
 
 func (s schedulerServices) CreateMergeTask(video *models.Video) error {
+	panic("implement me")
+}
+
+func (s schedulerServices) CreateDashTask(videoList []*models.Video) error {
 	panic("implement me")
 }
 

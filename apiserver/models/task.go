@@ -20,6 +20,7 @@ const (
 	TaskSplit TaskKind = iota
 	TaskMerge
 	TaskTranscode
+	TaskNew // new task, not from other task
 )
 
 type TaskTranscodeType int
@@ -33,38 +34,38 @@ type (
 	Task struct {
 		Id primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 
-		// Task kind, either split, transcode, or merge task
-		Kind          TaskKind `json:"kind"`
-		TaskSplit     SplitTask
-		TaskTranscode TranscodeTask
-		TaskMerge     MergeTask
+		Kind          TaskKind       `json:"kind"`
+		TaskSplit     *SplitTask     `json:"task_split"`
+		TaskTranscode *TranscodeTask `json:"task_transcode"`
+		TaskMerge     *MergeTask     `json:"task_merge"`
+		PrevTask      TaskKind       `json:"prev_task"`
 
-		Status       TaskStatus `json:"status"`
-		Worker       string     `gorm:"size:255" json:"worker"`
-		CompletedAt  time.Time  `json:"completed_at"`
-		TaskDuration time.Duration
+		Status       TaskStatus    `json:"status"`
+		Worker       string        `gorm:"size:255" json:"worker"`
+		CompletedAt  time.Time     `json:"completed_at"`
+		TaskDuration time.Duration `json:"task_duration"`
 	}
 
 	SplitTask struct {
-		Video Video
+		Video *Video
 		// Split to X chunk
-		TargetChunk int     `json:"target_chunk"`
-		SizePerVid  int     `json:"size_per_vid"`
-		SizeLeft    int     `json:"size_left"`
-		VideoList   []Video `json:"video_list"`
+		TargetChunk  int      `json:"target_chunk"`
+		SizePerVid   int      `json:"size_per_vid"`
+		SizeLeft     int      `json:"size_left"`
+		SplitedVideo []*Video `json:"splited_video"`
 	}
 
 	MergeTask struct {
-		ListVideo []Video `gorm:"foreignKey:ID"`
+		ListVideo []*Video `json:"list_video"`
 	}
 
 	TranscodeTask struct {
-		TranscodeType  TaskTranscodeType
-		Video          Video
-		TargetRes      string  `gorm:"size:255;" json:"target_res"`
-		TargetBitrate  int     `gorm:"size:255;" json:"target_bitrate"`
-		TargetEncoding string  `json:"target_encoding"`
-		TranscodeVideo []Video `json:"transcode_video"`
+		TranscodeType   TaskTranscodeType `json:"transcode_type"`
+		Video           *Video            `json:"video"`
+		TargetRes       string            `gorm:"size:255;" json:"target_res"`
+		TargetBitrate   int               `gorm:"size:255;" json:"target_bitrate"`
+		TargetEncoding  string            `json:"target_encoding"`
+		TranscodedVideo []*Video          `json:"transcoded_video"`
 	}
 )
 

@@ -82,6 +82,7 @@ func processTaskSplit(task *models.Task) error {
 		}
 
 	}
+
 	errCh := make(chan error, 1)
 	var wg sync.WaitGroup
 	for _, file := range tempFiles[1:] { // skip original file
@@ -94,13 +95,6 @@ func processTaskSplit(task *models.Task) error {
 				errCh <- err
 				return
 			}
-
-			defer func() {
-				if err := fileReader.Close(); err != nil {
-					log.Error(err)
-					errCh <- err
-				}
-			}()
 
 			values := map[string]io.Reader{"file": fileReader}
 			url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), fileName)
@@ -130,9 +124,9 @@ func processTaskSplit(task *models.Task) error {
 		w.Done()
 	}(&wg)
 
-	var videoList []models.Video
+	var videoList []*models.Video
 	for _, file := range tempFiles[1:] {
-		videoList = append(videoList, models.Video{
+		videoList = append(videoList, &models.Video{
 			FileName: file,
 		})
 	}
@@ -145,7 +139,7 @@ func processTaskSplit(task *models.Task) error {
 		task.TaskDuration = time.Since(start)
 		task.CompletedAt = time.Now()
 		task.Status = models.TaskStatusDone
-		task.TaskSplit.VideoList = videoList
+		task.TaskSplit.SplitedVideo = videoList
 		return nil
 	}
 }
