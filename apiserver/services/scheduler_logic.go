@@ -17,14 +17,16 @@ const (
 )
 
 type schedulerServices struct {
-	repo repositories.TaskRepository
-	mb   repositories.MessageBrokerRepository
+	taskRepo  repositories.TaskRepository
+	videoRepo repositories.VideoRepository
+	mb        repositories.MessageBrokerRepository
 }
 
-func NewSchedulerService(repo repositories.TaskRepository, mb repositories.MessageBrokerRepository) SchedulerService {
+func NewSchedulerService(taskRepo repositories.TaskRepository, videoRepo repositories.VideoRepository, mb repositories.MessageBrokerRepository) SchedulerService {
 	return &schedulerServices{
-		repo: repo,
-		mb:   mb,
+		taskRepo:  taskRepo,
+		videoRepo: videoRepo,
+		mb:        mb,
 	}
 }
 
@@ -44,11 +46,7 @@ func (s schedulerServices) ReadMessages() {
 			}
 
 			log.Debugf("Updating finished task %s", task.Id.String())
-			err = s.repo.Update(&task)
-			if err != nil {
-				log.Error(err)
-			}
-			err = msg.Ack(false)
+			err = s.taskRepo.Update(&task)
 			if err != nil {
 				log.Error(err)
 			}
@@ -56,17 +54,41 @@ func (s schedulerServices) ReadMessages() {
 			switch taskKind := task.Kind; taskKind {
 			case models.TaskSplit:
 				s.createTranscodeTaskFromSplitTask(&task)
+
 			case models.TaskTranscode:
 				//	check if previously is split task, merge,
-				if task.PrevTask == models.TaskSplit {
+				//if task.Pre	//if err := s.videoRepo.AddMany(task.TaskSplit.SplitedVideo); err != nil{
+				//				//	log.Error(err)
+				//				//}vTask == models.TaskSplit {
+				//
+				//} else {
+				//	s.CreateDashTask(task.TaskTranscode.Video)
+				//}
+				//	else, create dash task
+
+				// get by file name
+				//TODO : Find one and update
+				toUpdate, err := s.videoRepo.GetOneByName(task.TaskTranscode.Video.FileName)
+				if err != nil {
+					log.Error(err)
+				}
+
+				if task.TaskTranscode.TranscodeType == models.TranscodeAudio {
+					toUpdate.Audio = task.TaskTranscode.ResultAudio
 
 				} else {
-					s.CreateDashTask(task.TaskTranscode.TranscodedVideo)
+					toUpdate.Video = append(toUpdate.Video, task.TaskTranscode.ResultVideo)
 				}
-				//	else, create dash task
+				if err = s.videoRepo.Update(toUpdate); err != nil {
+					log.Error(err)
+				}
+
+				err = msg.Ack(false)
+				if err != nil {
+					log.Error(err)
+				}
 			case models.TaskMerge:
 				//	create dash task
-				s.CreateDashTask(task.TaskMerge.ListVideo)
 			}
 
 		}
@@ -100,7 +122,7 @@ func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 		},
 		Status: models.TaskQueued,
 	}
-	err := s.repo.Add(&task)
+	err := s.taskRepo.Add(&task)
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -115,9 +137,9 @@ func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
-	var sizePerVid int
-	var sizeLeft int
-	var minSize = 10240 << 10 // 10 MB
+	var sizePerVid int64
+	var sizeLeft int64
+	var minSize int64 = 10240 << 10 // 10 MB
 
 	// if video size less than min file size, forward to transcode task
 	if video.Size < minSize {
@@ -154,7 +176,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		Status:   models.TaskQueued,
 	}
 
-	err := s.repo.Add(&task)
+	err := s.taskRepo.Add(&task)
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -181,9 +203,15 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	}
 
 	target := []map[string]interface{}{
-		{"res": "640x360", "br": 400000},
-		//{"res": "960x540", "br": 800000},
-		//{"res": "1280x720", "br": 1500000},
+		{"res": "256x144", "br": 80_000},
+		{"res": "426x240", "br": 300_000},
+		//{"res": "640x360", "br": 400_000},
+		//{"res": "854x480", "br": 500_000},
+		//{"res": "1280x720", "br": 1_500_000},
+		//{"res": "1920x1080", "br": 3_000_000},
+		//{"res": "2560x1440", "br": 6_000_000},
+		//{"res": "3840x2160", "br": 13_000_000},
+		//{"res": "7680x4320", "br": 20_000_000},
 	}
 	var taskList []*models.Task
 
@@ -207,7 +235,7 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	for _, task := range taskList {
 		wg.Add(1)
 		go func(t *models.Task, w *sync.WaitGroup) {
-			err := s.repo.Add(t)
+			err := s.taskRepo.Add(t)
 			if err != nil {
 				log.Error(err)
 				errChan <- err
@@ -236,8 +264,11 @@ func (s schedulerServices) CreateMergeTask(video *models.Video) error {
 	panic("implement me")
 }
 
-func (s schedulerServices) CreateDashTask(videoList []*models.Video) error {
-	panic("implement me")
+func (s schedulerServices) CreateDashTask(video *models.Video) error {
+	// get all video resolution and audio
+	//videoList := s.videoRepo.Find(video.FileName)
+
+	return nil
 }
 
 func (s schedulerServices) DeleteTask(taskId string) error {

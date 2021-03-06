@@ -50,7 +50,7 @@ func processTaskSplit(task *models.Task) error {
 	dockerVol := fmt.Sprintf("%s:/work/", workdir)
 	cmd := exec.Command(
 		"docker", "run", "--rm", "-v", dockerVol,
-		"sambaiz/mp4box", "-splits", strconv.Itoa(task.TaskSplit.SizePerVid/1024), // Split size in KB
+		"sambaiz/mp4box", "-splits", strconv.Itoa(int(task.TaskSplit.SizePerVid)/1024), // Split size in KB
 		task.TaskSplit.Video.FileName)
 	log.Debug(cmd.String())
 

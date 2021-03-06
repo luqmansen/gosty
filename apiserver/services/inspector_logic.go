@@ -50,8 +50,7 @@ func (v videoInspectorServices) Inspect(file string) models.Video {
 
 	video := models.Video{
 		FileName: fileName[len(fileName)-1],
-		Size:     int(size),
-		//mkv doesn't contains metadata for bitrate, and we don't really need it right now
+		Size:     size,
 		Bitrate:  int(bitrate), //streams["bit_rate"].(int),
 		Duration: float32(duration),
 		Width:    int(streams["coded_width"].(float64)),

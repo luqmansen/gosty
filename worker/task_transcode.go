@@ -64,18 +64,29 @@ func processTaskTranscodeVideo(task *models.Task) error {
 	}
 
 	file, _ := os.Open(outputPath)
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
-
 	values := map[string]io.Reader{"file": file}
 	url = fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), newFileName)
 	if err = pkg.Upload(url, values); err != nil {
 		log.Error(err)
 		return err
 	}
+
+	vidRes := strings.Split(task.TaskTranscode.TargetRes, "x")
+	width, _ := strconv.Atoi(vidRes[0])
+	height, _ := strconv.Atoi(vidRes[1])
+
+	probeResult, err := fluentffmpeg.Probe(outputPath)
+
+	format := probeResult["format"].(map[string]interface{})
+	duration, err := strconv.ParseFloat(format["duration"].(string), 32)
+	if err != nil {
+		log.Error(err)
+	}
+	size, err := strconv.ParseInt(format["size"].(string), 10, 32)
+	if err != nil {
+		log.Error(err)
+	}
+
 	var wg sync.WaitGroup
 	errCh := make(chan error)
 
@@ -97,6 +108,15 @@ func processTaskTranscodeVideo(task *models.Task) error {
 		w.Done()
 	}(&wg)
 
+	result := &models.Video{
+		FileName: newFileName,
+		Size:     size,
+		Bitrate:  task.TaskTranscode.TargetBitrate,
+		Duration: float32(duration),
+		Width:    width,
+		Height:   height,
+	}
+
 	select {
 	case err = <-errCh:
 		return err
@@ -104,6 +124,7 @@ func processTaskTranscodeVideo(task *models.Task) error {
 		task.TaskDuration = time.Since(start)
 		task.CompletedAt = time.Now()
 		task.Status = models.TaskStatusDone
+		task.TaskTranscode.ResultVideo = result
 		return nil
 	}
 }
@@ -157,12 +178,6 @@ func processTaskTranscodeAudio(task *models.Task) error {
 	log.Debugf("Sending file to %s", url)
 
 	file, _ := os.Open(outputPath)
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
-
 	values := map[string]io.Reader{"file": file}
 	if err = pkg.Upload(url, values); err != nil {
 		log.Error(err)
@@ -195,6 +210,10 @@ func processTaskTranscodeAudio(task *models.Task) error {
 		task.TaskDuration = time.Since(start)
 		task.CompletedAt = time.Now()
 		task.Status = models.TaskStatusDone
+		task.TaskTranscode.ResultAudio = &models.Audio{
+			FileName: newFileName,
+			Bitrate:  128000, // TODO: add bitrate transcode variation
+		}
 		return nil
 	}
 }

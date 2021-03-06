@@ -28,7 +28,7 @@ func main() {
 
 	mb := rabbitmq.NewRabbitMQRepo(viper.GetString("mb"))
 
-	schedulerSvc := services.NewSchedulerService(taskRepo, mb)
+	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, mb)
 	//reading message from rabbit
 	go func() {
 		schedulerSvc.ReadMessages()

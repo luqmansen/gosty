@@ -17,10 +17,11 @@ const (
 type TaskKind int
 
 const (
-	TaskSplit TaskKind = iota
+	TaskNew TaskKind = iota // new task, not from other task
+	TaskSplit
 	TaskMerge
 	TaskTranscode
-	TaskNew // new task, not from other task
+	TaskDash
 )
 
 type TaskTranscodeType int
@@ -38,6 +39,7 @@ type (
 		TaskSplit     *SplitTask     `json:"task_split"`
 		TaskTranscode *TranscodeTask `json:"task_transcode"`
 		TaskMerge     *MergeTask     `json:"task_merge"`
+		TaskDash      *DashTask      `json:"task_dash"`
 		PrevTask      TaskKind       `json:"prev_task"`
 
 		Status       TaskStatus    `json:"status"`
@@ -50,8 +52,8 @@ type (
 		Video *Video
 		// Split to X chunk
 		TargetChunk  int      `json:"target_chunk"`
-		SizePerVid   int      `json:"size_per_vid"`
-		SizeLeft     int      `json:"size_left"`
+		SizePerVid   int64    `json:"size_per_vid"`
+		SizeLeft     int64    `json:"size_left"`
 		SplitedVideo []*Video `json:"splited_video"`
 	}
 
@@ -60,12 +62,22 @@ type (
 	}
 
 	TranscodeTask struct {
-		TranscodeType   TaskTranscodeType `json:"transcode_type"`
-		Video           *Video            `json:"video"`
-		TargetRes       string            `gorm:"size:255;" json:"target_res"`
-		TargetBitrate   int               `gorm:"size:255;" json:"target_bitrate"`
-		TargetEncoding  string            `json:"target_encoding"`
-		TranscodedVideo []*Video          `json:"transcoded_video"`
+		TranscodeType  TaskTranscodeType `json:"transcode_type"`
+		Video          *Video            `json:"video"`
+		TargetRes      string            `gorm:"size:255;" json:"target_res"`
+		TargetBitrate  int               `gorm:"size:255;" json:"target_bitrate"`
+		TargetEncoding string            `json:"target_encoding"`
+		ResultVideo    *Video            `json:"result_video"`
+		ResultAudio    *Audio            `json:"result_audio"`
+	}
+
+	DashTask struct {
+		ListVideo []*Video
+	}
+
+	Audio struct {
+		FileName string
+		Bitrate  int
 	}
 )
 
