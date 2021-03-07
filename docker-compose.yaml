@@ -21,7 +21,7 @@ services:
     ports:
     - "27017:27017"
     volumes:
-      - ./.docker/mongo:/data/db
+      - ./volume/mongo:/data/db
 
 #  nginx:
 #    build:
@@ -36,10 +36,10 @@ services:
   rabbitmq:
     image: rabbitmq:3.8.12-management-alpine
     volumes:
-      - ./.docker/rabbitmq/etc/:/etc/rabbitmq/
-      - ./.docker/rabbitmq/data/:/var/lib/rabbitmq/
-      - ./.docker/rabbitmq/logs/:/var/log/rabbitmq/
-      - ./.docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - ./volume/rabbitmq/etc/:/etc/rabbitmq/
+      - ./volume/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./volume/rabbitmq/logs/:/var/log/rabbitmq/
+      - ./volume/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
     ports:
       - "5672:5672"
       - "15672:15672"

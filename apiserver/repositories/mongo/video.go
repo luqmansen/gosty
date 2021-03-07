@@ -25,7 +25,7 @@ func NewVideoRepository(cfg pkg.Database) (repositories.VideoRepository, error) 
 	}
 	client, e := newMongoClient(cfg.URI, cfg.Timeout)
 	if e != nil {
-		return nil, errors.Wrap(e, "repository.NewVideoRepository")
+		return nil, errors.Wrap(e, "repositories.NewVideoRepository")
 	}
 	vidRepo.db.client = client
 	return vidRepo, nil
@@ -41,7 +41,7 @@ func (r videoRepository) GetOneByName(key string) (*models.Video, error) {
 	c := r.db.client.Database(r.db.database).Collection(result.TableName())
 	err := c.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
-		return nil, errors.New("repository.Video.GetOneByName :" + err.Error())
+		return nil, errors.New("repositories.Video.GetOneByName :" + err.Error())
 	}
 	return result, nil
 
@@ -58,7 +58,7 @@ func (r videoRepository) AddMany(videoList []*models.Video) error {
 	defer cancel()
 	c := r.db.client.Database(r.db.database).Collection(videoList[0].TableName())
 	if _, e := c.InsertMany(ctx, docs); e != nil {
-		return errors.Wrap(e, "repository.Video.AddMany")
+		return errors.Wrap(e, "repositories.Video.AddMany")
 	}
 	return nil
 }
@@ -76,7 +76,7 @@ func (r videoRepository) Add(video *models.Video) error {
 	defer cancel()
 	c := r.db.client.Database(r.db.database).Collection(video.TableName())
 	if _, e := c.InsertOne(ctx, video); e != nil {
-		return errors.Wrap(e, "repository.Video.Add")
+		return errors.Wrap(e, "repositories.Video.Add")
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func (r videoRepository) Update(video *models.Video) error {
 	)
 
 	if err != nil {
-		return errors.Wrap(err, "repository.Task.Add")
+		return errors.Wrap(err, "repositories.Video.Update")
 	}
 	return nil
 }

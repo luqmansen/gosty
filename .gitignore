@@ -20,9 +20,9 @@
 .docker
 
 tmp/
-/.docker/
 /worker/tmp/
 /fileserver/storage/
 /split.bash
 /test.go
 /test2.go
+/volume/
