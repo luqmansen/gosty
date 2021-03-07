@@ -3,7 +3,7 @@ name: Docker go-mp4box CI
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
 
 jobs:
   docker:
