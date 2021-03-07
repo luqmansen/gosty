@@ -14,7 +14,8 @@ RUN apk update && \
 WORKDIR gpac
 
 RUN ./configure --use-zlib=no && \
-    make && \
+    JOB=$((2*$(nproc))) && \
+    make -j $JOB && \
     mkdir -p install/bin && \
     cp -R ./bin/gcc ./install/lib && \
     rm ./install/lib/gm_* ./install/lib/*.a && \
