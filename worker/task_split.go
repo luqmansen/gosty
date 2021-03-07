@@ -1,11 +1,10 @@
-package main
+package worker
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/pkg"
-	"github.com/luqmansen/gosty/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
@@ -18,25 +17,10 @@ import (
 	"time"
 )
 
-type splitTaskService struct {
-	mb   repositories.MessageBrokerRepository
-	file *os.File
-	msg  []byte
-}
-
-func NewSplitTaskService(mb repositories.MessageBrokerRepository) *splitTaskService {
-	return &splitTaskService{
-		mb:   mb,
-		file: nil,
-		msg:  nil,
-	}
-
-}
-
-func processTaskSplit(task *models.Task) error {
+func (s taskSvc) ProcessTaskSplit(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/worker/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp", wd)
 
 	filePath := fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName)
 	url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), task.TaskSplit.Video.FileName)
@@ -98,7 +82,6 @@ func processTaskSplit(task *models.Task) error {
 
 			values := map[string]io.Reader{"file": fileReader}
 			url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), fileName)
-			log.Debugf("Sending file to %s", url)
 			if err = pkg.Upload(url, values); err != nil {
 				log.Error(err)
 				errCh <- err

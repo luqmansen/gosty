@@ -72,7 +72,9 @@ type (
 	}
 
 	DashTask struct {
-		ListVideo []*Video
+		ListVideo  []*Video
+		ListAudio  []*Audio
+		ResultDash []string
 	}
 
 	Audio struct {

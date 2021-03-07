@@ -6,6 +6,7 @@ import (
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"
+	"github.com/luqmansen/gosty/worker"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
@@ -17,6 +18,8 @@ func main() {
 
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
+
+	workerSvc := worker.NewWorkerService(mq)
 
 	go mq.ReadMessage(newTaskData, services.TaskNew)
 
@@ -33,7 +36,7 @@ func main() {
 
 			switch taskKind := task.Kind; taskKind {
 			case models.TaskSplit:
-				err = processTaskSplit(&task)
+				err = workerSvc.ProcessTaskSplit(&task)
 				if err != nil {
 					log.Error(err)
 				}
@@ -49,7 +52,7 @@ func main() {
 			case models.TaskTranscode:
 				switch txType := task.TaskTranscode.TranscodeType; txType {
 				case models.TranscodeVideo:
-					err = processTaskTranscodeVideo(&task)
+					err = workerSvc.ProcessTaskTranscodeVideo(&task)
 					if err != nil {
 						log.Error(err)
 					}
@@ -63,7 +66,7 @@ func main() {
 					}
 
 				case models.TranscodeAudio:
-					err = processTaskTranscodeAudio(&task)
+					err = workerSvc.ProcessTaskTranscodeAudio(&task)
 					if err != nil {
 						log.Error(err)
 					}
@@ -76,6 +79,19 @@ func main() {
 						}
 					}
 
+				}
+			case models.TaskDash:
+				err = workerSvc.ProcessTaskDash(&task)
+				if err != nil {
+					log.Error(err)
+				}
+				if err == nil {
+					if err = msg.Ack(false); err != nil {
+						log.Error(err)
+					}
+					if err = mq.Publish(&task, services.TaskFinished); err != nil {
+						log.Error(err)
+					}
 				}
 
 			case models.TaskMerge:

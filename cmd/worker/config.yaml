@@ -1,0 +1,14 @@
+database:
+  uri: "mongodb://username:password@localhost:27017/gosty?authSource=admin"
+  database: "gosty"
+  timeout: 20
+
+server:
+  host: "localhost"
+  port: "8000"
+
+#message broker
+mb: "amqp://guest:guest@localhost:5672/"
+
+#file server
+fs_host: "http://localhost:8001"

@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"bytes"
@@ -17,10 +17,10 @@ import (
 	"time"
 )
 
-func processTaskTranscodeVideo(task *models.Task) error {
+func (s taskSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/worker/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp", wd)
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
@@ -45,14 +45,27 @@ func processTaskTranscodeVideo(task *models.Task) error {
 		OutputPath(outputPath).
 		OutputLogs(outBuff).
 		Overwrite(true).
-		Options("-an",
-			"-c:v", "libx264",
-			"-x264opts", "keyint=24:min-keyint=24:no-scenecut",
-			// https://stackoverflow.com/questions/60368162/conversion-failed-2-frames-left-in-the-queue-on-closing-ffmpeg
-			"-max_muxing_queue_size", "9999",
-			"-bufsize", strconv.Itoa(2*task.TaskTranscode.TargetBitrate),
-			"-vf", fmt.Sprintf("scale=-2:%s", strings.Split(task.TaskTranscode.TargetRes, "x")[1])).
 		Build()
+
+	//too bad this wrapper doesn't support additional arguments
+	output := cmd.Args[len(cmd.Args)-1]
+	cmd.Args = cmd.Args[:len(cmd.Args)-1]
+	addArgs := []string{
+		"-c:v", "libx264",
+		"-x264opts", "keyint=24:min-keyint=24:no-scenecut",
+		// https://stackoverflow.com/questions/60368162/conversion-failed-2-frames-left-in-the-queue-on-closing-ffmpeg
+		"-max_muxing_queue_size", "9999",
+		"-bufsize", strconv.Itoa(2 * task.TaskTranscode.TargetBitrate),
+		"-vf", fmt.Sprintf("scale=-2:%s", strings.Split(task.TaskTranscode.TargetRes, "x")[1]),
+		"-tune", "zerolatency",
+		//Note temporary solution: currently we copy the whole audio to same video,
+		//since there is a problem for generating DASH with audio via cmd exec
+		"-c:a", "copy",
+		output}
+
+	for _, v := range addArgs {
+		cmd.Args = append(cmd.Args, v)
+	}
 
 	log.Debug(cmd)
 	err = cmd.Run()
@@ -129,15 +142,15 @@ func processTaskTranscodeVideo(task *models.Task) error {
 	}
 }
 
-func processTaskTranscodeAudio(task *models.Task) error {
+func (s taskSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/worker/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp", wd)
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
 	origFileName := strings.Split(task.TaskTranscode.Video.FileName, ".")
-	newFileName := fmt.Sprintf("%s.m4a", origFileName[0])
+	newFileName := fmt.Sprintf("%s.mp3", origFileName[0])
 
 	outputPath := fmt.Sprintf("%s/%s", workdir, newFileName)
 	url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), task.TaskTranscode.Video.FileName)
@@ -175,8 +188,6 @@ func processTaskTranscodeAudio(task *models.Task) error {
 	}
 
 	url = fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), newFileName)
-	log.Debugf("Sending file to %s", url)
-
 	file, _ := os.Open(outputPath)
 	values := map[string]io.Reader{"file": file}
 	if err = pkg.Upload(url, values); err != nil {
