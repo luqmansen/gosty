@@ -9,10 +9,9 @@ RUN apk update && \
         make \
         git \
         && \
-    wget --no-check-certificate https://codeload.github.com/gpac/gpac/zip/master -O gpac-master.zip && \
-    unzip gpac-master.zip
+        git clone https://github.com/gpac/gpac.git
 
-WORKDIR gpac-master
+WORKDIR gpac
 
 RUN ./configure --use-zlib=no && \
     make && \
@@ -27,5 +26,5 @@ FROM golang:1.16.0-alpine3.13
 
 WORKDIR /app
 
-COPY --from=gpac_builder /app/gpac-master/install/lib /usr/lib
-COPY --from=gpac_builder /app/gpac-master/install/bin /usr/bin
+COPY --from=gpac_builder /app/gpac/install/lib /usr/lib
+COPY --from=gpac_builder /app/gpac/install/bin /usr/bin
