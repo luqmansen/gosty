@@ -28,7 +28,7 @@ jobs:
         with:
           push: true
           file: docker/Dockerfile-go-mp4box
-          tags: user/app:latest
+          tags: luqmansen/go-mp4box:latest
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
