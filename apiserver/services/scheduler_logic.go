@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"math"
@@ -22,7 +23,11 @@ type schedulerServices struct {
 	mb        repositories.MessageBrokerRepository
 }
 
-func NewSchedulerService(taskRepo repositories.TaskRepository, videoRepo repositories.VideoRepository, mb repositories.MessageBrokerRepository) SchedulerService {
+func NewSchedulerService(
+	taskRepo repositories.TaskRepository,
+	videoRepo repositories.VideoRepository,
+	mb repositories.MessageBrokerRepository,
+) SchedulerService {
 	return &schedulerServices{
 		taskRepo:  taskRepo,
 		videoRepo: videoRepo,
@@ -56,16 +61,6 @@ func (s schedulerServices) ReadMessages() {
 				s.createTranscodeTaskFromSplitTask(&task)
 
 			case models.TaskTranscode:
-				//	check if previously is split task, merge,
-				//if task.Pre	//if err := s.videoRepo.AddMany(task.TaskSplit.SplitedVideo); err != nil{
-				//				//	log.Error(err)
-				//				//}vTask == models.TaskSplit {
-				//
-				//} else {
-				//	s.CreateDashTask(task.TaskTranscode.Video)
-				//}
-				//	else, create dash task
-
 				// get by file name
 				//TODO : Find one and update
 				toUpdate, err := s.videoRepo.GetOneByName(task.TaskTranscode.Video.FileName)
@@ -83,12 +78,22 @@ func (s schedulerServices) ReadMessages() {
 					log.Error(err)
 				}
 
+				//	check if previously is split task, merge,
+				if task.PrevTask == models.TaskSplit {
+					s.CreateMergeTask(&task)
+				} else { // must be a video with small size (prevTask == TaskNew)
+					err = s.CreateDashTask(task.TaskTranscode.Video)
+					if err != nil {
+						log.Error(errors.Wrap(err, "services.Scheduler.ReadMessages"))
+					}
+				}
+
 				err = msg.Ack(false)
 				if err != nil {
 					log.Error(err)
 				}
 			case models.TaskMerge:
-				//	create dash task
+				//create transcode task
 			}
 
 		}
@@ -113,6 +118,9 @@ func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) {
 	wg.Wait()
 }
 
+//For transcode audio
+//Currently audio transcoding is disabled, original audio is embedded on audio,
+//see note on task_transcode line ~60
 func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 	task := models.Task{
 		Kind: models.TaskTranscode,
@@ -139,7 +147,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
 	var sizePerVid int64
 	var sizeLeft int64
-	var minSize int64 = 10240 << 10 // 10 MB
+	var minSize int64 = 1024000 << 10 // 10 MB
 
 	// if video size less than min file size, forward to transcode task
 	if video.Size < minSize {
@@ -147,10 +155,11 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		if err != nil {
 			return err
 		}
-		if err := s.createTranscodeAudioTask(video); err != nil {
-			log.Error(err)
-			return err
-		}
+
+		//if err := s.createTranscodeAudioTask(video); err != nil {
+		//	log.Error(err)
+		//	return err
+		//}
 		return nil
 	} else {
 		//split per 10 MB files
@@ -158,11 +167,10 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		sizeLeft = video.Size % minSize
 	}
 
-	// Must transcode audio, else the video will have no audio
-	if err := s.createTranscodeAudioTask(video); err != nil {
-		log.Error(err)
-		return err
-	}
+	//if err := s.createTranscodeAudioTask(video); err != nil {
+	//	log.Error(err)
+	//	return err
+	//}
 
 	task := models.Task{
 		Kind: models.TaskSplit,
@@ -191,6 +199,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 }
 
 // Transcode video input to all representation, each of video represent as task
+// this function might be transcoding a part video (video with _00X name)
 func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	// check if previously from task split
 	// file name on task split contain random-name_001
@@ -202,10 +211,11 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 		prevTask = models.TaskSplit
 	}
 
+	//TODO: only choose target res below the original video
 	target := []map[string]interface{}{
 		{"res": "256x144", "br": 80_000},
 		{"res": "426x240", "br": 300_000},
-		//{"res": "640x360", "br": 400_000},
+		{"res": "640x360", "br": 400_000},
 		//{"res": "854x480", "br": 500_000},
 		//{"res": "1280x720", "br": 1_500_000},
 		//{"res": "1920x1080", "br": 3_000_000},
@@ -260,15 +270,53 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	}
 }
 
-func (s schedulerServices) CreateMergeTask(video *models.Video) error {
-	panic("implement me")
-}
-
 func (s schedulerServices) CreateDashTask(video *models.Video) error {
 	// get all video resolution and audio
-	//videoList := s.videoRepo.Find(video.FileName)
+	video, err := s.videoRepo.GetOneByName(video.FileName)
+	if err != nil {
+		log.Error(errors.Wrap(err, "services.Scheduler.CreateDashTask"))
+		return err
+	}
+
+	//Disable this, see not on worker/task_transcode ~60
+	//check if audio already transcoded
+	//if video.Audio == nil{
+	//	log.Debug("Audio still empty")
+	//	return nil
+	//}
+	if len(video.Video) != 3 { // number of available video representation
+		log.Debug("Video transcoding haven't finished")
+		return nil
+	}
+
+	task := &models.Task{
+		Kind: models.TaskDash,
+		TaskDash: &models.DashTask{
+			ListVideo: video.Video,
+			ListAudio: []*models.Audio{video.Audio},
+		},
+		Status: models.TaskQueued,
+	}
+
+	err = s.taskRepo.Add(task)
+	if err != nil {
+		log.Error(errors.Wrap(err, "services.Scheduler.CreateDashTask"))
+		return err
+	}
+
+	err = s.mb.Publish(task, TaskNew)
+	if err != nil {
+		log.Error(errors.Wrap(err, "services.Scheduler.CreateDashTask"))
+		return err
+	}
 
 	return nil
+}
+
+// Merge task previously must be a split task, so to task parameter is
+// task with TaskTranscode struct filled
+func (s schedulerServices) CreateMergeTask(task *models.Task) error {
+	panic("implement me")
 }
 
 func (s schedulerServices) DeleteTask(taskId string) error {
