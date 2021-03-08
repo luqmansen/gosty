@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
@@ -93,7 +94,25 @@ func (s schedulerServices) ReadMessages() {
 					log.Error(err)
 				}
 			case models.TaskMerge:
-				//create transcode task
+				if err := s.CreateMergeTask(&task); err != nil {
+					log.Error(err)
+				}
+
+			case models.TaskDash:
+				file := strings.Split(task.TaskDash.ListVideo[0].FileName, "_")
+				toUpdate, err := s.videoRepo.GetOneByName(fmt.Sprintf("%s.mp4", file[0]))
+				if err != nil {
+					log.Error(err)
+				}
+				toUpdate.DashFile = task.TaskDash.ResultDash
+				if err = s.videoRepo.Update(toUpdate); err != nil {
+					log.Error(err)
+				}
+				err = msg.Ack(false)
+				if err != nil {
+					log.Error(err)
+				}
+
 			}
 
 		}
@@ -114,7 +133,6 @@ func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) {
 			w.Done()
 		}(vid, &wg)
 	}
-
 	wg.Wait()
 }
 
@@ -214,8 +232,8 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	//TODO: only choose target res below the original video
 	target := []map[string]interface{}{
 		{"res": "256x144", "br": 80_000},
-		{"res": "426x240", "br": 300_000},
-		{"res": "640x360", "br": 400_000},
+		//{"res": "426x240", "br": 300_000},
+		//{"res": "640x360", "br": 400_000},
 		//{"res": "854x480", "br": 500_000},
 		//{"res": "1280x720", "br": 1_500_000},
 		//{"res": "1920x1080", "br": 3_000_000},
@@ -284,7 +302,7 @@ func (s schedulerServices) CreateDashTask(video *models.Video) error {
 	//	log.Debug("Audio still empty")
 	//	return nil
 	//}
-	if len(video.Video) != 3 { // number of available video representation
+	if len(video.Video) != 1 { // number of available video representation
 		log.Debug("Video transcoding haven't finished")
 		return nil
 	}

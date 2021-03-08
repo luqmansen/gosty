@@ -17,6 +17,8 @@ type Video struct {
 
 	Audio *Audio   `json:"audio"`
 	Video []*Video `json:"video"`
+
+	DashFile []string
 }
 
 func (m *Video) TableName() string {
