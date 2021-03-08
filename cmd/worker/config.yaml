@@ -8,7 +8,11 @@ server:
   port: "8000"
 
 #message broker
-mb: "amqp://guest:guest@localhost:5672/"
+#configuration on docker compose
+#mb: "amqp://username:password@localhost:5672/"
+
+#configuration on kubernetes
+mb: "amqp://username:password@192.168.49.2:31672"
 
 #file server
 fs_host: "http://localhost:8001"
