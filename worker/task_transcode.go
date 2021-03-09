@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func (s taskSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
+func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
 	workdir := fmt.Sprintf("%s/tmp", wd)
@@ -142,7 +142,7 @@ func (s taskSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	}
 }
 
-func (s taskSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
+func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
 	workdir := fmt.Sprintf("%s/tmp", wd)

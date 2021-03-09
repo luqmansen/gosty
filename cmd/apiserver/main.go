@@ -26,13 +26,19 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
+	workerRepo, err := mongo.NewWorkerRepository(config.Database)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
 	mb := rabbitmq.NewRabbitMQRepo(viper.GetString("mb"))
 
 	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, mb)
+	workerSvc := services.NewWorkerService(workerRepo, mb)
+
 	//reading message from rabbit
-	go func() {
-		schedulerSvc.ReadMessages()
-	}()
+	go schedulerSvc.ReadMessages()
+	go workerSvc.ReadMessage()
 
 	insSvc := services.NewInspectorService(vidRepo, schedulerSvc)
 	insHandler := inspectorApi.NewInspectorHandler(insSvc)

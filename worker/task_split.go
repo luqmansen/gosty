@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func (s taskSvc) ProcessTaskSplit(task *models.Task) error {
+func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
 	workdir := fmt.Sprintf("%s/tmp", wd)

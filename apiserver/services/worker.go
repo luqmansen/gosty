@@ -3,9 +3,11 @@ package services
 import "github.com/luqmansen/gosty/apiserver/models"
 
 type WorkerService interface {
+	//Poll message from message broker
+	ReadMessage()
 	Create() error
-	Get(workerId uint) models.Worker
+	Get(workerName string) models.Worker
 	GetIdle() models.Worker
-	Update(workerId uint) models.Worker
-	Terminate(workerId uint) error
+	Update(workerName string) models.Worker
+	Terminate(workerName string) error
 }

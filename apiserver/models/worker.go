@@ -14,8 +14,12 @@ const (
 )
 
 type Worker struct {
-	Id           primitive.ObjectID
-	ContainerId  string
-	Status       WorkerStatus
-	LastAssigned time.Time
+	Id            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	WorkerPodName string             `json:"worker_pod_name"`
+	Status        WorkerStatus       `json:"status"`
+	UpdatedAt     time.Time          `json:"updated_at"`
+}
+
+func (w *Worker) TableName() string {
+	return "worker"
 }

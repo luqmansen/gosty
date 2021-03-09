@@ -15,11 +15,18 @@ import (
 func main() {
 	pkg.InitConfig()
 	mq := rabbitmq.NewRabbitMQRepo(viper.GetString("mb"))
+	workerSvc := worker.NewWorkerService(mq)
+
+	go func() {
+		if err := mq.Publish(workerSvc.GetWorkerInfo(), services.WorkerNew); err != nil {
+			log.Error(err)
+		}
+	}()
+
+	log.Infof("Worker %s started", workerSvc.GetWorkerInfo().WorkerPodName)
 
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
-
-	workerSvc := worker.NewWorkerService(mq)
 
 	go mq.ReadMessage(newTaskData, services.TaskNew)
 
@@ -106,7 +113,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Worker started. To exit press CTRL+C")
+	log.Printf("Worker running. To exit press CTRL+C")
 	<-forever
 
 }

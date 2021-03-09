@@ -1,7 +1,7 @@
 database:
   uri: "mongodb://username:password@localhost:27017/gosty?authSource=admin"
   database: "gosty"
-  timeout: 20
+  timeout: 2
 
 server:
   host: "localhost"
@@ -13,6 +13,8 @@ server:
 
 #configuration on kubernetes
 mb: "amqp://username:password@192.168.49.2:31672"
+
+hostname: "WORKER_DEV"
 
 #file server
 fs_host: "http://localhost:8001"
