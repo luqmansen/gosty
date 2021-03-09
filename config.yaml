@@ -1,7 +1,11 @@
 database:
-  uri: "mongodb://username:password@localhost:27017/gosty?authSource=admin"
+#  url on docker compose
+#  uri: "mongodb://username:password@localhost:27017/gosty?authSource=admin"
+#  url on kubernetes
+  uri: "mongodb://username:password@192.168.49.2:32017/gosty"
   database: "gosty"
-  timeout: 2
+  timeout: 1
+
 
 server:
   host: "localhost"
