@@ -10,3 +10,5 @@ wrk:
 fs:
 	nodemon --exec go run fileserver/main.go --signal SIGTERM
 
+build-bin:
+	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go

@@ -1,0 +1,12 @@
+FROM golang:1.16.0-alpine3.13
+
+WORKDIR /app
+
+COPY ./build/gpac/bin/ /usr/bin
+COPY ./build/gpac/lib/ /usr/lib
+ADD ./build/worker/app ./app
+ADD ./cmd/worker/dash.sh .
+ADD ./cmd/worker/config.yaml .
+RUN mkdir tmp
+
+CMD ["./app"]

@@ -27,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: docker/Dockerfile-go-mp4box
+          file: docker/Dockerfile-worker-go-mp4box
           tags: luqmansen/go-mp4box:latest
       -
         name: Image digest

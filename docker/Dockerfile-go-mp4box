@@ -22,7 +22,6 @@ RUN ./configure --use-zlib=no && \
     rm -Rf ./install/lib/temp && \
     mv ./install/lib/MP4* ./install/bin
 
-
 FROM golang:1.16.0-alpine3.13
 
 WORKDIR /app
