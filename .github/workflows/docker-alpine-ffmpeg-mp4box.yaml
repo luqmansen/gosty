@@ -22,16 +22,16 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Verify Changed files
-          uses: tj-actions/verify-changed-files@v5.5
-          id: changed_files
-          with:
-            files: |
-              docker/Dockerfile-alpine-ffmpeg-mp4box
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: |
+            docker/Dockerfile-alpine-ffmpeg-mp4box
 
       - name: Display changed files
-          if: steps.changed_files.outputs.files_changed == 'true'
-          run: |
-            echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"  # Outputs: test_directory/new.txt
+        if: steps.changed_files.outputs.files_changed == 'true'
+        run: |
+          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"  # Outputs: test_directory/new.txt
 
       - name: Build and push
         if: steps.changed_files.outputs.files_changed == 'true'
