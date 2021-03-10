@@ -24,6 +24,7 @@ jobs:
       -
         name: Build worker
         run : |
+          ls -lah
           make build-bin
       -
         name: Build and push
