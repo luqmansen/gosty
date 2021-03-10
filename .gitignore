@@ -20,10 +20,12 @@
 .docker
 
 *.mp4
-*.m4a
-*.m4s
-*.mpd
 *.mkv
+*.m4a
+*.mpd
+*.m4s
 
 /volume/
-playground/
+/playground
+
+build/*
