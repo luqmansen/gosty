@@ -13,7 +13,8 @@ Run minikube, and refer to [this](k8s/readme.md) deployment guide
 If you run Database and Message Broker on minikube, make sure to attach minikube network to the container, eg:
  
 ```
-docker run -it --network minikube luqmansen/gosty-worker:latest
+docker run -it --network minikube luqmansen/gosty-worker
+docker run -it --network minikube luqmansen/gosty-apiserver
 ```
 
  

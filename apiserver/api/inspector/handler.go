@@ -32,7 +32,7 @@ func NewInspectorHandler(inspectorSvc services.VideoInspectorService) VideoInspe
 }
 
 func (h handler) Get(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	w.Write([]byte("hello"))
 }
 
 func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {

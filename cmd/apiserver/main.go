@@ -10,10 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"net/http"
+	"os"
 )
 
 func main() {
-	//init viper configuration
 	pkg.InitConfig()
 	config := pkg.GetConfig()
 
@@ -44,8 +44,9 @@ func main() {
 	insHandler := inspectorApi.NewInspectorHandler(insSvc)
 
 	r := inspectorApi.Routes(insHandler)
-	log.Infof("listening to :%s:%s", config.Server.Host, config.Server.Port)
-	err = http.ListenAndServe(fmt.Sprintf("%s:%s", config.Server.Host, config.Server.Port), r)
+
+	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), config.Server.Port)
+	err = http.ListenAndServe(fmt.Sprintf(":%s", config.Server.Port), r)
 	if err != nil {
 		log.Println(err.Error())
 	}

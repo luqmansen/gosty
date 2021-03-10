@@ -4,7 +4,7 @@ database:
 #  url on kubernetes
   uri: "mongodb://username:password@192.168.49.2:32017/gosty"
   database: "gosty"
-  timeout: 1
+  timeout: 2
 
 
 server:

@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@master
       - name: Build worker
         run: |
-          make build-bin
+          CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
 
       - name: Publish to Dockerhub
         uses: elgohr/Publish-Docker-Github-Action@master
@@ -28,12 +28,28 @@ jobs:
       - uses: actions/checkout@master
       - name: Build worker
         run: |
-          make build-bin
+          CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
 
       - name: Publish to Dockerhub
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-fileserver
           dockerfile: docker/Dockerfile-fileserver
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+  gosty-apiserver:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@master
+      - name: Build worker
+        run: |
+          CGO_ENABLED=0 go build -o build/apiserver/app cmd/apiserver/main.go
+
+      - name: Publish to Dockerhub
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: luqmansen/gosty-apiserver
+          dockerfile: docker/Dockerfile-apiserver
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}

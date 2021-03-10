@@ -1,0 +1,9 @@
+FROM alpine:3.13
+
+WORKDIR /app
+
+ADD ./build/apiserver/app .
+ADD ./config.yaml .
+RUN mkdir tmp
+
+CMD ["./app"]
