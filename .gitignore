@@ -29,3 +29,5 @@
 /playground
 
 build/*
+/storage/
+cmd/worker/tmp/

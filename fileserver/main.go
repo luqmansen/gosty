@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/luqmansen/gosty/apiserver/pkg"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -13,12 +14,9 @@ import (
 	"strings"
 )
 
-func init() {
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
-}
-
 func main() {
+	pkg.InitConfig()
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
@@ -29,7 +27,7 @@ func main() {
 	}))
 
 	workDir, _ := os.Getwd()
-	path := workDir + "/fileserver/storage"
+	path := workDir + "/storage"
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err = os.Mkdir(path, 0700)
 		if err != nil {
@@ -42,6 +40,7 @@ func main() {
 	filesDir := http.Dir(path)
 	fileServer(r, "/files", filesDir)
 
+	log.Info("File server ready to serve")
 	err := http.ListenAndServe(":8001", r)
 	if err != nil {
 		panic(err)
@@ -94,7 +93,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	params, _ := url.ParseQuery(r.URL.RawQuery)
 	fileName := params.Get("filename")
 
-	f, err := os.Create("./fileserver/storage/" + fileName)
+	f, err := os.Create("./storage/" + fileName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

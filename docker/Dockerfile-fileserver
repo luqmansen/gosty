@@ -1,0 +1,9 @@
+FROM alpine:3.13
+
+WORKDIR /app
+
+ADD ./build/fileserver/app .
+ADD ./config.yaml .
+RUN mkdir storage
+
+CMD ["./app"]

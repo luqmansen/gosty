@@ -12,6 +12,15 @@ fs:
 
 build-bin:
 	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
+	CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
 
 docker-base-worker:
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
+
+docker-worker:
+	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
+	docker build -t luqmansen/gosty-worker -f docker/Dockerfile-worker .
+
+docker-fs:
+	CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
+	docker build -t luqmansen/gosty-fileserver -f docker/Dockerfile-fileserver .
