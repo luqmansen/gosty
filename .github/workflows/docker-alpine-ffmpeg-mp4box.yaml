@@ -6,7 +6,7 @@ on:
       - 'main'
 
 jobs:
-  docker:
+  alpine-ffmpeg-mp4box:
     runs-on: ubuntu-latest
     steps:
       -
