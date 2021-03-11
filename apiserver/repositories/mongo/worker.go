@@ -2,8 +2,8 @@ package mongo
 
 import (
 	"context"
+	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/models"
-	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,14 +15,14 @@ type workerRepository struct {
 	db mongoRepository
 }
 
-func NewWorkerRepository(cfg pkg.Database) (repositories.WorkerRepository, error) {
+func NewWorkerRepository(db config.Database) (repositories.WorkerRepository, error) {
 	workerRepo := &workerRepository{
 		db: mongoRepository{
-			timeout:  time.Duration(cfg.Timeout) * time.Second,
-			database: cfg.Database,
+			timeout:  time.Duration(db.Timeout) * time.Second,
+			database: db.Name,
 		},
 	}
-	client, e := newMongoClient(cfg.URI, cfg.Timeout)
+	client, e := newMongoClient(db.GetDatabaseUri(), db.Timeout)
 	if e != nil {
 		return nil, errors.Wrap(e, "repositories.NewWorkerRepository")
 	}

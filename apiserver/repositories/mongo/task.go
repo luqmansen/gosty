@@ -2,8 +2,8 @@ package mongo
 
 import (
 	"context"
+	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/models"
-	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,14 +15,14 @@ type taskRepository struct {
 	db mongoRepository
 }
 
-func NewTaskRepository(cfg pkg.Database) (repositories.TaskRepository, error) {
+func NewTaskRepository(cfg config.Database) (repositories.TaskRepository, error) {
 	repo := &taskRepository{
 		db: mongoRepository{
 			timeout:  time.Duration(cfg.Timeout) * time.Second,
-			database: cfg.Database,
+			database: cfg.Name,
 		},
 	}
-	client, e := newMongoClient(cfg.URI, cfg.Timeout)
+	client, e := newMongoClient(cfg.GetDatabaseUri(), cfg.Timeout)
 	if e != nil {
 		return nil, errors.Wrap(e, "repository.NewNewsRepository")
 	}

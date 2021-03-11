@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/luqmansen/gosty/apiserver/pkg"
+	"github.com/luqmansen/gosty/apiserver/config"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -15,10 +16,11 @@ import (
 )
 
 func main() {
-	pkg.InitConfig()
+	cfg := config.LoadConfig(".")
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -41,7 +43,7 @@ func main() {
 	fileServer(r, "/files", filesDir)
 
 	log.Info("File server ready to serve")
-	err := http.ListenAndServe(":8001", r)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.FileServer.Host, cfg.FileServer.Port), r)
 	if err != nil {
 		panic(err)
 	}

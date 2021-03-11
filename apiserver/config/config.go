@@ -1,4 +1,4 @@
-package pkg
+package config
 
 import (
 	"fmt"
@@ -6,34 +6,15 @@ import (
 	"github.com/spf13/viper"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"os"
-	"strings"
 )
 
-type Configuration struct {
-	Server   Server
-	Database Database
-}
-
-type Database struct {
-	URI      string
-	Database string
-	Timeout  int
-}
-
-type Server struct {
-	Host string
-	Port string
-}
-
-var config Configuration
-
-func InitConfig() {
-	viper.SetDefault("DEPLOY", "PROD")
+func LoadConfig(path string) *Configuration {
 
 	if os.Getenv("DEPLOY") != "PROD" {
 		log.SetLevel(log.DebugLevel)
 		log.SetOutput(os.Stdout)
 	}
+
 	formatter := &prefixed.TextFormatter{
 		ForceColors:     true,
 		ForceFormatting: true,
@@ -44,27 +25,31 @@ func InitConfig() {
 		PrefixStyle:    "blue+b",
 		TimestampStyle: "white+h",
 	})
-
 	log.SetFormatter(formatter)
 
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath(path)
 	viper.SetConfigName("config")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetConfigType("env")
 	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Fatal(fmt.Errorf("Fatal error config file: %s \n", err))
+		log.Error(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-
-	err = viper.Unmarshal(&config)
+	conf := &Configuration{}
+	err = viper.Unmarshal(conf)
 	if err != nil {
-		log.Fatal(fmt.Errorf("Fatal error failed to decode to struct: %s \n", err))
+		log.Error(fmt.Errorf("Fatal error failed to decode to struct: %s \n", err))
 	}
-
+	return conf
 }
 
-func GetConfig() *Configuration {
-	return &config
+func (d Database) GetDatabaseUri() string {
+	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s",
+		d.Username, d.Password, d.Host, d.Port, d.Name)
+}
+
+func (m MessageBroker) GetMessageBrokerUri() string {
+	return fmt.Sprintf("amqp://%s:%s@%s:%s",
+		m.Username, m.Password, m.Host, m.Port)
 }

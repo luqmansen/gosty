@@ -3,7 +3,7 @@ FROM alpine:3.13
 WORKDIR /app
 
 ADD ./build/apiserver/app .
-ADD ./config.yaml .
+ADD ./config.env .
 RUN mkdir tmp
 
 CMD ["./app"]

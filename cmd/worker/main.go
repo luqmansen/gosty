@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/models"
-	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"
 	"github.com/luqmansen/gosty/worker"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
 func main() {
-	pkg.InitConfig()
-	mq := rabbitmq.NewRabbitMQRepo(viper.GetString("mb"))
+	cfg := config.LoadConfig(".")
+
+	mq := rabbitmq.NewRabbitMQRepo(cfg.MessageBroker.GetMessageBrokerUri())
 	workerSvc := worker.NewWorkerService(mq)
 
 	go func() {

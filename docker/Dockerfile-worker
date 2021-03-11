@@ -4,7 +4,7 @@ WORKDIR /app
 
 ADD ./build/worker/app ./app
 ADD ./cmd/worker/dash.sh .
-ADD ./config.yaml .
+ADD ./config.env .
 RUN mkdir tmp
 
 CMD ["./app"]

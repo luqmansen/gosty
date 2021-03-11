@@ -24,7 +24,7 @@ func NewWorkerService(mb repositories.MessageBrokerRepository) Services {
 	return &workerSvc{
 		mb: mb,
 		w: models.Worker{
-			WorkerPodName: viper.GetString("hostname"),
+			WorkerPodName: viper.GetString("HOSTNAME"),
 			Status:        models.WorkerStatusIdle,
 			UpdatedAt:     time.Now(),
 		},
