@@ -44,7 +44,7 @@ func main() {
 	r := inspectorApi.Routes(insHandler)
 
 	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), cfg.ApiServer.Port)
-	err = http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ApiServer.Host, cfg.ApiServer.Port), r)
+	err = http.ListenAndServe(fmt.Sprintf(":%s", cfg.ApiServer.Port), r)
 	if err != nil {
 		log.Println(err.Error())
 	}
