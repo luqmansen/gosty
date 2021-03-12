@@ -31,4 +31,12 @@ docker-fs: cleanup fs-bin
 	docker build -t luqmansen/gosty-fileserver -f docker/Dockerfile-fileserver .
 
 docker-api: cleanup api-bin
-	docker build -t luqmansen/gosty-apiserver:$(TAG) -f docker/Dockerfile-apiserver .
+	#docker build -t luqmansen/gosty-apiserver:$(TAG) -f docker/Dockerfile-apiserver .
+	#docker build -t luqmansen/gosty-apiserver -f docker/Dockerfile-apiserver .
+
+	#for using docker local registry
+	docker build -t localhost:5000/gosty-apiserver -f docker/Dockerfile-apiserver .
+	docker push localhost:5000/gosty-apiserver
+
+roll-api: docker-api
+	kubectl rollout restart -f k8s/gosty-apiserver.yaml

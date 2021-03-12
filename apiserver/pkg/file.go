@@ -40,14 +40,14 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	// If you don't close it, your request will be missing the terminating boundary.
 	err = w.Close()
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return err
 	}
 
 	// Now that you have a form, you can submit it to your handler.
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return
 	}
 	// Don't forget to set the content type, this will contain the boundary.
@@ -57,7 +57,7 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	client := http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 		err = fmt.Errorf("bad status: %s", res.Status)
 		b, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			logrus.Fatal(string(b))
+			logrus.Error(string(b))
 		}
 	}
 	logrus.Debugf("Upload to %s success", url)

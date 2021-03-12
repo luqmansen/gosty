@@ -17,7 +17,12 @@ spec:
     spec:
       containers:
         - name: gosty-apiserver
-          image: luqmansen/gosty-apiserver:latest
+#          image: luqmansen/gosty-apiserver:latest
+#          use local dev env
+          image: localhost:5000/gosty-apiserver:latest
+          envFrom:
+            - configMapRef:
+                name: gosty-config
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

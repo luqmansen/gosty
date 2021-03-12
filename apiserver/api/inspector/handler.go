@@ -73,18 +73,22 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ext, err := mime.ExtensionsByType(p.Header.Get("Content-Type"))
+	if err != nil {
+		log.Println(err.Error())
+	}
 	if len(ext) == 0 {
 		contentType := http.DetectContentType(sniff)
 		ext, err = mime.ExtensionsByType(contentType)
-	}
-
-	if err != nil {
-		log.Println(err.Error())
+		if len(ext) == 0 {
+			log.Error("no content type detected, set to mp4")
+			ext = append(ext, ".mp4")
+		}
 	}
 
 	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext[0])
 	f, err := ioutil.TempFile("./tmp/", fileName)
 	if err != nil {
+		log.Errorf("Error creating temp file %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -95,13 +99,16 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	n, err := io.Copy(f, lmt)
 	log.Debugf("Byte written for file %d: ", n)
 	if err != nil && err != io.EOF {
+		log.Errorf("Error copying file %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = f.Seek(0, io.SeekStart)
 	if err != nil {
-		log.Errorf("Error seeking file")
+		log.Errorf("Error seeking file %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	//upload to file server
@@ -110,7 +117,8 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("%s/upload?filename=%s", h.config.FileServer.GetFileServerUri(), actualFileName)
 	err = pkg.Upload(url, values)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("Error uploading files %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	//if err = os.Remove(f.Name()); err != nil{
