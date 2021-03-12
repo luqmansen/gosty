@@ -21,7 +21,7 @@ jobs:
       - name: Display changed files
         if: steps.changed_files.outputs.files_changed == 'true'
         run: |
-          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"  # Outputs: test_directory/new.txt
+          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
 
       - name: Set up QEMU
         if: steps.changed_files.outputs.files_changed == 'true'

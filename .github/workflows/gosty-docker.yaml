@@ -10,12 +10,24 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
+
+      - name: Verify Changed files
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: |
+            docker/Dockerfile-worker
+            cmd/worker/
+            worker/
+
       - name: Build worker
+        if: steps.changed_files.outputs.files_changed == 'true'
         run: |
           make cleanup
           make worker-bin
 
       - name: Publish to Dockerhub
+        if: steps.changed_files.outputs.files_changed == 'true'
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-worker
@@ -27,12 +39,23 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
+
+      - name: Verify Changed files
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: |
+            docker/Dockerfile-fileserver
+            fileserver/
+
       - name: Build fileserver
+        if: steps.changed_files.outputs.files_changed == 'true'
         run: |
           make cleanup
           make fs-bin
 
       - name: Publish to Dockerhub
+        if: steps.changed_files.outputs.files_changed == 'true'
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-fileserver
@@ -49,15 +72,18 @@ jobs:
           make cleanup
           make api-bin
 
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: get docker tag
+        id: docker_tag
+        run: |
+          TAG=$(git rev-parse --short=5 HEAD)
+          echo $TAG
+          echo ::set-output name=tag::$TAG
 
       - name: Publish to Dockerhub
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-apiserver
           dockerfile: docker/Dockerfile-apiserver
-          tags: ${{ steps.get_version.outputs.VERSION }}
+          tags: ${{ steps.docker_tag.outputs.tag }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}

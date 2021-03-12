@@ -1,4 +1,5 @@
 GOPATH:=$(shell go env GOPATH)
+TAG:=$(shell git rev-parse --short=5 HEAD)
 
 .PHONY: dev
 server:
@@ -30,4 +31,4 @@ docker-fs: cleanup fs-bin
 	docker build -t luqmansen/gosty-fileserver -f docker/Dockerfile-fileserver .
 
 docker-api: cleanup api-bin
-	docker build -t luqmansen/gosty-apiserver -f docker/Dockerfile-apiserver .
+	docker build -t luqmansen/gosty-apiserver:$(TAG) -f docker/Dockerfile-apiserver .
