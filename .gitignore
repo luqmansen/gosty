@@ -26,8 +26,9 @@
 *.m4s
 
 /volume/
-/playground
+/playground/
 
-build/*
+/tmp/
+/build/
 /storage/
-cmd/worker/tmp/
+/cmd/worker/tmp/

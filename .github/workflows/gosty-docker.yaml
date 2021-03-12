@@ -12,7 +12,8 @@ jobs:
       - uses: actions/checkout@master
       - name: Build worker
         run: |
-          CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
+          make cleanup
+          make worker-bin
 
       - name: Publish to Dockerhub
         uses: elgohr/Publish-Docker-Github-Action@master
@@ -26,9 +27,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
-      - name: Build worker
+      - name: Build fileserver
         run: |
-          CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
+          make cleanup
+          make fs-bin
 
       - name: Publish to Dockerhub
         uses: elgohr/Publish-Docker-Github-Action@master
@@ -42,9 +44,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
-      - name: Build worker
+      - name: Build apiserver
         run: |
-          CGO_ENABLED=0 go build -o build/apiserver/app cmd/apiserver/main.go
+          make cleanup
+          make api-bin
 
       - name: Publish to Dockerhub
         uses: elgohr/Publish-Docker-Github-Action@master

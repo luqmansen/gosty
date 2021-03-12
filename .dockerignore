@@ -1,6 +1,7 @@
-.github
-docker
-tmp
-volume
-worker/tmp
-testtest
+.github/
+docker/
+tmp/
+volume/
+.idea/
+.git/
+playground/

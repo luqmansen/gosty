@@ -1,10 +1,13 @@
 # gosty
-
-### Developmment
+Kubernetes compliance scalable cloud transcoding service
+![](https://github.com/luqmansen/gosty/wiki/out/Diagram/sys-design-overview.png)
+<sup><sup>*diagram need revision</sup></sup> 
+___
+### Development
 
 #### Using Docker compose
 1. `docker-compose up`
-2. Change `config.yaml` to use the docker compose env
+2. Change `config.env` to use the docker compose env
 
 #### Testing on Minikube
 Run minikube, and refer to [this](k8s/readme.md) deployment guide

@@ -10,22 +10,24 @@ wrk:
 fs:
 	nodemon --exec go run fileserver/main.go --signal SIGTERM
 
-build-bin:
-	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
-	CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
+api-bin:
 	CGO_ENABLED=0 go build -o build/apiserver/app cmd/apiserver/main.go
+worker-bin:
+	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
+fs-bin:
+	CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
 
-docker-base-worker:
+cleanup:
+	rm -rf build/*
+
+docker-base-worker: cleanup
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
-docker-worker:
-	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
+docker-worker: cleanup worker-bin
 	docker build -t luqmansen/gosty-worker -f docker/Dockerfile-worker .
 
-docker-fs:
-	CGO_ENABLED=0 go build -o build/fileserver/app fileserver/main.go
+docker-fs: cleanup fs-bin
 	docker build -t luqmansen/gosty-fileserver -f docker/Dockerfile-fileserver .
 
-docker-server:
-	CGO_ENABLED=0 go build -o build/apiserver/app cmd/apiserver/main.go
+docker-api: cleanup api-bin
 	docker build -t luqmansen/gosty-apiserver -f docker/Dockerfile-apiserver .
