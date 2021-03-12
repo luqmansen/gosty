@@ -39,7 +39,7 @@ func main() {
 	go workerSvc.ReadMessage()
 
 	insSvc := services.NewInspectorService(vidRepo, schedulerSvc)
-	insHandler := inspectorApi.NewInspectorHandler(insSvc)
+	insHandler := inspectorApi.NewInspectorHandler(cfg, insSvc)
 
 	r := inspectorApi.Routes(insHandler)
 

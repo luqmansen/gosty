@@ -42,7 +42,7 @@ func main() {
 	filesDir := http.Dir(path)
 	fileServer(r, "/files", filesDir)
 
-	log.Info("File server ready to serve")
+	log.Infof("File running on %s:%s", cfg.FileServer.Host, cfg.FileServer.Port)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.FileServer.Host, cfg.FileServer.Port), r)
 	if err != nil {
 		panic(err)

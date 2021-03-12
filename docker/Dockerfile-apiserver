@@ -2,6 +2,10 @@ FROM alpine:3.13
 
 WORKDIR /app
 
+# uncomment this to check when build context get bigger
+#COPY . /tmp/build
+#RUN find /tmp/build
+
 ADD ./build/apiserver/app .
 ADD ./config.env .
 RUN mkdir tmp

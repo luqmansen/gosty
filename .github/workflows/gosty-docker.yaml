@@ -1,4 +1,4 @@
-name: Docker gosty-worker CI
+name: Docker gosty CI
 
 on:
   push:

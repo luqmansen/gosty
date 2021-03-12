@@ -302,6 +302,7 @@ func (s schedulerServices) CreateDashTask(video *models.Video) error {
 	//	log.Debug("Audio still empty")
 	//	return nil
 	//}
+	//Todo: check of available video representation
 	if len(video.Video) != 1 { // number of available video representation
 		log.Debug("Video transcoding haven't finished")
 		return nil

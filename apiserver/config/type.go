@@ -17,13 +17,13 @@ type Database struct {
 }
 
 type ApiServer struct {
-	Host string `mapstructure:"APISERVER_SERVICE_HOST"`
-	Port string `mapstructure:"APISERVER_SERVICE_PORT"`
+	Host string `mapstructure:"GOSTY_APISERVER_SVC_SERVICE_HOST"`
+	Port string `mapstructure:"GOSTY_APISERVER_SVC_SERVICE_PORT"`
 }
 
 type FileServer struct {
-	Host string `mapstructure:"FILESERVER_SERVICE_HOST"`
-	Port string `mapstructure:"FILESERVER_SERVICE_PORT"`
+	Host string `mapstructure:"GOSTY_FILESERVER_SERVICE_HOST"`
+	Port string `mapstructure:"GOSTY_FILESERVER_SERVICE_PORT"`
 }
 
 type MessageBroker struct {

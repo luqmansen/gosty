@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/h2non/filetype"
+	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/services"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -24,10 +24,17 @@ type VideoInspectorHandler interface {
 
 type handler struct {
 	inspectorService services.VideoInspectorService
+	config           *config.Configuration
 }
 
-func NewInspectorHandler(inspectorSvc services.VideoInspectorService) VideoInspectorHandler {
-	return &handler{inspectorSvc}
+func NewInspectorHandler(
+	cfg *config.Configuration,
+	inspectorSvc services.VideoInspectorService,
+) VideoInspectorHandler {
+	return &handler{
+		inspectorService: inspectorSvc,
+		config:           cfg,
+	}
 
 }
 
@@ -86,7 +93,7 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	lmt := io.MultiReader(buf, io.LimitReader(p, maxSize-511))
 
 	n, err := io.Copy(f, lmt)
-	log.Debugf("Byte written for file: ", n)
+	log.Debugf("Byte written for file %d: ", n)
 	if err != nil && err != io.EOF {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -100,14 +107,21 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	//upload to file server
 	values := map[string]io.Reader{"file": f}
 	actualFileName := strings.Split(f.Name(), "/")[1] // remove /tmp/ on filepath
-	url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), actualFileName)
+	url := fmt.Sprintf("%s/upload?filename=%s", h.config.FileServer.GetFileServerUri(), actualFileName)
 	err = pkg.Upload(url, values)
 	if err != nil {
 		log.Error(err)
 		return
 	}
+	//if err = os.Remove(f.Name()); err != nil{
+	//	//just log the error, don't care if file isn't removed
+	//	//handle the disk full error on later
+	//	log.Error(err)
+	//}
 
-	//inspect
+	//If we put inspect before file upload, in case of pod is down, after video
+	//inspection, the error will propagate to other service since task is
+	//already created, but file hasn't uploaded
 	vid := h.inspectorService.Inspect(f.Name())
 
 	resp, err := json.Marshal(vid)

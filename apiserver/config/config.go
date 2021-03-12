@@ -53,3 +53,7 @@ func (m MessageBroker) GetMessageBrokerUri() string {
 	return fmt.Sprintf("amqp://%s:%s@%s:%s",
 		m.Username, m.Password, m.Host, m.Port)
 }
+
+func (f FileServer) GetFileServerUri() string {
+	return fmt.Sprintf("http://%s:%s", f.Host, f.Port)
+}
