@@ -4,6 +4,7 @@ import (
 	"fmt"
 	inspectorApi "github.com/luqmansen/gosty/apiserver/api/inspector"
 	"github.com/luqmansen/gosty/apiserver/config"
+	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/repositories/mongo"
 	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"
@@ -43,9 +44,9 @@ func main() {
 
 	r := inspectorApi.Routes(insHandler)
 
-	port := 8000
+	port := pkg.GetEnv("PORT", "8000")
 	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
-	err = http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	err = http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	if err != nil {
 		log.Println(err.Error())
 	}

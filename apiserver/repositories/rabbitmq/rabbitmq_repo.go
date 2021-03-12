@@ -15,6 +15,7 @@ type rabbitRepo struct {
 
 func NewRabbitMQRepo(uri string) repositories.MessageBrokerRepository {
 	//TODO defer close connection somewhere
+	log.Debugf("Rabbitmq uri: %s", uri)
 	conn, err := amqp.Dial(uri)
 	if err != nil {
 		log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
