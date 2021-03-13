@@ -46,6 +46,7 @@ jobs:
         with:
           files: |
             docker/Dockerfile-fileserver
+            cmd/fileserver/
             fileserver/
 
       - name: Build fileserver
@@ -67,12 +68,24 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
+
+      - name: Verify Changed files
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: |
+            docker/Dockerfile-apiserver
+            cmd/apiserver/
+            apiserver/
+
       - name: Build apiserver
+        if: steps.changed_files.outputs.files_changed == 'true'
         run: |
           make cleanup
           make api-bin
 
       - name: get docker tag
+        if: steps.changed_files.outputs.files_changed == 'true'
         id: docker_tag
         run: |
           TAG=$(git rev-parse --short=5 HEAD)
@@ -80,6 +93,7 @@ jobs:
           echo ::set-output name=tag::$TAG
 
       - name: Publish to Dockerhub
+        if: steps.changed_files.outputs.files_changed == 'true'
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-apiserver
