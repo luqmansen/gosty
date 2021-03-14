@@ -17,8 +17,8 @@ type Database struct {
 }
 
 type ApiServer struct {
-	Host string `mapstructure:"GOSTY_APISERVER_SVC_SERVICE_HOST"`
-	Port string `mapstructure:"GOSTY_APISERVER_SVC_SERVICE_PORT"`
+	Host string `mapstructure:"GOSTY_APISERVER_SERVICE_HOST"`
+	Port string `mapstructure:"GOSTY_APISERVER_SERVICE_PORT"`
 }
 
 type FileServer struct {

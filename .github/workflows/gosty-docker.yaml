@@ -20,6 +20,11 @@ jobs:
             cmd/worker/
             worker/
 
+      - name: Display changed files
+        if: steps.changed_files.outputs.files_changed == 'true'
+        run: |
+          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
+
       - name: Build worker
         if: steps.changed_files.outputs.files_changed == 'true'
         run: |
@@ -49,14 +54,16 @@ jobs:
             cmd/fileserver/
             fileserver/
 
+      - name: Display changed files
+        run: |
+          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
+
       - name: Build fileserver
-        if: steps.changed_files.outputs.files_changed == 'true'
         run: |
           make cleanup
           make fs-bin
 
       - name: Publish to Dockerhub
-        if: steps.changed_files.outputs.files_changed == 'true'
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-fileserver
@@ -78,6 +85,11 @@ jobs:
             cmd/apiserver/
             apiserver/
 
+      - name: Display changed files
+        if: steps.changed_files.outputs.files_changed == 'true'
+        run: |
+          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
+          
       - name: Build apiserver
         if: steps.changed_files.outputs.files_changed == 'true'
         run: |
@@ -98,6 +110,6 @@ jobs:
         with:
           name: luqmansen/gosty-apiserver
           dockerfile: docker/Dockerfile-apiserver
-          tags: ${{ steps.docker_tag.outputs.tag }}
+#          tags: ${{ steps.docker_tag.outputs.tag }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
