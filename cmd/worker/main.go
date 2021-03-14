@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/models"
+	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"
 	"github.com/luqmansen/gosty/worker"
@@ -15,7 +15,7 @@ func main() {
 	cfg := config.LoadConfig(".")
 
 	mq := rabbitmq.NewRabbitMQRepo(cfg.MessageBroker.GetMessageBrokerUri())
-	workerSvc := worker.NewWorkerService(mq)
+	workerSvc := worker.NewWorkerService(mq, cfg)
 
 	go func() {
 		if err := mq.Publish(workerSvc.GetWorkerInfo(), services.WorkerNew); err != nil {

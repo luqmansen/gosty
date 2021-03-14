@@ -2,6 +2,7 @@ package worker
 
 import (
 	"github.com/luqmansen/gosty/apiserver/models"
+	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/spf13/viper"
 	"time"
@@ -16,21 +17,23 @@ type Services interface {
 }
 
 type workerSvc struct {
-	mb repositories.MessageBrokerRepository
-	w  models.Worker
+	messageBroker repositories.MessageBrokerRepository
+	worker        *models.Worker
+	config        *config.Configuration
 }
 
-func NewWorkerService(mb repositories.MessageBrokerRepository) Services {
+func NewWorkerService(mb repositories.MessageBrokerRepository, conf *config.Configuration) Services {
 	return &workerSvc{
-		mb: mb,
-		w: models.Worker{
+		messageBroker: mb,
+		worker: &models.Worker{
 			WorkerPodName: viper.GetString("HOSTNAME"),
 			Status:        models.WorkerStatusIdle,
 			UpdatedAt:     time.Now(),
 		},
+		config: conf,
 	}
 }
 
 func (s workerSvc) GetWorkerInfo() *models.Worker {
-	return &s.w
+	return s.worker
 }

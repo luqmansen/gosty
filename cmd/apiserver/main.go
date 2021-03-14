@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	inspectorApi "github.com/luqmansen/gosty/apiserver/api/inspector"
-	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/pkg"
+	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/apiserver/repositories/mongo"
 	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/apiserver/services"

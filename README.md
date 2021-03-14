@@ -14,8 +14,11 @@ ___
 ### Using docker image
 If you run Database and Message Broker on minikube, make sure to attach minikube network to the container
 
- example:
- > `docker run ` **`--network minikube`** `luqmansen/gosty-worker`
+```
+docker run -p 8000:8000 --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 localhost:5000/gosty-apiserver
+docker run -p 8001:8001 --network=minikube localhost:5000/gosty-fileserver
+docker run --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 localhost:5000/gosty-worker
+```
 
 ### Using docker local registry on Minikube
 To speed up experiment with docker image on k8s when development, enable minikube local registry
@@ -32,8 +35,8 @@ minikube start --insecure-registry="localhost:5000"
 ```
 Make sure to push the docker image on local registry
 ```
-docker build -t localhost:5000/gosty-apiserver -f docker/Dockerfile-apiserver .
-docker push localhost:5000/gosty-apiserver
+docker build -t localhost:5000/{image-name} -f docker/Dockerfile-{image-name} .
+docker push localhost:5000/{image-name}
 ```
 Don't forget to change the k8s deployment image
 ```yaml

@@ -17,7 +17,6 @@ spec:
     spec:
       containers:
         - name: gosty-apiserver
-#          image: luqmansen/gosty-apiserver:latest
           image: localhost:5000/gosty-apiserver:latest
           envFrom:
             - configMapRef:

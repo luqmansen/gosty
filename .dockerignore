@@ -6,3 +6,4 @@ volume/
 .git/
 playground/
 storage/
+tmp-worker/

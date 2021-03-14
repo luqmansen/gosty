@@ -6,7 +6,6 @@ import (
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,20 +18,20 @@ import (
 func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp-worker", wd)
 
 	errCh := make(chan error)
 	var wg sync.WaitGroup
 
 	for _, video := range task.TaskDash.ListVideo {
 		wg.Add(1)
-		go func(v string) {
+		go func(vidName string) {
 			defer wg.Done()
 
 			log.Debug(os.Getwd())
 
-			inputPath := fmt.Sprintf("%s/%s", workdir, v)
-			url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), v)
+			inputPath := fmt.Sprintf("%s/%s", workdir, vidName)
+			url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), vidName)
 			log.Debug(inputPath)
 			err := pkg.Download(inputPath, url)
 			if err != nil {
@@ -43,6 +42,7 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 	}
 	wg.Wait() //need to make sure all files downloaded
 
+	//list all file that is needed to create dash representation
 	var fileList []string
 	for _, v := range task.TaskDash.ListVideo {
 		fileList = append(fileList, fmt.Sprintf("%s/%s", workdir, v.FileName))
@@ -51,7 +51,7 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 	log.Debugf("Processing dash task id: %s", task.Id.Hex())
 	origFileName := strings.Split(strings.Split(task.TaskDash.ListVideo[0].FileName, ".")[0], "_")[0]
 
-	cmd := exec.Command("bash", "dash.sh",
+	cmd := exec.Command("bash", "script/dash.sh",
 		fmt.Sprintf("%s.mpd", fmt.Sprintf("%s/%s", workdir, origFileName)),
 		strings.Join(fileList, " "),
 	)
@@ -75,10 +75,11 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 		go func(f string) {
 			defer wg.Done()
 			if err = os.Remove(f); err != nil {
-				log.Error(err)
+				log.Errorf("Error removing source file %s: %s", f, err)
 			}
 		}(file)
 	}
+	wg.Wait()
 
 	var dashResult []string
 	files, err := ioutil.ReadDir(workdir)
@@ -96,20 +97,20 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 			filePath := fmt.Sprintf("%s/%s", workdir, fileName)
 			fileReader, err := os.Open(filePath)
 			if err != nil {
-				log.Error(err)
+				log.Errorf("error opening dash result: %s", err)
 				errCh <- err
 				return
 			}
 
 			values := map[string]io.Reader{"file": fileReader}
-			url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), fileName)
+			url := fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), fileName)
 			if err = pkg.Upload(url, values); err != nil {
-				log.Error(err)
+				log.Errorf("Error uploading file %s: %s", fileName, err)
 				errCh <- err
 				return
 			}
 			if err = os.Remove(filePath); err != nil {
-				log.Error(err)
+				log.Errorf("Error removing dash result file after uploading %s: %s", fileName, err)
 				errCh <- err
 				return
 			}
@@ -118,10 +119,8 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 
 	select {
 	case err = <-errCh:
-		log.Error(err)
 		return err
 	default:
-		wg.Wait()
 		task.TaskDuration = time.Since(start)
 		task.CompletedAt = time.Now()
 		task.Status = models.TaskStatusDone

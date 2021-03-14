@@ -6,7 +6,6 @@ import (
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -20,10 +19,10 @@ import (
 func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp-worker", wd)
 
 	filePath := fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName)
-	url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), task.TaskSplit.Video.FileName)
+	url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), task.TaskSplit.Video.FileName)
 	err := pkg.Download(filePath, url)
 	if err != nil {
 		log.Error(err)
@@ -81,7 +80,7 @@ func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 			}
 
 			values := map[string]io.Reader{"file": fileReader}
-			url := fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), fileName)
+			url := fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), fileName)
 			if err = pkg.Upload(url, values); err != nil {
 				log.Error(err)
 				errCh <- err

@@ -41,7 +41,7 @@ func (wrk workerServices) ReadMessage() {
 			if err != nil {
 				log.Error(err)
 			}
-			log.Debug("New worker added")
+			log.Debugf("New worker %s added", worker.WorkerPodName)
 			if err := wrk.workerRepo.Upsert(&worker); err != nil {
 				log.Error(err)
 			}

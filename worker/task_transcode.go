@@ -7,7 +7,6 @@ import (
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -20,7 +19,7 @@ import (
 func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp-worker", wd)
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
@@ -28,7 +27,7 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	newFileName := fmt.Sprintf("%s_%s.%s", origFileName[0], task.TaskTranscode.TargetRes, origFileName[1])
 
 	outputPath := fmt.Sprintf("%s/%s", workdir, newFileName)
-	url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), task.TaskTranscode.Video.FileName)
+	url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), task.TaskTranscode.Video.FileName)
 	err := pkg.Download(inputPath, url)
 	if err != nil {
 		log.Error(err)
@@ -78,7 +77,7 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 
 	file, _ := os.Open(outputPath)
 	values := map[string]io.Reader{"file": file}
-	url = fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), newFileName)
+	url = fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), newFileName)
 	if err = pkg.Upload(url, values); err != nil {
 		log.Error(err)
 		return err
@@ -145,7 +144,7 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp", wd)
+	workdir := fmt.Sprintf("%s/tmp-worker", wd)
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
@@ -153,7 +152,7 @@ func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 	newFileName := fmt.Sprintf("%s.mp3", origFileName[0])
 
 	outputPath := fmt.Sprintf("%s/%s", workdir, newFileName)
-	url := fmt.Sprintf("%s/files/%s", viper.GetString("fs_host"), task.TaskTranscode.Video.FileName)
+	url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), task.TaskTranscode.Video.FileName)
 	err := pkg.Download(inputPath, url)
 	if err != nil {
 		log.Error(err)
@@ -187,7 +186,7 @@ func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 		return err
 	}
 
-	url = fmt.Sprintf("%s/upload?filename=%s", viper.GetString("fs_host"), newFileName)
+	url = fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), newFileName)
 	file, _ := os.Open(outputPath)
 	values := map[string]io.Reader{"file": file}
 	if err = pkg.Upload(url, values); err != nil {

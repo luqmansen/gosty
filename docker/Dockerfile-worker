@@ -3,8 +3,8 @@ FROM luqmansen/alpine-ffmpeg-mp4box
 WORKDIR /app
 
 ADD ./build/worker/app ./app
-ADD ./cmd/worker/dash.sh .
+COPY script ./script
 ADD ./config.env .
-RUN mkdir tmp
+RUN mkdir tmp-worker
 
 CMD ["./app"]

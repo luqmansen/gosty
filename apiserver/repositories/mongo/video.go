@@ -2,8 +2,8 @@ package mongo
 
 import (
 	"context"
-	"github.com/luqmansen/gosty/apiserver/config"
 	"github.com/luqmansen/gosty/apiserver/models"
+	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/apiserver/repositories"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"

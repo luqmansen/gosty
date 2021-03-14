@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/luqmansen/gosty/apiserver/pkg"
+	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/fileserver"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	config.LoadConfig(".")
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)

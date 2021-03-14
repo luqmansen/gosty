@@ -31,4 +31,4 @@
 /tmp/
 /build/
 /storage/
-/cmd/worker/tmp/
+/tmp-worker/

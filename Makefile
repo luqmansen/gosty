@@ -25,7 +25,9 @@ docker-base-worker: cleanup
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
 docker-worker: cleanup worker-bin
-	docker build -t luqmansen/gosty-worker -f docker/Dockerfile-worker .
+	#docker build -t luqmansen/gosty-worker -f docker/Dockerfile-worker .
+	docker build -t localhost:5000/gosty-worker -f docker/Dockerfile-worker .
+	docker push localhost:5000/gosty-worker
 
 docker-fs: cleanup fs-bin
 	#docker build -t luqmansen/gosty-fileserver -f docker/Dockerfile-fileserver .
