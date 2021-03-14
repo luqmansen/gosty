@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spekt8
+  namespace: gosty
+spec:
+  selector:
+    matchLabels:
+      component: spekt8
+  replicas: 1
+  template:
+    metadata:
+      namespace: gosty
+      labels:
+        component: spekt8
+    spec:
+      containers:
+        - name: spekt8
+          image: sanarena/spekt8
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NAMESPACE
+              value: gosty

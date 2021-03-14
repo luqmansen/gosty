@@ -1,7 +1,9 @@
-# gosty
+#gosty
 Kubernetes compliance scalable cloud transcoding service
+
+## Architecture diagram
 ![](https://github.com/luqmansen/gosty/wiki/out/Diagram/sys-design-overview.png)
-<sup><sup>*diagram need revision</sup></sup> 
+<sup>*diagram need revision</sup> 
 ___
 ## Development
 
@@ -73,6 +75,13 @@ mkdir -p /home/docker/$DIRNAME
 chmod 777 /home/docker/$DIRNAME
 ```
 
+**Additional**
+I setup [spekt8](https://github.com/spekt8/spekt8) for cluster visualization
+```
+kubectl create -f k8s/plugins/spekt8/fabric8-rbac.yaml 
+kubectl apply -f k8s/plugins/spekt8/spekt8-deployment.yaml 
+kubectl port-forward -n gosty deployment/spekt8 3000:3000
+```
 
 #### Additional Note
 If you notice, the config.env is still added to final docker images since viper has [this issue](https://github.com/spf13/viper/issues/584). 

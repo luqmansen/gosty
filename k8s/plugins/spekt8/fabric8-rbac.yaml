@@ -1,0 +1,22 @@
+# NOTE: The service account `default:default` already exists in k8s cluster.
+# You can create a new account following like this:
+#---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: gosty
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: fabric8-rbac
+ namespace: gosty
+subjects:
+ - kind: ServiceAccount
+   name: default
+   namespace: gosty
+roleRef:
+ kind: ClusterRole
+ name: cluster-admin
+ apiGroup: rbac.authorization.k8s.io
