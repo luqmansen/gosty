@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gosty-fileserver
+  namespace: gosty
+spec:
+  type: NodePort
+  selector:
+    app: gosty-fileserver
+  ports:
+    - port: 80
+      targetPort: 8001
+      nodePort: 30801
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: gosty
+  name: gosty-fileserver
+  labels:
+    app: gosty-fileserver
+spec:
+  serviceName: gosty-fileserver
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gosty-fileserver
+  template:
+    metadata:
+      labels:
+        app: gosty-fileserver
+    spec:
+      containers:
+        - name: gosty-fileserver
+          image: localhost:5000/gosty-fileserver:latest
+          ports:
+            - containerPort: 8001
+          volumeMounts:
+            - name: gosty-fileserver-volume
+              mountPath: /app/storage
+      volumes:
+        - name: gosty-fileserver-volume
+          persistentVolumeClaim:
+            claimName: gosty-fileserver-volume-claim

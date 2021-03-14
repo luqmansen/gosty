@@ -63,7 +63,16 @@ helm install rabbit bitnami/rabbitmq -f rabbitmq/helm-values.yaml --create-names
 kubectl create -f mongodb.yaml
 helm install mongodb bitnami/mongodb -f mongodb/helm-values.yaml --create-namespace --namespace gosty
 ```
-    
+
+**Fileserver**
+Currently fileserver use local persistent volume, which we have to set up the volume on the related node
+for the first time
+```
+DIRNAME="fileserver-storage"
+mkdir -p /home/docker/$DIRNAME 
+chmod 777 /home/docker/$DIRNAME
+```
+
 
 #### Additional Note
 If you notice, the config.env is still added to final docker images since viper has [this issue](https://github.com/spf13/viper/issues/584). 
