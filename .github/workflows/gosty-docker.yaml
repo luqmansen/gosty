@@ -1,4 +1,4 @@
-name: Docker gosty CI
+name: image build gosty component
 
 on:
   push:
@@ -6,33 +6,17 @@ on:
       - 'main'
 
 jobs:
-  gosty-worker:
+  worker:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
 
-      - name: Verify Changed files
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: |
-            docker/Dockerfile-worker
-            cmd/worker/
-            worker/
-
-      - name: Display changed files
-        if: steps.changed_files.outputs.files_changed == 'true'
-        run: |
-          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
-
       - name: Build worker
-        if: steps.changed_files.outputs.files_changed == 'true'
         run: |
           make cleanup
           make worker-bin
 
       - name: Publish to Dockerhub
-        if: steps.changed_files.outputs.files_changed == 'true'
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-worker
@@ -40,23 +24,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-  gosty-fileserver:
+  fileserver:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
-
-      - name: Verify Changed files
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: |
-            docker/Dockerfile-fileserver
-            cmd/fileserver/
-            fileserver/
-
-      - name: Display changed files
-        run: |
-          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
 
       - name: Build fileserver
         run: |
@@ -71,38 +42,15 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-  gosty-apiserver:
+  apiserver:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
 
-      - name: Verify Changed files
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: |
-            docker/Dockerfile-apiserver
-            cmd/apiserver/
-            apiserver/
-
-      - name: Display changed files
-        if: steps.changed_files.outputs.files_changed == 'true'
-        run: |
-          echo "Changed files: ${{ steps.changed_files.outputs.changed_files }}"
-          
       - name: Build apiserver
-        if: steps.changed_files.outputs.files_changed == 'true'
         run: |
           make cleanup
           make api-bin
-
-      - name: get docker tag
-        if: steps.changed_files.outputs.files_changed == 'true'
-        id: docker_tag
-        run: |
-          TAG=$(git rev-parse --short=5 HEAD)
-          echo $TAG
-          echo ::set-output name=tag::$TAG
 
       - name: Publish to Dockerhub
         if: steps.changed_files.outputs.files_changed == 'true'
@@ -110,6 +58,5 @@ jobs:
         with:
           name: luqmansen/gosty-apiserver
           dockerfile: docker/Dockerfile-apiserver
-#          tags: ${{ steps.docker_tag.outputs.tag }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
