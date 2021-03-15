@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gosty-worker
+  namespace: gosty
+  labels:
+    app: gosty-worker
+spec:
+  replicas: 3
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: gosty-worker
+  template:
+    metadata:
+      labels:
+        app: gosty-worker
+    spec:
+      containers:
+        - name: gosty-worker
+          image: localhost:5000/gosty-worker:latest
+          envFrom:
+            - configMapRef:
+                name: gosty-config
+          imagePullPolicy: Always

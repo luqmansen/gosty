@@ -25,18 +25,16 @@ To speed up experiment with docker image on k8s when development, enable minikub
 ```
 minikube addons enable registry
 ```
-redirect port 5000 on docker to minikube
+Check which port bind to minikube's 5000
 ```
- docker run --rm -it --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+$ docker ps
+CONTAINER ID        IMAGE                                 COMMAND                  CREATED             STATUS              PORTS                                                                                                                                  NAMES
+e3e397f36944        gcr.io/k8s-minikube/kicbase:v0.0.18   "/usr/local/bin/entr…"   5 days ago          Up 45 seconds       127.0.0.1:32787->22/tcp, 127.0.0.1:32786->2376/tcp, 127.0.0.1:32785->5000/tcp, 127.0.0.1:32784->8443/tcp, 127.0.0.1:32783->32443/tcp   minikube
 ```
-make sure start minikube with additional flag
+In this case its port 32785, make sure to push the docker image on minikube registry
 ```
-minikube start --insecure-registry="localhost:5000"
-```
-Make sure to push the docker image on local registry
-```
-docker build -t localhost:5000/{image-name} -f docker/Dockerfile-{image-name} .
-docker push localhost:5000/{image-name}
+docker build -t localhost:32785/{image-name} -f docker/Dockerfile-{image-name} .
+docker push localhost:32785/{image-name}
 ```
 Don't forget to change the k8s deployment image
 ```yaml
@@ -45,31 +43,31 @@ spec:
     - name: {image-name}
       image: localhost:5000/{image-name}:latest 
 ```
-**Note**
+port is still 5000, since internally, minikube use that port for its local resistry
+
+**Note**<br>
 For some reason, minikube's registry addons doesn't have mounted volume, so everytime
 Minikube restart, re-push the image, I create makefile command for this
 ```
-make docker-api
-make docker-fs
-make docker-worker
+make push-all
 ```
 
 ## Deployment 
 RabbitMQ and MongoDB deployed using helm, make sure to install helm before
    
-**RabbitMQ**
+**RabbitMQ**<br>
 ```
 kubectl create -f rabbitmq.yaml
 helm install rabbit bitnami/rabbitmq -f rabbitmq/helm-values.yaml --create-namespace --namespace gosty
 ```
 
-**Mongodb**
+**MongoDB**<br>
 ```
 kubectl create -f mongodb.yaml
 helm install mongodb bitnami/mongodb -f mongodb/helm-values.yaml --create-namespace --namespace gosty
 ```
 
-**Fileserver**
+**FileServer**<br>
 Currently fileserver use local persistent volume, which we have to set up the volume on the related node
 for the first time
 ```
@@ -78,7 +76,7 @@ mkdir -p /home/docker/$DIRNAME
 chmod 777 /home/docker/$DIRNAME
 ```
 
-**Additional**
+**Additional**<br>
 I setup [spekt8](https://github.com/spekt8/spekt8) for cluster visualization
 ```
 kubectl create -f k8s/plugins/spekt8/fabric8-rbac.yaml 
