@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: gosty-apiserver
-          image: localhost:5000/gosty-apiserver:latest
+          image: 10.109.191.7/gosty-apiserver:latest
           envFrom:
             - configMapRef:
                 name: gosty-config
@@ -32,10 +32,9 @@ metadata:
   name: gosty-apiserver
   namespace: gosty
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: gosty-apiserver
   ports:
     - port: 80
       targetPort: 8000
-      nodePort: 30800

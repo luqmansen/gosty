@@ -4,13 +4,12 @@ metadata:
   name: gosty-fileserver
   namespace: gosty
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: gosty-fileserver
   ports:
     - port: 80
       targetPort: 8001
-      nodePort: 30801
 
 ---
 apiVersion: apps/v1
@@ -33,7 +32,7 @@ spec:
     spec:
       containers:
         - name: gosty-fileserver
-          image: localhost:5000/gosty-fileserver:latest
+          image: 10.109.191.7/gosty-fileserver:latest
           ports:
             - containerPort: 8001
           volumeMounts:

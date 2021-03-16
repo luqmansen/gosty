@@ -1,4 +1,4 @@
-package inspector
+package video
 
 import (
 	"bufio"
@@ -17,29 +17,46 @@ import (
 	"strings"
 )
 
-type VideoInspectorHandler interface {
+type Handler interface {
 	Get(w http.ResponseWriter, r *http.Request)
+	//GetPlaylist fetch all video with finished dask task
+	GetPlaylist(w http.ResponseWriter, r *http.Request)
 	UploadHandler(w http.ResponseWriter, r *http.Request)
 }
 
 type handler struct {
-	inspectorService services.VideoInspectorService
-	config           *config.Configuration
+	videoService services.VideoService
+	config       *config.Configuration
 }
 
 func NewInspectorHandler(
 	cfg *config.Configuration,
-	inspectorSvc services.VideoInspectorService,
-) VideoInspectorHandler {
+	inspectorSvc services.VideoService,
+) Handler {
 	return &handler{
-		inspectorService: inspectorSvc,
-		config:           cfg,
+		videoService: inspectorSvc,
+		config:       cfg,
 	}
-
 }
 
 func (h handler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("hello"))
+}
+
+func (h handler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
+	vid := h.videoService.GetAll()
+	resp, err := json.Marshal(vid)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(resp)
+	if err != nil {
+		log.Error(err)
+	}
+	return
 }
 
 func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +147,7 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	//If we put inspect before file upload, in case of pod is down, after video
 	//inspection, the error will propagate to other service since task is
 	//already created, but file hasn't uploaded
-	vid := h.inspectorService.Inspect(f.Name())
+	vid := h.videoService.Inspect(f.Name())
 
 	resp, err := json.Marshal(vid)
 	if err != nil {

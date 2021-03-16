@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -29,6 +30,44 @@ func NewVideoRepository(cfg config.Database) (repositories.VideoRepository, erro
 	}
 	vidRepo.db.client = client
 	return vidRepo, nil
+}
+
+func (r videoRepository) GetAll(limit int64) (result []*models.Video, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
+	defer cancel()
+
+	findOptions := options.Find()
+	findOptions.SetLimit(limit)
+	//findOptions.SetProjection(bson.M{"_id": 0, "dashfile": 1, "filename": 1})
+	filter := &bson.M{
+		"dashfile": bson.M{"$ne": nil},
+	}
+
+	coll := r.db.client.Database(r.db.database).Collection("video")
+	cur, err := coll.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, errors.New("repositories.Video.GetAll :" + err.Error())
+	}
+
+	for cur.Next(ctx) {
+
+		var elem models.Video
+		err := cur.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = append(result, &elem)
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	err = cur.Close(ctx)
+	if err != nil {
+		return nil, errors.New("repositories.Video.GetOneByName :" + err.Error())
+	}
+	return result, nil
 }
 
 func (r videoRepository) GetOneByName(key string) (*models.Video, error) {

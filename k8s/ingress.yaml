@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gosty-ingress
+  namespace: gosty
+  labels:
+    name: gosty-ingress
+spec:
+  rules:
+    - host: api.gosty.local
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: gosty-apiserver
+                port:
+                  number: 80
+    - host: fs.gosty.local
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: gosty-fileserver
+                port:
+                  number: 80

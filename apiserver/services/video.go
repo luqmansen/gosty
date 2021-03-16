@@ -4,6 +4,7 @@ import (
 	"github.com/luqmansen/gosty/apiserver/models"
 )
 
-type VideoInspectorService interface {
+type VideoService interface {
 	Inspect(filePath string) models.Video
+	GetAll() []*models.Video
 }

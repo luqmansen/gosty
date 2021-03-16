@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	inspectorApi "github.com/luqmansen/gosty/apiserver/api/inspector"
+	inspectorApi "github.com/luqmansen/gosty/apiserver/api/video"
 	"github.com/luqmansen/gosty/apiserver/pkg"
 	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/apiserver/repositories/mongo"
@@ -40,7 +40,7 @@ func main() {
 	go schedulerSvc.ReadMessages()
 	go workerSvc.ReadMessage()
 
-	insSvc := services.NewInspectorService(vidRepo, schedulerSvc)
+	insSvc := services.NewVideoService(vidRepo, schedulerSvc)
 	insHandler := inspectorApi.NewInspectorHandler(cfg, insSvc)
 
 	r := inspectorApi.Routes(insHandler)

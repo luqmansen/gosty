@@ -1,20 +1,19 @@
-package inspector
+package scheduler
 
 import (
 	"github.com/luqmansen/gosty/apiserver/services"
 	"net/http"
 )
 
-type SchedulerHandler interface {
+type Handler interface {
 	Get(w http.ResponseWriter, r *http.Request)
 	Post(w http.ResponseWriter, r *http.Request)
 }
-
 type handler struct {
-	inspectorService services.VideoInspectorService
+	inspectorService services.VideoService
 }
 
-func NewSchedulerHandler(inspectorSvc services.VideoInspectorService) SchedulerHandler {
+func NewSchedulerHandler(inspectorSvc services.VideoService) Handler {
 	return &handler{inspectorSvc}
 
 }

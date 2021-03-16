@@ -10,18 +10,17 @@ import (
 	"strings"
 )
 
-type videoInspectorServices struct {
+type videoServices struct {
 	vidRepo      repositories.VideoRepository
 	schedulerSvc SchedulerService
 }
 
-func NewInspectorService(vidRepo repositories.VideoRepository, schedulerSvc SchedulerService) VideoInspectorService {
-	return &videoInspectorServices{vidRepo, schedulerSvc}
+func NewVideoService(vidRepo repositories.VideoRepository, schedulerSvc SchedulerService) VideoService {
+	return &videoServices{vidRepo, schedulerSvc}
 }
 
-func (v videoInspectorServices) Inspect(file string) models.Video {
+func (v videoServices) Inspect(file string) models.Video {
 
-	//only get video stream (v:0 means video stream idx 0)
 	wd, _ := os.Getwd()
 	result, err := fluentffmpeg.Probe(wd + "/" + file)
 	if err != nil {
@@ -68,4 +67,12 @@ func (v videoInspectorServices) Inspect(file string) models.Video {
 	}
 
 	return video
+}
+
+func (v videoServices) GetAll() (vids []*models.Video) {
+	vids, err := v.vidRepo.GetAll(12)
+	if err != nil {
+		log.Error(err)
+	}
+	return
 }

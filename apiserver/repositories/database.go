@@ -4,6 +4,7 @@ import "github.com/luqmansen/gosty/apiserver/models"
 
 type VideoRepository interface {
 	Get(videoId uint) models.Video
+	GetAll(limit int64) ([]*models.Video, error)
 	GetOneByName(key string) (*models.Video, error)
 	Find(key string) []*models.Video
 	Add(video *models.Video) error

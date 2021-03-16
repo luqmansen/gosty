@@ -5,16 +5,16 @@ import (
 	"net/http"
 )
 
-type WorkerHandler interface {
+type Handler interface {
 	Get(w http.ResponseWriter, r *http.Request)
 	Post(w http.ResponseWriter, r *http.Request)
 }
 
 type handler struct {
-	inspectorService services.VideoInspectorService
+	inspectorService services.VideoService
 }
 
-func NewInspectorHandler(inspectorSvc services.VideoInspectorService) WorkerHandler {
+func NewInspectorHandler(inspectorSvc services.VideoService) Handler {
 	return &handler{inspectorSvc}
 
 }
