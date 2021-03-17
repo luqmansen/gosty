@@ -20,7 +20,7 @@ jobs:
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-worker
-          dockerfile: docker/Dockerfile-worker
+          dockerfile: docker/worker.Dockerfile
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
@@ -38,7 +38,7 @@ jobs:
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-fileserver
-          dockerfile: docker/Dockerfile-fileserver
+          dockerfile: docker/fileserver.Dockerfile
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
@@ -53,10 +53,22 @@ jobs:
           make api-bin
 
       - name: Publish to Dockerhub
-        if: steps.changed_files.outputs.files_changed == 'true'
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: luqmansen/gosty-apiserver
-          dockerfile: docker/Dockerfile-apiserver
+          dockerfile: docker/apiserver.Dockerfile
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+  web:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Publish to Dockerhub
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: luqmansen/gosty-web
+          dockerfile: docker/web.Dockerfile
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}

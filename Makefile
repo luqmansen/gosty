@@ -24,22 +24,28 @@ cleanup:
 docker-base-worker: cleanup
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
+docker-web:
+	#docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .
+	DOCKER_BUILDKIT=1 docker build -t localhost:5000/gosty-web -f docker/web.Dockerfile .
+	docker push localhost:5000/gosty-web
+
+
 docker-worker: cleanup worker-bin
-	#docker build -t luqmansen/gosty-worker -f docker/Dockerfile-worker .
-	docker build -t localhost:5000/gosty-worker -f docker/Dockerfile-worker .
+	#docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .
+	docker build -t localhost:5000/gosty-worker -f docker/worker.Dockerfile .
 	docker push localhost:5000/gosty-worker
 
 docker-fs: cleanup fs-bin
-	#docker build -t luqmansen/gosty-fileserver -f docker/Dockerfile-fileserver .
-	docker build -t localhost:5000/gosty-fileserver -f docker/Dockerfile-fileserver .
+	#docker build -t luqmansen/gosty-fileserver -f docker/fileserver.Dockerfile .
+	docker build -t localhost:5000/gosty-fileserver -f docker/fileserver.Dockerfile .
 	docker push localhost:5000/gosty-fileserver
 
 docker-api: cleanup api-bin
-	#docker build -t luqmansen/gosty-apiserver:$(TAG) -f docker/Dockerfile-apiserver .
-	#docker build -t luqmansen/gosty-apiserver -f docker/Dockerfile-apiserver .
+	#docker build -t luqmansen/gosty-apiserver:$(TAG) -f docker/apiserver.Dockerfile .
+	#docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
 
 	#for using docker local registry
-	docker build -t localhost:5000/gosty-apiserver -f docker/Dockerfile-apiserver .
+	docker build -t localhost:5000/gosty-apiserver -f docker/apiserver.Dockerfile .
 	docker push localhost:5000/gosty-apiserver
 
 push-all: docker-api docker-fs docker-worker
