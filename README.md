@@ -25,16 +25,14 @@ To speed up experiment with docker image on k8s when development, enable minikub
 ```
 minikube addons enable registry
 ```
-Check which port bind to minikube's 5000
+forward registry service to local port
 ```
-$ docker ps
-CONTAINER ID        IMAGE                                 COMMAND                  CREATED             STATUS              PORTS                                                                                                                                  NAMES
-e3e397f36944        gcr.io/k8s-minikube/kicbase:v0.0.18   "/usr/local/bin/entr…"   5 days ago          Up 45 seconds       127.0.0.1:32787->22/tcp, 127.0.0.1:32786->2376/tcp, 127.0.0.1:32785->5000/tcp, 127.0.0.1:32784->8443/tcp, 127.0.0.1:32783->32443/tcp   minikube
+kubectl port-forward --namespace kube-system svc/registry 5000:80
 ```
-In this case its port 32785, make sure to push the docker image on minikube registry
+push the local image to minikube's local registry
 ```
-docker build -t localhost:32785/{image-name} -f docker/Dockerfile-{image-name} .
-docker push localhost:32785/{image-name}
+docker build -t localhost:5000/{image-name} -f docker/Dockerfile-{image-name} .
+docker push localhost:5000/{image-name}
 ```
 Don't forget to change the k8s deployment image
 ```yaml
@@ -43,7 +41,7 @@ spec:
     - name: {image-name}
       image: localhost:5000/{image-name}:latest 
 ```
-port is still 5000, since internally, minikube use that port for its local resistry
+port is still 5000, since internally, minikube use that port for its local registry
 
 **Note**<br>
 For some reason, minikube's registry addons doesn't have mounted volume, so everytime
@@ -94,3 +92,6 @@ The env value later will be replaced by injected env values from K8s
 - Currently, every worker will always download a copy of the file and process it on its local pod volume,
  then remove the original file, then send the processed file to file server, this can use a lot of bandwidth. This can be improved by using shared volume on
   the node, and check if other worker already download the file, then process it.   
+
+##Acknowledgements
+Credit to [gibbok](https://github.com/gibbok) for web client, which I add some modification   

@@ -1,0 +1,15 @@
+.app {
+    display: flex;
+    justify-content: space-between;
+    width: 980px;
+    margin: 0 auto;
+}
+
+.app__video {
+    margin-right: 20px;
+    width: 100%;
+}
+
+.app__videoList {
+    margin-top: 30px;
+}

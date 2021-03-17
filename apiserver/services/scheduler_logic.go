@@ -42,6 +42,7 @@ func (s schedulerServices) ReadMessages() {
 	forever := make(chan bool, 1)
 
 	go s.mb.ReadMessage(finishedTask, TaskFinished)
+	//TODO: Refactor this repetitive message ack
 	go func() {
 		for t := range finishedTask {
 			msg := t.(amqp.Delivery)
@@ -67,6 +68,7 @@ func (s schedulerServices) ReadMessages() {
 				toUpdate, err := s.videoRepo.GetOneByName(task.TaskTranscode.Video.FileName)
 				if err != nil {
 					log.Error(err)
+					break
 				}
 
 				if task.TaskTranscode.TranscodeType == models.TranscodeAudio {
@@ -77,6 +79,7 @@ func (s schedulerServices) ReadMessages() {
 				}
 				if err = s.videoRepo.Update(toUpdate); err != nil {
 					log.Error(err)
+					break
 				}
 
 				//	check if previously is split task, merge,
@@ -86,16 +89,19 @@ func (s schedulerServices) ReadMessages() {
 					err = s.CreateDashTask(task.TaskTranscode.Video)
 					if err != nil {
 						log.Error(errors.Wrap(err, "services.Scheduler.ReadMessages"))
+						break
 					}
 				}
 
 				err = msg.Ack(false)
 				if err != nil {
 					log.Error(err)
+					break
 				}
 			case models.TaskMerge:
 				if err := s.CreateMergeTask(&task); err != nil {
 					log.Error(err)
+					break
 				}
 
 			case models.TaskDash:

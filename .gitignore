@@ -32,3 +32,4 @@
 /build/
 /storage/
 /tmp-worker/
+/web/node_modules/

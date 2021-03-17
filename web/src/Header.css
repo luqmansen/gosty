@@ -1,0 +1,9 @@
+.header{
+
+}
+
+.header > h1{
+    font-size: 25px;
+    font-weight: 700;
+    color:#cc181e;
+}
