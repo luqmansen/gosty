@@ -8,3 +8,4 @@ playground/
 storage/
 tmp-worker/
 web/node_modules/
+web/build
