@@ -42,10 +42,12 @@ type (
 		TaskDash      *DashTask      `json:"task_dash"`
 		PrevTask      TaskKind       `json:"prev_task"`
 
-		Status       TaskStatus    `json:"status"`
-		Worker       string        `gorm:"size:255" json:"worker"`
-		CompletedAt  time.Time     `json:"completed_at"`
-		TaskDuration time.Duration `json:"task_duration"`
+		Status TaskStatus `json:"status"`
+		Worker string     `gorm:"size:255" json:"worker"`
+
+		TaskSubmitted time.Time     `json:"task_submitted"` // time (approx <1ms) when task submitted to queue
+		TaskCompleted time.Time     `json:"task_completed"` // time when task finished by worker
+		TaskDuration  time.Duration `json:"task_duration"`
 	}
 
 	SplitTask struct {

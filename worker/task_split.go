@@ -119,7 +119,7 @@ func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 	default:
 		wg.Wait()
 		task.TaskDuration = time.Since(start)
-		task.CompletedAt = time.Now()
+		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
 		task.TaskSplit.SplitedVideo = videoList
 		return nil

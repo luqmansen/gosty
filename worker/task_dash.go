@@ -122,7 +122,7 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 		return err
 	default:
 		task.TaskDuration = time.Since(start)
-		task.CompletedAt = time.Now()
+		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
 		task.TaskDash.ResultDash = dashResult
 		return nil

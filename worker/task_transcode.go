@@ -134,7 +134,7 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 		return err
 	default:
 		task.TaskDuration = time.Since(start)
-		task.CompletedAt = time.Now()
+		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
 		task.TaskTranscode.ResultVideo = result
 		return nil
@@ -218,7 +218,7 @@ func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 		return err
 	default:
 		task.TaskDuration = time.Since(start)
-		task.CompletedAt = time.Now()
+		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
 		task.TaskTranscode.ResultAudio = &models.Audio{
 			FileName: newFileName,

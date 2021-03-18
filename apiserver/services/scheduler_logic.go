@@ -11,6 +11,7 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -152,7 +153,8 @@ func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 			TranscodeType: models.TranscodeAudio,
 			Video:         video,
 		},
-		Status: models.TaskQueued,
+		Status:        models.TaskQueued,
+		TaskSubmitted: time.Now(),
 	}
 	err := s.taskRepo.Add(&task)
 	if err != nil {
@@ -204,8 +206,9 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 			SizePerVid:  sizePerVid,
 			SizeLeft:    sizeLeft,
 		},
-		PrevTask: models.TaskNew,
-		Status:   models.TaskQueued,
+		PrevTask:      models.TaskNew,
+		Status:        models.TaskQueued,
+		TaskSubmitted: time.Now(),
 	}
 
 	err := s.taskRepo.Add(&task)
@@ -213,7 +216,6 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		log.Fatal(err)
 		return err
 	}
-
 	err = s.mb.Publish(task, TaskNew)
 	if err != nil {
 		log.Fatal(err)
@@ -259,16 +261,20 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 				TargetBitrate:  t["br"].(int),
 				TargetEncoding: "",
 			},
-			PrevTask: prevTask,
-			Status:   models.TaskQueued,
+			PrevTask:      prevTask,
+			Status:        models.TaskQueued,
+			TaskSubmitted: time.Now(),
 		})
 	}
-	var wg sync.WaitGroup
+
 	errChan := make(chan error, 1)
+	var wg sync.WaitGroup
 
 	for _, task := range taskList {
 		wg.Add(1)
-		go func(t *models.Task, w *sync.WaitGroup) {
+		go func(t *models.Task) {
+			wg.Done()
+
 			err := s.taskRepo.Add(t)
 			if err != nil {
 				log.Error(err)
@@ -281,8 +287,8 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 				errChan <- err
 				return
 			}
-			wg.Done()
-		}(task, &wg)
+
+		}(task)
 
 	}
 	select {
@@ -320,7 +326,8 @@ func (s schedulerServices) CreateDashTask(video *models.Video) error {
 			ListVideo: video.Video,
 			ListAudio: []*models.Audio{video.Audio},
 		},
-		Status: models.TaskQueued,
+		Status:        models.TaskQueued,
+		TaskSubmitted: time.Now(),
 	}
 
 	err = s.taskRepo.Add(task)
