@@ -1,4 +1,4 @@
-#gosty
+# gosty
 Kubernetes compliance scalable cloud transcoding service
 
 ## Architecture diagram
@@ -93,5 +93,5 @@ The env value later will be replaced by injected env values from K8s
  then remove the original file, then send the processed file to file server, this can use a lot of bandwidth. This can be improved by using shared volume on
   the node, and check if other worker already download the file, then process it.   
 
-##Acknowledgements
-Credit to [gibbok](https://github.com/gibbok) for web client, which I add some modification   
+## Acknowledgements
+Credit to [gibbok](https://github.com/gibbok) for web client, which I modify for this project use case   

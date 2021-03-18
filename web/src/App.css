@@ -1,8 +1,8 @@
 .app {
     display: flex;
     justify-content: space-between;
-    width: 980px;
-    margin: 0 auto;
+    margin-left: 5%;
+    width: 100%;
 }
 
 .app__video {
@@ -11,5 +11,6 @@
 }
 
 .app__videoList {
-    margin-top: 30px;
+    margin-top: 4%;
+    margin-right: 5%;
 }

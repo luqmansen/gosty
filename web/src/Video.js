@@ -1,25 +1,16 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect} from 'react';
 import {FILESERVER_HOST}from './Constant'
-import indigoPlayer from "indigo-player";
-import "indigo-player/lib/indigo-theme.css";
 import {getMpd} from "./Utils";
+import ShakaPlayer from "shaka-player-react";
 
 
 const Video = (props) => {
-    const ref = useRef(null)
+    const src = FILESERVER_HOST + "/files/" + getMpd(props.video.dash_file)
 
-    useEffect(() => {
-            indigoPlayer.init(ref.current, {
-                sources: [
-                    {
-                        type: "dash",
-                        src: FILESERVER_HOST + "/files/" + getMpd(props.video.dash_file),
-                    },
-                ],
-            });
-    });
-
-    return <div ref={ref}/>
+    return <ShakaPlayer
+        autoPlay={false}
+        src={src}
+    />
 }
 
 
