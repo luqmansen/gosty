@@ -26,6 +26,11 @@ import (
 //		router: r,
 //	}
 //}
+func Index() func(writer http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		writer.Write([]byte("OK"))
+	}
+}
 
 func HandleFileServer(pathToServe string) func(writer http.ResponseWriter, request *http.Request) {
 

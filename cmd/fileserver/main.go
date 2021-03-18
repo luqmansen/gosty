@@ -43,6 +43,7 @@ func main() {
 		return path
 	}("/files")
 
+	r.Get("/", fileserver.Index())
 	r.Get(fsPath, fileserver.HandleFileServer(pathToServe))
 	r.Post("/upload", fileserver.HandleUpload())
 
