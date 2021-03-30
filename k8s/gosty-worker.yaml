@@ -23,3 +23,18 @@ spec:
             - configMapRef:
                 name: gosty-config
           imagePullPolicy: Always
+
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 1
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8002
+            initialDelaySeconds: 3
+            periodSeconds: 1
+            timeoutSeconds: 2

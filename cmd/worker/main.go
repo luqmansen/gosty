@@ -24,6 +24,8 @@ func main() {
 		}
 	}()
 
+	go worker.InitHealthCheck(cfg)
+
 	if _, err := os.Stat(worker.TmpPath); os.IsNotExist(err) {
 		err = os.Mkdir(worker.TmpPath, 0700)
 		if err != nil {
