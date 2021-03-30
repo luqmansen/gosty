@@ -14,7 +14,12 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"strings"
+)
+
+const (
+	apiserverTempDir = "./tmp/"
 )
 
 type Handler interface {
@@ -101,9 +106,15 @@ func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			ext = append(ext, ".mp4")
 		}
 	}
+	if _, err := os.Stat(apiserverTempDir); os.IsNotExist(err) {
+		err = os.Mkdir(apiserverTempDir, 0700)
+		if err != nil {
+			log.Error(err)
+		}
+	}
 
 	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext[0])
-	f, err := ioutil.TempFile("./tmp/", fileName)
+	f, err := ioutil.TempFile(apiserverTempDir, fileName)
 	if err != nil {
 		log.Errorf("Error creating temp file %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

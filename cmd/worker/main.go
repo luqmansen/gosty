@@ -9,6 +9,7 @@ import (
 	"github.com/luqmansen/gosty/worker"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"os"
 )
 
 func main() {
@@ -22,6 +23,13 @@ func main() {
 			log.Error(err)
 		}
 	}()
+
+	if _, err := os.Stat(worker.TmpPath); os.IsNotExist(err) {
+		err = os.Mkdir(worker.TmpPath, 0700)
+		if err != nil {
+			log.Error(err)
+		}
+	}
 
 	log.Infof("Worker %s started", workerSvc.GetWorkerInfo().WorkerPodName)
 

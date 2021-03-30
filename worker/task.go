@@ -16,6 +16,10 @@ type Services interface {
 	ProcessTaskTranscodeAudio(task *models.Task) error
 }
 
+const (
+	TmpPath = "tmp-worker"
+)
+
 type workerSvc struct {
 	messageBroker repositories.MessageBrokerRepository
 	worker        *models.Worker

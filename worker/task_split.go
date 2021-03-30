@@ -19,7 +19,7 @@ import (
 func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp-worker", wd)
+	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	filePath := fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName)
 	url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), task.TaskSplit.Video.FileName)

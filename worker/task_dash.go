@@ -18,7 +18,7 @@ import (
 func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp-worker", wd)
+	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	errCh := make(chan error)
 	var wg sync.WaitGroup

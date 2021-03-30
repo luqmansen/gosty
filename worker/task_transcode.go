@@ -19,7 +19,7 @@ import (
 func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp-worker", wd)
+	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
@@ -144,7 +144,7 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/tmp-worker", wd)
+	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
