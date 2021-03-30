@@ -45,7 +45,7 @@ func LoadConfig(path string) *Configuration {
 }
 
 func (d Database) GetDatabaseUri() string {
-	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s",
+	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin",
 		d.Username, d.Password, d.Host, d.Port, d.Name)
 }
 

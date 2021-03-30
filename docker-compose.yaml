@@ -21,25 +21,25 @@ services:
     ports:
     - "27017:27017"
     volumes:
-      - ./volume/mongo:/data/db
-
-#  nginx:
-#    build:
-#      context: ./docker/nginx/
-#    restart: always
-#    volumes:
-#      - ./.docker/nginx/fileserver:/tmp/nginx_upload/
-#      - ./docker/nginx/nginx_upload.default.conf:/etc/nginx/conf.d/nginx_upload.default.conf
-#    ports:
-#    - "8001:80"
+      - mongo-volume:/data/db
 
   rabbitmq:
     image: rabbitmq:3.8.12-management-alpine
     volumes:
-      - ./volume/rabbitmq/etc/:/etc/rabbitmq/
-      - ./volume/rabbitmq/data/:/var/lib/rabbitmq/
-      - ./volume/rabbitmq/logs/:/var/log/rabbitmq/
-      - ./volume/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - rabbitmq-volume-etc:/etc/rabbitmq/
+      - rabbitmq-volume-data:/var/lib/rabbitmq/
+      - rabbitmq-volume-logs:/var/log/rabbitmq/
+#      - rabbitmq-volume-enabled_plugins:/etc/rabbitmq/enabled_plugins
+    environment:
+      RABBITMQ_DEFAULT_USER: username
+      RABBITMQ_DEFAULT_PASS: password
     ports:
       - "5672:5672"
       - "15672:15672"
+
+volumes:
+  rabbitmq-volume-etc:
+  rabbitmq-volume-data:
+  rabbitmq-volume-logs:
+#  rabbitmq-volume-enables_plugins:
+  mongo-volume:
