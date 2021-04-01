@@ -4,8 +4,8 @@ metadata:
   name: gosty-config
   namespace: gosty
 data:
-  MONGODB_USERNAME: "username"
-  MONGODB_PASSWORD: "password"
+  MONGODB_USERNAME: "root"
+  MONGODB_PASSWORD: "root"
   MONGODB_DATABASE: "gosty"
   MONGODB_TIMEOUT: "2"
 

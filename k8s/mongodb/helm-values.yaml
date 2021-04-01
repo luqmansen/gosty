@@ -55,7 +55,7 @@ clusterDomain: cluster.local
 
 ## MongoDB(R) architecture. Allowed values: standalone or replicaset
 ##
-architecture: standalone
+architecture: replicaset
 
 ## Use StatefulSet instead of Deployment when deploying standalone
 ##
@@ -244,7 +244,7 @@ labels: {}
 ## Number of MongoDB(R) replicas to deploy.
 ## Ignored when mongodb.architecture=standalone
 ##
-replicaCount: 2
+replicaCount: 3
 
 ## StrategyType for MongoDB(R) statefulset
 ## It can be set to RollingUpdate or Recreate by default.
@@ -323,24 +323,24 @@ podAnnotations: {}
 ## MongoDB(R) pods' Security Context.
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
 ##
-podSecurityContext:
-  enabled: true
-  fsGroup: 1001
-  ## sysctl settings
-  ## Example:
-  ## sysctls:
-  ## - name: net.core.somaxconn
-  ##   value: "10000"
-  ##
-  sysctls: []
+#podSecurityContext:
+#  enabled: true
+#  fsGroup: 1001
+#  ## sysctl settings
+#  ## Example:
+#  ## sysctls:
+#  ## - name: net.core.somaxconn
+#  ##   value: "10000"
+#  ##
+#  sysctls: []
 
 ## MongoDB(R) containers' Security Context (main and metrics container).
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
 ##
-containerSecurityContext:
-  enabled: true
-  runAsUser: 1001
-  runAsNonRoot: true
+#containerSecurityContext:
+#  enabled: true
+#  runAsUser: 1001
+#  runAsNonRoot: true
 
 ## MongoDB(R) containers' resource requests and limits.
 ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
@@ -429,7 +429,7 @@ pdb:
   create: false
   ## Min number of pods that must still be available after the eviction
   ##
-  minAvailable: 1
+  minAvailable: 3
   ## Max number of pods that can be unavailable after the eviction
   ##
   # maxUnavailable: 1
@@ -455,10 +455,10 @@ persistence:
   ## PV Access Mode
   ##
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   ## PVC size
   ##
-  size: 8Gi
+  size: 4Gi
   ## PVC annotations
   ##
   annotations: {}

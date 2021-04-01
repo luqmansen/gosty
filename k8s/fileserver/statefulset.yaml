@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: gosty-fileserver
+  name: gosty-fileserver
+  namespace: gosty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gosty-fileserver
+  serviceName: gosty-fileserver
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: gosty-fileserver
+    spec:
+      containers:
+      - image: 10.98.241.154/gosty-fileserver:latest
+        name: gosty-fileserver
+        ports:
+        - containerPort: 8001
+        volumeMounts:
+        - mountPath: /app/storage
+          name: gosty-fileserver-volume
+      volumes:
+      - name: gosty-fileserver-volume
+        persistentVolumeClaim:
+          claimName: gosty-fileserver-volume-claim
+---

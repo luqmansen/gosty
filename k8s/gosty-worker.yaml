@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gosty-worker
-  namespace: gosty
   labels:
     app: gosty-worker
+  name: gosty-worker
+  namespace: gosty
 spec:
   replicas: 1
   revisionHistoryLimit: 1
@@ -13,28 +13,28 @@ spec:
       app: gosty-worker
   template:
     metadata:
+      annotations:
+        linkerd.io/inject: enabled
       labels:
         app: gosty-worker
     spec:
       containers:
-        - name: gosty-worker
-          image: 10.109.191.7/gosty-worker:latest
-          envFrom:
-            - configMapRef:
-                name: gosty-config
-          imagePullPolicy: Always
-
-          livenessProbe:
-            httpGet:
-              path: /live
-              port: 8002
-            initialDelaySeconds: 5
-            periodSeconds: 1
-
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 8002
-            initialDelaySeconds: 3
-            periodSeconds: 1
-            timeoutSeconds: 2
+      - envFrom:
+        - configMapRef:
+            name: gosty-config
+        image: 10.98.241.154/gosty-worker:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 3
+        name: gosty-worker
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 3
+---
