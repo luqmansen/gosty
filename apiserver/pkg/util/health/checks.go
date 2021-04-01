@@ -18,7 +18,7 @@ import (
 func InitHealthCheck(cfg *config.Configuration) {
 	health := hc.NewHandler()
 	//too many goroutine might be a sign of a resource leak
-	health.AddLivenessCheck("goroutine-threshold", hc.GoroutineCountCheck(200))
+	health.AddLivenessCheck("goroutine-threshold", hc.GoroutineCountCheck(200000))
 
 	health.AddReadinessCheck("database", MongoDBPingCheck(cfg.Database.GetDatabaseUri(), 2*time.Second))
 	health.AddReadinessCheck("rabbitmq", RabbitPingCheck(cfg.MessageBroker.GetMessageBrokerUri()))
