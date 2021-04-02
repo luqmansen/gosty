@@ -7,6 +7,16 @@ metadata:
     name: gosty-ingress
 spec:
   rules:
+    - host: gosty.local
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: gosty-web
+                port:
+                  number: 80
     - host: api.gosty.local
       http:
         paths:
