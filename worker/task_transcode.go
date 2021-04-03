@@ -198,19 +198,21 @@ func (s workerSvc) ProcessTaskTranscodeAudio(task *models.Task) error {
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		if err = os.Remove(outputPath); err != nil {
 			log.Error(err)
 			errCh <- err
 		}
-		wg.Done()
 	}()
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		if err = os.Remove(inputPath); err != nil {
 			log.Error(err)
 			errCh <- err
 		}
-		wg.Done()
 	}()
 
 	select {

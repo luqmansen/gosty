@@ -38,9 +38,12 @@ func main() {
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
 
+	//Todo: also publish to api server when worker start
+	// working on a task and after finishing a task
 	go mq.ReadMessage(newTaskData, services.TaskNew)
 
 	forever := make(chan bool)
+	//Todo: refactor ack and publish part of this loop
 	go func() {
 
 		for t := range newTaskData {

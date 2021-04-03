@@ -64,13 +64,14 @@ type (
 	}
 
 	TranscodeTask struct {
-		TranscodeType  TaskTranscodeType `json:"transcode_type"`
-		Video          *Video            `json:"video"`
-		TargetRes      string            `gorm:"size:255;" json:"target_res"`
-		TargetBitrate  int               `gorm:"size:255;" json:"target_bitrate"`
-		TargetEncoding string            `json:"target_encoding"`
-		ResultVideo    *Video            `json:"result_video"`
-		ResultAudio    *Audio            `json:"result_audio"`
+		TranscodeType   TaskTranscodeType `json:"transcode_type"`
+		Video           *Video            `json:"video"`
+		TargetRes       string            `gorm:"size:255;" json:"target_res"`
+		TargetBitrate   int               `gorm:"size:255;" json:"target_bitrate"`
+		TargetEncoding  string            `json:"target_encoding"`
+		TargetReprCount int               `json:"target_representation_count"` //Number of target representation
+		ResultVideo     *Video            `json:"result_video"`
+		ResultAudio     *Audio            `json:"result_audio"`
 	}
 
 	DashTask struct {

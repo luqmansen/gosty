@@ -1,18 +1,46 @@
 # gosty
-Kubernetes compliance scalable cloud transcoding service
+
+Kubernetes's compliance scalable cloud transcoding service
+
+- [Architecture diagram](#architecture-diagram)
+- [Development](#development)
+  * [Using Docker compose](#using-docker-compose)
+  * [Using docker container + Minikube](#using-docker-container)
+  * [Using docker local registry on Minikube](#using-docker-local-registry-on-minikube)
+- [Deployment](#deployment)
+  * [RabbitMQ](#rabbitmq)
+  * [MongoDB](#mongodb)
+  * [API Server, File Server, Worker](#api-server--file-server--worker)
+- [Additional](#additional)
+  * [Linkerd](#linkerd)
+  * [Spekt8](#spekt8)
+  * [Chaos Mesh](#chaos-mesh)
+- [Issues](#issues)
+- [What can be improved](#what-can-be-improved)
+- [Acknowledgements](#acknowledgements)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with
+markdown-toc</a></i></small>
 
 ## Architecture diagram
-![](https://github.com/luqmansen/gosty/wiki/out/Diagram/sys-design-overview.png)
-<sup>*diagram need revision</sup> 
+
+<img width="60%" src="https://github.com/luqmansen/gosty/wiki/out/Diagram/sys-design-overview.png" />
+<br>
+<small>*Diagram need revision</small>
+
 ___
+
 ## Development
 
 ### Using Docker compose
+
 1. `docker-compose up`
 2. Change `config.env` to use the docker compose env
 
-### Using docker image
-If you run Database and Message Broker on minikube, make sure to attach minikube network to the container
+### Using docker container
+
+If you want to run app on container while run the database and message broker on minikube, make sure to attach minikube
+network to the container
 
 ```
 docker run -p 8000:8000 --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 localhost:5000/gosty-apiserver
@@ -50,46 +78,52 @@ Minikube restart, re-push the image, I create makefile command for this
 make push-all
 ```
 
-## Deployment 
+## Deployment
+
 RabbitMQ and MongoDB deployed using helm, make sure to install helm before
 
 ```
 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 ```
+
 also add bitnami repo
+
 ```
 helm repo add bitnami https://charts.bitnami.com/bitnami
 ```
 
-**RabbitMQ**<br>
+### RabbitMQ
+
 ```
 kubectl create -f k8s/rabbit/rabbitmq.yaml # create nodePort service, skip if you don't need
 helm install rabbit bitnami/rabbitmq -f k8s/rabbitmq/helm-values.yaml --create-namespace --namespace gosty
 ```
 
-**MongoDB**<br>
+### MongoDB
+
 ```
 kubectl create -f k8s/mongodb/mongodb.yaml # create nodePort service, skip if you don't need
 helm install mongodb bitnami/mongodb -f k8s/mongodb/helm-values.yaml --create-namespace --namespace gosty
 ```
 
-**FileServer**<br>
-Currently fileserver use local persistent volume, which we have to set up the volume on the related node
-for the first time
-```
-DIRNAME="fileserver-storage"
-mkdir -p /home/$USER/$DIRNAME 
-chmod 777 /home/$USER/$DIRNAME
-```
+### API Server, File Server, Worker
 
+Apply the rest of k8s resource manifest
+
+```bash
+kubect apply -f k8s/gosty
+```
 
 ## Additional
 
 ### Linkerd
+
 Install linkerd cli
+
 ```
 curl -sL run.linkerd.io/install | sh                                                                                                                                                                       1 ↵
 ```
+
 install linkerd component
 ```
 kubectl apply -f k8s/linkerd/
@@ -142,17 +176,21 @@ sudo chmod -R 777 /tmp/hostpath-provisioner/gosty
 
 **Viper need .env file**
 
-If you notice, the config.env is still added to final docker images since viper has [this issue](https://github.com/spf13/viper/issues/584).
-The env value later will be replaced by injected env values from K8s
+If you notice, the config.env is still added to final docker images since viper
+has [this issue](https://github.com/spf13/viper/issues/584). The env value later will be replaced by injected env values
+from K8s
 
 
 
  ___
-### What can be improved
+
+## What can be improved
+
 - Use more proper permanent storage system
-- Currently, every worker will always download a copy of the file and process it on its local pod volume,
- then remove the original file, then send the processed file to file server, this can use a lot of bandwidth. This can be improved by using shared volume on
-  the node, and check if other worker already download the file, then process it.   
+- Currently, every worker will always download a copy of the file and process it on its local pod volume, then remove
+  the original file, then send the processed file to file server, this can use a lot of bandwidth. This can be improved
+  by using shared volume on the node, and check if other worker already download the file, then process it.
 
 ## Acknowledgements
+
 Credit to [gibbok](https://github.com/gibbok) for web client, which I modify for this project use case   

@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"math"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -85,9 +86,9 @@ func (s schedulerServices) ReadMessages() {
 
 				//	check if previously is split task, merge,
 				if task.PrevTask == models.TaskSplit {
-					s.CreateMergeTask(&task)
+					_ = s.CreateMergeTask(&task)
 				} else { // must be a video with small size (prevTask == TaskNew)
-					err = s.CreateDashTask(task.TaskTranscode.Video)
+					err = s.CreateDashTask(&task)
 					if err != nil {
 						log.Error(errors.Wrap(err, "services.Scheduler.ReadMessages"))
 						break
@@ -237,29 +238,41 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 		prevTask = models.TaskSplit
 	}
 
-	//TODO: only choose target res below the original video
-	target := []map[string]interface{}{
+	//list taken from youtube available video resolution
+	//br = audio bitrate, currently ignored
+	availRes := []map[string]interface{}{
 		{"res": "256x144", "br": 80_000},
-		//{"res": "426x240", "br": 300_000},
-		//{"res": "640x360", "br": 400_000},
-		//{"res": "854x480", "br": 500_000},
-		//{"res": "1280x720", "br": 1_500_000},
-		//{"res": "1920x1080", "br": 3_000_000},
-		//{"res": "2560x1440", "br": 6_000_000},
-		//{"res": "3840x2160", "br": 13_000_000},
-		//{"res": "7680x4320", "br": 20_000_000},
+		{"res": "426x240", "br": 300_000},
+		{"res": "640x360", "br": 400_000},
+		{"res": "854x480", "br": 500_000},
+		{"res": "1280x720", "br": 1_500_000},
+		{"res": "1920x1080", "br": 3_000_000},
+		{"res": "2560x1440", "br": 6_000_000},
+		{"res": "3840x2160", "br": 13_000_000},
+		{"res": "7680x4320", "br": 20_000_000},
 	}
-	var taskList []*models.Task
+	var target []map[string]interface{}
+	for _, v := range availRes {
+		//compare original video height with available resolution
+		//only transcode to below or same resolution of original video
+		//Take idx 1 of slice [width, height]
+		h, _ := strconv.Atoi(strings.Split(v["res"].(string), "x")[1])
+		if video.Height >= h {
+			target = append(target, v)
+		}
+	}
 
+	var taskList []*models.Task
 	for _, t := range target {
 		taskList = append(taskList, &models.Task{
 			Kind: models.TaskTranscode,
 			TaskTranscode: &models.TranscodeTask{
-				TranscodeType:  models.TranscodeVideo,
-				Video:          video,
-				TargetRes:      t["res"].(string),
-				TargetBitrate:  t["br"].(int),
-				TargetEncoding: "",
+				TranscodeType:   models.TranscodeVideo,
+				Video:           video,
+				TargetRes:       t["res"].(string),
+				TargetBitrate:   t["br"].(int),
+				TargetEncoding:  "",
+				TargetReprCount: len(target),
 			},
 			PrevTask:      prevTask,
 			Status:        models.TaskQueued,
@@ -273,7 +286,7 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	for _, task := range taskList {
 		wg.Add(1)
 		go func(t *models.Task) {
-			wg.Done()
+			defer wg.Done()
 
 			err := s.taskRepo.Add(t)
 			if err != nil {
@@ -300,9 +313,10 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	}
 }
 
-func (s schedulerServices) CreateDashTask(video *models.Video) error {
-	// get all video resolution and audio
-	video, err := s.videoRepo.GetOneByName(video.FileName)
+func (s schedulerServices) CreateDashTask(task *models.Task) error {
+	//Dash task will only be called after task transcode,
+	//so we have to access it from taskTranscode
+	video, err := s.videoRepo.GetOneByName(task.TaskTranscode.Video.FileName)
 	if err != nil {
 		log.Error(errors.Wrap(err, "services.Scheduler.CreateDashTask"))
 		return err
@@ -314,13 +328,14 @@ func (s schedulerServices) CreateDashTask(video *models.Video) error {
 	//	log.Debug("Audio still empty")
 	//	return nil
 	//}
-	//Todo: check of available video representation
-	if len(video.Video) != 1 { // number of available video representation
+
+	// number of available video representation
+	if len(video.Video) != task.TaskTranscode.TargetReprCount {
 		log.Debug("Video transcoding haven't finished")
 		return nil
 	}
 
-	task := &models.Task{
+	taskDash := &models.Task{
 		Kind: models.TaskDash,
 		TaskDash: &models.DashTask{
 			ListVideo: video.Video,
@@ -330,13 +345,13 @@ func (s schedulerServices) CreateDashTask(video *models.Video) error {
 		TaskSubmitted: time.Now(),
 	}
 
-	err = s.taskRepo.Add(task)
+	err = s.taskRepo.Add(taskDash)
 	if err != nil {
 		log.Error(errors.Wrap(err, "services.Scheduler.CreateDashTask"))
 		return err
 	}
 
-	err = s.mb.Publish(task, TaskNew)
+	err = s.mb.Publish(taskDash, TaskNew)
 	if err != nil {
 		log.Error(errors.Wrap(err, "services.Scheduler.CreateDashTask"))
 		return err

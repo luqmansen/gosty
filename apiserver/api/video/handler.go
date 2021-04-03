@@ -49,14 +49,21 @@ func (h handler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h handler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
+
 	vid := h.videoService.GetAll()
+	if len(vid) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
 	resp, err := json.Marshal(vid)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
 	if err != nil {
 		log.Error(err)

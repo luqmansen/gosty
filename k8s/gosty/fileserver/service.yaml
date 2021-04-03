@@ -4,10 +4,9 @@ metadata:
   name: gosty-fileserver
   namespace: gosty
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: gosty-fileserver
   ports:
     - port: 80
       targetPort: 8001
-      nodePort: 30801

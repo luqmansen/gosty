@@ -63,7 +63,8 @@ func (c Configuration) DebugConfig() {
 	v := reflect.ValueOf(c)
 	typeOfS := v.Type()
 
+	log.Debug("Debugging Configuration")
 	for i := 0; i < v.NumField(); i++ {
-		log.Debug("Field: %s\tValue: %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
+		fmt.Printf("Field: %s\tValue: %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
 	}
 }

@@ -2,7 +2,7 @@ GOPATH:=$(shell go env GOPATH)
 TAG:=$(shell git rev-parse --short=5 HEAD)
 
 .PHONY: dev
-server:
+api:
 	nodemon --exec go run cmd/apiserver/main.go --signal SIGTERM
 
 wrk:
@@ -48,7 +48,7 @@ docker-api: cleanup api-bin
 	docker build -t localhost:5000/gosty-apiserver -f docker/apiserver.Dockerfile .
 	docker push localhost:5000/gosty-apiserver
 
-push-all: docker-api docker-fs docker-worker
+push-all: docker-api docker-fs docker-worker docker-web
 
 roll-api: docker-api
 	kubectl rollout restart -f k8s/gosty-apiserver.yaml
