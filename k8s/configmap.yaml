@@ -7,7 +7,7 @@ data:
   MONGODB_USERNAME: "root"
   MONGODB_PASSWORD: "root"
   MONGODB_DATABASE: "gosty"
-  MONGODB_TIMEOUT: "2"
+  MONGODB_TIMEOUT: "5"
 
   RABBITMQ_USERNAME: "username"
   RABBITMQ_PASSWORD: "password"

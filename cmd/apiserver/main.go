@@ -16,7 +16,7 @@ import (
 
 func main() {
 	cfg := config.LoadConfig(".")
-	log.Debug(cfg)
+	cfg.DebugConfig()
 
 	vidRepo, err := mongo.NewVideoRepository(cfg.Database)
 	if err != nil {
