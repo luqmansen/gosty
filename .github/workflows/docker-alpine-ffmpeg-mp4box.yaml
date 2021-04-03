@@ -28,7 +28,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: docker/Dockerfile-alpine-ffmpeg-mp4box
+          file: docker/alpine-ffmpeg-mp4box.Dockerfile
           tags: luqmansen/alpine-ffmpeg-mp4box:latest
 
       - name: Image digest
