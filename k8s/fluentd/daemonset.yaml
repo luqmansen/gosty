@@ -13,6 +13,8 @@ spec:
       version: v1
   template:
     metadata:
+      annotations:
+        linkerd.io/inject: enabled
       labels:
         k8s-app: fluentd-logging
         version: v1

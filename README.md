@@ -114,7 +114,14 @@ Apply the rest of k8s resource manifest
 kubect apply -f k8s/gosty
 ```
 
-## Additional
+### Elasticsearch-Fluentd-Kibana
+
+This resource will be deployed on `fluentd-monitoring` namespace. This stack currently will only be used for logs
+monitoring
+
+```shell
+kubectl apply -f k8s/fluentd
+```
 
 ### Linkerd
 
@@ -125,20 +132,27 @@ curl -sL run.linkerd.io/install | sh                                            
 ```
 
 install linkerd component
+
 ```
 kubectl apply -f k8s/linkerd/
 ```
+
 access linkerd dashboard
+
 ```bash
 linkerd viz dashboard
 ```
-Injecting linkerd to rabbitmq, mongodb & ingress 
+
+Injecting linkerd to rabbitmq, mongodb & ingress
+
 ```bash
 kubectl get statefulset -n gosty rabbit-rabbitmq -o yaml  | linkerd inject - | kubectl apply -f -
 kubectl get statefulset -n gosty mongodb -o yaml  | linkerd inject - | kubectl apply -f -
 kubectl get statefulset -n gosty -o yaml mongodb-arbiter | linkerd inject - | kubectl apply -f -   
 kubectl get deployment -n kube-system ingress-nginx-controller -o yaml | linkerd inject - | kubectl apply -f -                                               1 ↵
 ```
+
+## Additional
 
 ### Spekt8
 
