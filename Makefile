@@ -50,5 +50,11 @@ docker-api: cleanup api-bin
 
 push-all: docker-api docker-fs docker-worker docker-web
 
-roll-api: docker-api
-	kubectl rollout restart -f k8s/gosty-apiserver.yaml
+rollout-restart:
+	# sometimes rabbitmq randomly wont start
+	kubectl rollout restart statefulset -n gosty rabbit-rabbitmq
+   	# sometimes i forgot to repush all the stuff to local registry
+   	# happens if you use local registry and frequently need to stop the minikube
+	kubectl rollout restart -f k8s/gosty/gosty-apiserver.yaml
+	kubectl rollout restart -f k8s/gosty/gosty-worker.yaml
+	kubectl rollout restart -f k8s/gosty/gosty-web.yaml

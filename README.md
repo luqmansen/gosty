@@ -141,25 +141,36 @@ kubectl get deployment -n kube-system ingress-nginx-controller -o yaml | linkerd
 ```
 
 ### Spekt8
+
 I setup [spekt8](https://github.com/spekt8/spekt8) for cluster visualization
+
 ```
 kubectl create -f k8s/plugins/spekt8/fabric8-rbac.yaml 
 kubectl apply -f k8s/plugins/spekt8/spekt8-deployment.yaml 
 kubectl port-forward -n gosty deployment/spekt8 3000:3000
 ```
+
 ### Chaos Mesh
-I add some testing scenario on [k8s/chaos](./k8s/chaos) using chaos mesh. First install chaos mesh 
-on the cluster
+
+I add some testing scenario on [k8s/chaos](./k8s/chaos) using chaos mesh. First install chaos mesh on the cluster
+
 ```
 curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash
 ```
 
-
 ## Issues
+
+**Minikube Ingress Change ip when Ingress controller restarted**
+
+```shell
+# change this according to your `kubectl get ingress`
+sed -i -e 's/192.168.59.2/'"192.168.59.3"'/g' /etc/hosts
+```
+
 **Random pods evicted**
 
-Microk8s has issue with, even though when the resource is fine,
-just restart the deployment and delete old resource
+Microk8s has issue with, even though when the resource is fine, just restart the deployment and delete old resource
+
 ```
 export NS=<NAMESPACE> 
 kubectl -n $NS delete rs $(kubectl -n $NS get rs | awk '{if ($2 + $3 + $4 == 0) print $1}' | grep -v 'NAME')
@@ -167,8 +178,8 @@ kubectl -n $NS delete rs $(kubectl -n $NS get rs | awk '{if ($2 + $3 + $4 == 0) 
 
 **Hostpath provisioner only writable by root**
 
-If you're running into this [issue](https://github.com/kubernetes/minikube/issues/1990), where the
-pod won't start because it can't write to pv, currently my workaround is change the directory modifier.
+If you're running into this [issue](https://github.com/kubernetes/minikube/issues/1990), where the pod won't start
+because it can't write to pv, currently my workaround is change the directory modifier.
 For every node on your cluster, run below command
 ````
 sudo chmod -R 777 /tmp/hostpath-provisioner/gosty

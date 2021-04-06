@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: gosty-ingress
   namespace: gosty
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
   labels:
     name: gosty-ingress
 spec:
