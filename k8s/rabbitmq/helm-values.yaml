@@ -148,7 +148,7 @@ clustering:
   ## unknown order.
   ## ref: https://www.rabbitmq.com/rabbitmqctl.8.html#force_boot
   ##
-  forceBoot: false
+  forceBoot: true
 
 ## Loading a RabbitMQ definitions file to configure RabbitMQ
 ##
@@ -350,7 +350,8 @@ podLabels: {}
 ## Pod annotations. Evaluated as a template
 ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 ##
-podAnnotations: {}
+podAnnotations:
+  linkerd.io/inject: enabled
 
 ## updateStrategy for RabbitMQ statefulset
 ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies

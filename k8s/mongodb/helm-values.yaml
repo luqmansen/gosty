@@ -313,7 +313,8 @@ podLabels: {}
 ## Annotations for MongoDB(R) pods. Evaluated as a template.
 ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 ##
-podAnnotations: {}
+podAnnotations:
+  linkerd.io/inject: enabled
 
 ## MongoDB(R) pods' priority.
 ## ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
