@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {APISERVER_HOST} from './Constant'
+import {APISERVER_HOST, FILESERVER_HOST} from './Constant'
 import Header from './Header';
 import VideoList from './VideoList';
 import 'shaka-player/dist/controls.css';
@@ -17,6 +17,9 @@ const App = () => {
     const [activeVideo, setActiveVideo] = useState()
 
     useEffect(() => {
+        console.log("APISERVER: ", APISERVER_HOST)
+        console.log("FILESERVER: ", FILESERVER_HOST)
+
         fetch(APISERVER_HOST + "/playlist").then(response => {
             if (response.status !== 200) {
                 console.log('Looks like there was a problem. Status Code: ', response.status);

@@ -1,15 +1,71 @@
 version: '3.7'
+
+
 services:
-#  pg:
-#    image: library/postgres:13.1-alpine
-#    restart: always
-#    environment:
-#      POSTGRES_PASSWORD: 'password'
-#      POSTGRES_DB: 'gosty'
-#    ports:
-#      - '5432:5432'
-#    volumes:
-#      - ./.docker/db:/var/lib/postgresql/data
+  web:
+    image: localhost:5000/gosty-web
+    restart: always
+    ports:
+      - "8082:80"
+
+  apiserver:
+    image: localhost:5000/gosty-apiserver
+    restart: always
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+    environment:
+      PORT: 8000
+
+      MONGODB_SERVICE_HOST: mongo
+      MONGODB_SERVICE_PORT: 27017
+      MONGODB_USERNAME: username
+      MONGODB_PASSWORD: password
+      MONGODB_DATABASE: gosty
+      MONGODB_TIMEOUT: 2
+
+      RABBIT_RABBITMQ_SERVICE_HOST: rabbitmq
+      RABBIT_RABBITMQ_SERVICE_PORT: 5672
+      RABBITMQ_USERNAME: username
+      RABBITMQ_PASSWORD: password
+
+      GOSTY_FILESERVER_SERVICE_HOST: fileserver
+      GOSTY_FILESERVER_SERVICE_PORT: 8081
+
+  worker:
+    image: localhost:5000/gosty-worker
+    restart: always
+    #    mem_limit: 4096M
+    #    cpu_quota: 4000
+    #    deploy:
+    #      resources:
+    #        limits:
+    #          cpus: '0.25'
+    #          memory: 4096M
+    #        reservations:
+    #          cpus: '0.125'
+    #          memory: 20M
+    environment:
+      RABBIT_RABBITMQ_SERVICE_HOST: rabbitmq
+      RABBIT_RABBITMQ_SERVICE_PORT: 5672
+      RABBITMQ_USERNAME: username
+      RABBITMQ_PASSWORD: password
+
+      GOSTY_FILESERVER_SERVICE_HOST: fileserver
+      GOSTY_FILESERVER_SERVICE_PORT: 8081
+
+  fileserver:
+    image: localhost:5000/gosty-fileserver
+    restart: always
+    volumes:
+      - ./storage:/app/storage/
+    ports:
+      - "8081:8081"
+    expose:
+      - 8081
+    environment:
+      PORT: "8081"
 
   mongo:
     image: mongo:4.4.4-bionic
@@ -19,7 +75,9 @@ services:
       MONGO_INITDB_ROOT_USERNAME: username
       MONGO_INITDB_ROOT_PASSWORD: password
     ports:
-    - "27017:27017"
+      - "27017:27017"
+    expose:
+      - 27017
     volumes:
       - mongo-volume:/data/db
 

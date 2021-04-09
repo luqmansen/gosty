@@ -2,7 +2,7 @@ FROM jrottenberg/ffmpeg:4.3-alpine312
 
 WORKDIR /app
 
-# uncomment this to check when build context get bigger
+# uncomment this to debug when build context get bigger
 #COPY . /tmp/build
 #RUN find /tmp/build
 
