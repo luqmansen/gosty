@@ -6,7 +6,7 @@ metadata:
   name: gosty-fileserver
   namespace: gosty
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: gosty-fileserver
@@ -18,16 +18,30 @@ spec:
       labels:
         app: gosty-fileserver
     spec:
+      affinity:
+        podAntiAffinity:
+          #          requiredDuringSchedulingIgnoredDuringExecution:
+          #            - topologyKey: topology.kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: topology.kubernetes.io/hostname
       containers:
-      - image: 10.98.241.154/gosty-fileserver:latest
-        name: gosty-fileserver
-        ports:
-        - containerPort: 8001
-        volumeMounts:
-        - mountPath: /app/storage
-          name: gosty-fileserver-volume
-      volumes:
-      - name: gosty-fileserver-volume
-        persistentVolumeClaim:
-          claimName: gosty-fileserver-volume-claim
+        - image: 192.168.56.1:5000/gosty-fileserver:latest
+          name: gosty-fileserver
+          ports:
+            - containerPort: 8001
+          volumeMounts:
+            - name: gosty-fileserver-hostpath
+              mountPath: /app/storage
+
+  volumeClaimTemplates:
+    - metadata:
+        name: gosty-fileserver-hostpath
+      spec:
+        accessModes:
+          - "ReadWriteMany"
+        resources:
+          requests:
+            storage: "5Gi"
 ---

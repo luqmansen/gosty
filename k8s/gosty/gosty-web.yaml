@@ -18,8 +18,14 @@ spec:
       labels:
         app: gosty-web
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                topologyKey: topology.kubernetes.io/hostname
+              weight: 100
       containers:
-        - image: 10.98.241.154/gosty-web:latest
+        - image: 192.168.56.1:5000/gosty-web:latest
           imagePullPolicy: Always
           name: gosty-web
           ports:

@@ -6,7 +6,7 @@ metadata:
   name: gosty-worker
   namespace: gosty
 spec:
-  replicas: 1
+  replicas: 4
   revisionHistoryLimit: 1
   selector:
     matchLabels:
@@ -18,23 +18,29 @@ spec:
       labels:
         app: gosty-worker
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: topology.kubernetes.io/hostname
       containers:
-      - envFrom:
-        - configMapRef:
-            name: gosty-config
-        image: 10.98.241.154/gosty-worker:latest
-        imagePullPolicy: Always
-        livenessProbe:
-          httpGet:
-            path: /live
-            port: 8002
-          initialDelaySeconds: 5
-          periodSeconds: 3
-        name: gosty-worker
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8002
-          initialDelaySeconds: 5
-          periodSeconds: 3
+        - envFrom:
+            - configMapRef:
+                name: gosty-config
+          image: 192.168.56.1:5000/gosty-worker:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 3
+          name: gosty-worker
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 3
 ---

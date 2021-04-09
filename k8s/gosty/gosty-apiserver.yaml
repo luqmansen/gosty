@@ -8,6 +8,7 @@ metadata:
 spec:
   replicas: 3
   revisionHistoryLimit: 1
+  minReadySeconds: 10
   selector:
     matchLabels:
       app: gosty-apiserver
@@ -20,8 +21,15 @@ spec:
         app: gosty-apiserver
 
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                topologyKey: topology.kubernetes.io/hostname
+              weight: 100
+
       containers:
-        - image: 10.98.241.154/gosty-apiserver:latest
+        - image: 192.168.56.1:5000/gosty-apiserver:latest
           name: gosty-apiserver
           imagePullPolicy: Always
           ports:
@@ -30,17 +38,17 @@ spec:
             - configMapRef:
                 name: gosty-config
 
-#        livenessProbe:
-#          httpGet:
-#            path: /live
-#            port: 8086
-#          initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8086
+            initialDelaySeconds: 10
 
-#        readinessProbe:
-#          httpGet:
-#            path: /ready
-#            port: 8086
-#          initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8086
+            initialDelaySeconds: 10
 ---
 apiVersion: v1
 kind: Service
