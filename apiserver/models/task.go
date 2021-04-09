@@ -33,7 +33,8 @@ const (
 
 type (
 	Task struct {
-		Id primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+		Id          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+		OriginVideo *Video             `json:"origin_video"`
 
 		Kind          TaskKind       `json:"kind"`
 		TaskSplit     *SplitTask     `json:"task_split"`

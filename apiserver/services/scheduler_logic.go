@@ -174,7 +174,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
 	var sizePerVid int64
 	var sizeLeft int64
-	var minSize int64 = 1024000 << 10 // 10 MB
+	var minSize int64 = 1024000 << 10 // 10 MB (Skip this until merge task is done)
 
 	// if video size less than min file size, forward to transcode task
 	if video.Size < minSize {
@@ -200,7 +200,8 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//}
 
 	task := models.Task{
-		Kind: models.TaskSplit,
+		OriginVideo: video,
+		Kind:        models.TaskSplit,
 		TaskSplit: &models.SplitTask{
 			Video:       video,
 			TargetChunk: int(math.Ceil(float64(video.Size) / float64(minSize))),
@@ -265,7 +266,8 @@ func (s schedulerServices) CreateTranscodeTask(video *models.Video) error {
 	var taskList []*models.Task
 	for _, t := range target {
 		taskList = append(taskList, &models.Task{
-			Kind: models.TaskTranscode,
+			OriginVideo: video,
+			Kind:        models.TaskTranscode,
 			TaskTranscode: &models.TranscodeTask{
 				TranscodeType:   models.TranscodeVideo,
 				Video:           video,
@@ -336,7 +338,8 @@ func (s schedulerServices) CreateDashTask(task *models.Task) error {
 	}
 
 	taskDash := &models.Task{
-		Kind: models.TaskDash,
+		OriginVideo: video,
+		Kind:        models.TaskDash,
 		TaskDash: &models.DashTask{
 			ListVideo: video.Video,
 			ListAudio: []*models.Audio{video.Audio},
