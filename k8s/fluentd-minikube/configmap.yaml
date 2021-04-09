@@ -15,9 +15,9 @@ data:
       @type tail
       read_from_head true
       tag kubernetes.*
-      path /var/log/containers/*.log
+      path /var/log/pods/*.log
       pos_file /var/log/fluentd-containers.log.pos
-      exclude_path ["/var/log/containers/fluent*"]
+      exclude_path ["/var/log/pods/fluent*"]
       <parse>
         @type kubernetes
         @type "#{ENV['FLUENT_CONTAINER_TAIL_PARSER_TYPE'] || 'json'}"
@@ -28,7 +28,7 @@ data:
       @type kubernetes_metadata
       @id filter_kube_metadata
       kubernetes_url "#{ENV['FLUENT_FILTER_KUBERNETES_URL'] || 'https://' + ENV.fetch('KUBERNETES_SERVICE_HOST') + ':' + ENV.fetch('KUBERNETES_SERVICE_PORT') + '/api'}"
-      verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || true}"
+      verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || false}"
       ca_file "#{ENV['KUBERNETES_CA_FILE']}"
       skip_labels "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_LABELS'] || 'false'}"
       skip_container_metadata "#{ENV['FLUENT_KUBERNETES_METADATA_SKIP_CONTAINER_METADATA'] || 'false'}"
@@ -41,6 +41,6 @@ data:
       @type elasticsearch
       host "#{ENV['FLUENT_ELASTICSEARCH_HOST'] || 'elasticsearch.fluentd-monitoring.svc.cluster.local'}"
       port "#{ENV['FLUENT_ELASTICSEARCH_PORT'] || '9200'}"
-      index_name fluentd-k8s
+      index_name fluentd-microk8s
       type_name fluentd
     </match>
