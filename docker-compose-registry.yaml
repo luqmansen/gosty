@@ -1,0 +1,14 @@
+version: '3.3'
+
+services:
+  registry:
+    container_name: gosty-registry
+    restart: always
+    image: registry:2.7.1
+    ports:
+      - 5000:5000
+    volumes:
+      - gosty-registry:/var/lib/registry:rw
+
+volumes:
+  gosty-registry:

@@ -2,26 +2,6 @@
 
 Kubernetes's compliance scalable cloud transcoding service
 
-- [Architecture diagram](#architecture-diagram)
-- [Development](#development)
-  * [Using Docker compose](#using-docker-compose)
-  * [Using docker container + Minikube](#using-docker-container)
-  * [Using docker local registry on Minikube](#using-docker-local-registry-on-minikube)
-- [Deployment](#deployment)
-  * [RabbitMQ](#rabbitmq)
-  * [MongoDB](#mongodb)
-  * [API Server, File Server, Worker](#api-server--file-server--worker)
-- [Additional](#additional)
-  * [Linkerd](#linkerd)
-  * [Spekt8](#spekt8)
-  * [Chaos Mesh](#chaos-mesh)
-- [Issues](#issues)
-- [What can be improved](#what-can-be-improved)
-- [Acknowledgements](#acknowledgements)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with
-markdown-toc</a></i></small>
-
 ## Architecture diagram
 
 <img width="60%" src="https://github.com/luqmansen/gosty/wiki/out/Diagram/sys-design-overview.png" />
@@ -46,36 +26,6 @@ network to the container
 docker run -p 8000:8000 --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 localhost:5000/gosty-apiserver
 docker run -p 8001:8001 --network=minikube localhost:5000/gosty-fileserver
 docker run --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 localhost:5000/gosty-worker
-```
-
-### Using docker local registry on Minikube
-To speed up experiment with docker image on k8s when development, enable minikube local registry
-```
-minikube addons enable registry
-```
-forward registry service to local port
-```
-kubectl port-forward --namespace kube-system svc/registry 5000:80
-```
-push the local image to minikube's local registry
-```
-docker build -t localhost:5000/{image-name} -f docker/Dockerfile-{image-name} .
-docker push localhost:5000/{image-name}
-```
-Don't forget to change the k8s deployment image
-```yaml
-spec:
-  containers:
-    - name: {image-name}
-      image: localhost:5000/{image-name}:latest 
-```
-port is still 5000, since internally, minikube use that port for its local registry
-
-**Note**<br>
-For some reason, minikube's registry addons doesn't have mounted volume, so everytime
-Minikube restart, re-push the image, I create makefile command for this
-```
-make push-all
 ```
 
 ## Deployment
@@ -123,6 +73,10 @@ monitoring
 kubectl apply -f k8s/fluentd
 ```
 
+```shell
+kubectl -n fluentd-monitoring port-forward svc/kibana 5601
+```
+
 ### Linkerd
 
 Install linkerd cli
@@ -154,6 +108,69 @@ kubectl get deployment -n kube-system ingress-nginx-controller -o yaml | linkerd
 
 ## Additional
 
+### Local Image Registry
+
+I run local image registry on my machine for faster dev purposes
+
+#### Using minikube's local registry
+
+In case you want to run it inside kubernetes cluste (minikube), enable minikube local registry
+
+```
+minikube addons enable registry
+```
+
+forward registry service to local port
+
+```
+kubectl port-forward --namespace kube-system svc/registry 5000:80
+```
+
+push the local image to minikube's local registry
+
+```
+docker build -t localhost:5000/{image-name} -f docker/Dockerfile-{image-name} .
+docker push localhost:5000/{image-name}
+```
+
+#### Using microk8s local registry
+
+```shell
+microk8s.enable registry
+```
+
+You can access it via microk8s's ip (NodePort service)
+
+#### Using Docker compose
+
+```shell
+docker-compose -f /home/luqman/Codespace/gosty/docker-compose-registry.yaml up -d registry
+```
+
+The pod will be exposed on 0.0.0.0:5000
+
+#### K8s manifest adjustment
+
+Don't forget to change the k8s deployment image
+
+```yaml
+spec:
+  containers:
+    - name: { image-name }
+      image: localhost:<registry's cluster ip/container registry's ip>/{image-name}:latest 
+```
+
+**Issues**<br>
+For some reason, minikube's registry addons doesn't have mounted volume, so everytime Minikube restart, re-push the
+image, I create makefile command for this
+
+```
+make push-all
+```
+
+Microk8s private registry communication need to be https, else it won't work, here is
+the [reference](https://microk8s.io/docs/registry-private) for the setup
+
 ### Spekt8
 
 I setup [spekt8](https://github.com/spekt8/spekt8) for cluster visualization
@@ -164,12 +181,26 @@ kubectl apply -f k8s/plugins/spekt8/spekt8-deployment.yaml
 kubectl port-forward -n gosty deployment/spekt8 3000:3000
 ```
 
+### Dashboard
+
+Accessing k8s dashboard
+
+```shell
+kubectl -n kube-system port-forward svc/kubernetes-dashboard 8443:443       
+```
+
 ### Chaos Mesh
 
 I add some testing scenario on [k8s/chaos](./k8s/chaos) using chaos mesh. First install chaos mesh on the cluster
 
 ```
 curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash
+```
+
+### Run curl pod for debugging
+
+```shell
+kubectl run curl-test --image=radial/busyboxplus:curl -i --tty --rm            
 ```
 
 ## Issues
@@ -179,6 +210,16 @@ curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash
 ```shell
 # change this according to your `kubectl get ingress`
 sed -i -e 's/192.168.59.2/'"192.168.59.3"'/g' /etc/hosts
+```
+
+**ImagePullBackOff on MicroK8s**
+When internet connection is bad, sometimes this is happened (especially for large image)
+Solution: set image pull timeout limmit for kubelet re-run the kubelet (somehow I can't edit ExecStart kubelet's
+service, so need to manually run it)
+
+```shell
+sudo sudo systemctl stop snap.microk8s.daemon-kubelet.service 
+sudo /snap/microk8s/2094/kubelet --kubeconfig=/var/snap/microk8s/2094/credentials/kubelet.config --cert-dir=/var/snap/microk8s/2094/certs --client-ca-file=/var/snap/microk8s/2094/certs/ca.crt --anonymous-auth=false --network-plugin=cni --root-dir=/var/snap/microk8s/common/var/lib/kubelet --fail-swap-on=false --cni-conf-dir=/var/snap/microk8s/2094/args/cni-network/ --cni-bin-dir=/var/snap/microk8s/2094/opt/cni/bin/ --feature-gates=DevicePlugins=true --eviction-hard="memory.available<100Mi,nodefs.available<1Gi,imagefs.available<1Gi" --container-runtime=remote --container-runtime-endpoint=/var/snap/microk8s/common/run/containerd.sock --containerd=/var/snap/microk8s/common/run/containerd.sock --node-labels=microk8s.io/cluster=true --authentication-token-webhook=true --cluster-domain=cluster.local --cluster-dns=10.152.183.10 --image-pull-progress-deadline=30s
 ```
 
 **Random pods evicted**
