@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elasticsearch
+  annotations:
+    linkerd.io/inject: enabled
   namespace: fluentd-monitoring
   labels:
     app: elasticsearch
@@ -10,6 +12,7 @@ spec:
     matchLabels:
       app: elasticsearch
   replicas: 1
+
   template:
     metadata:
       annotations:

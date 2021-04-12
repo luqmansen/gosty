@@ -5,9 +5,15 @@ metadata:
     addonmanager.kubernetes.io/mode: Reconcile
     manager: kubectl-client-side-apply
     operation: Update
-  name: fluentd-es-config-v0.2.0
-  namespace: kube-system
+  name: fluentd-config
+  namespace: fluentd-monitoring
 data:
+  fluent.conf: |-
+    ################################################################
+    # This source gets all logs from local docker host
+    @include containers.input.conf
+    @include output.conf
+
   containers.input.conf: |-
     # This configuration file for Fluentd / td-agent is used
     # to watch changes to Docker log files. The kubelet creates symlinks that
@@ -225,7 +231,7 @@ data:
       @log_level info
       type_name _doc
       include_tag_key true
-      host elasticsearch-logging
+      host elasticsearch
       port 9200
       logstash_format true
       <buffer>
