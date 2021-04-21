@@ -20,7 +20,3 @@ type Video struct {
 
 	DashFile []string `json:"dash_file"`
 }
-
-func (m *Video) TableName() string {
-	return "video"
-}

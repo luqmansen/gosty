@@ -61,7 +61,9 @@ type (
 	}
 
 	MergeTask struct {
+		// List of actual video that ready to be merged
 		ListVideo []*Video `json:"list_video"`
+		Result    *Video   `json:"result"`
 	}
 
 	TranscodeTask struct {

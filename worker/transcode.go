@@ -23,7 +23,7 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 
 	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
 
-	origFileName := strings.Split(task.TaskTranscode.Video.FileName, ".")
+	origFileName := strings.Split(task.TaskTranscode.Video.FileName, ".") // split the file name and the extension
 	newFileName := fmt.Sprintf("%s_%s.%s", origFileName[0], task.TaskTranscode.TargetRes, origFileName[1])
 
 	outputPath := fmt.Sprintf("%s/%s", workdir, newFileName)
@@ -103,22 +103,23 @@ func (s workerSvc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	errCh := make(chan error)
 
 	wg.Add(1)
-	go func(w *sync.WaitGroup) {
+	go func() {
+		defer wg.Done()
 		if err = os.Remove(outputPath); err != nil {
 			log.Error(err)
 			errCh <- err
 		}
-		w.Done()
-	}(&wg)
+	}()
 
 	wg.Add(1)
-	go func(w *sync.WaitGroup) {
+	go func() {
+		defer wg.Done()
+
 		if err = os.Remove(inputPath); err != nil {
 			log.Error(err)
 			errCh <- err
 		}
-		w.Done()
-	}(&wg)
+	}()
 
 	result := &models.Video{
 		FileName: newFileName,

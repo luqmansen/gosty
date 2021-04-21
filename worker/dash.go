@@ -42,7 +42,7 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 	}
 	wg.Wait() //need to make sure all files downloaded
 
-	//list all file that is needed to create dash representation
+	//list absolute path of all files
 	var fileList []string
 	for _, v := range task.TaskDash.ListVideo {
 		fileList = append(fileList, fmt.Sprintf("%s/%s", workdir, v.FileName))
@@ -93,7 +93,9 @@ func (s workerSvc) ProcessTaskDash(task *models.Task) error {
 	}
 
 	for _, file := range dashResult {
+		wg.Add(1)
 		go func(fileName string) {
+			defer wg.Done()
 			filePath := fmt.Sprintf("%s/%s", workdir, fileName)
 			fileReader, err := os.Open(filePath)
 			if err != nil {

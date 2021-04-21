@@ -4,6 +4,7 @@ import (
 	"fmt"
 	inspectorApi "github.com/luqmansen/gosty/apiserver/api/video"
 	"github.com/luqmansen/gosty/apiserver/pkg"
+	"github.com/luqmansen/gosty/apiserver/pkg/util"
 	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
 	"github.com/luqmansen/gosty/apiserver/pkg/util/health"
 	"github.com/luqmansen/gosty/apiserver/repositories/mongo"
@@ -16,7 +17,7 @@ import (
 
 func main() {
 	cfg := config.LoadConfig(".")
-	cfg.DebugConfig()
+	util.DebugStruct(*cfg)
 
 	vidRepo, err := mongo.NewVideoRepository(cfg.Database)
 	if err != nil {

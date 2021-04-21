@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/luqmansen/gosty/apiserver/models"
 	"github.com/luqmansen/gosty/apiserver/pkg"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -30,12 +31,10 @@ func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 	}
 
 	log.Debugf("Processing task id: %s", task.Id.Hex())
-	dockerVol := fmt.Sprintf("%s:/work/", workdir)
+	//dockerVol := fmt.Sprintf("%s:/work/", workdir)
 	cmd := exec.Command(
-		"docker", "run", "--rm", "-v", dockerVol,
-		"sambaiz/mp4box", "-splits", strconv.Itoa(int(task.TaskSplit.SizePerVid)/1024), // Split size in KB
+		"MP4Box", "-splits", strconv.Itoa(int(task.TaskSplit.SizePerVid)/1024), // Split size in KB
 		task.TaskSplit.Video.FileName)
-	log.Debug(cmd.String())
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -64,6 +63,9 @@ func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 			tempFiles = append(tempFiles, f.Name())
 		}
 
+	}
+	if len(tempFiles) == 0 {
+		return errors.New("worker.ProcessTaskSplit: no files found, something wrong")
 	}
 
 	errCh := make(chan error, 1)
@@ -110,6 +112,11 @@ func (s workerSvc) ProcessTaskSplit(task *models.Task) error {
 	for _, file := range tempFiles[1:] {
 		videoList = append(videoList, &models.Video{
 			FileName: file,
+			Size:     task.OriginVideo.Size,
+			Bitrate:  task.OriginVideo.Bitrate,
+			Duration: task.OriginVideo.Duration,
+			Width:    task.OriginVideo.Width,
+			Height:   task.OriginVideo.Height,
 		})
 	}
 

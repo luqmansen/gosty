@@ -26,6 +26,7 @@ func main() {
 
 	go worker.InitHealthCheck(cfg)
 
+	//todo: this initiation should be handled by storage service
 	if _, err := os.Stat(worker.TmpPath); os.IsNotExist(err) {
 		err = os.Mkdir(worker.TmpPath, 0700)
 		if err != nil {
@@ -40,7 +41,7 @@ func main() {
 
 	//Todo: also publish to api server when worker start
 	// working on a task and after finishing a task
-	go mq.ReadMessage(newTaskData, services.TaskNew)
+	go mq.ReadMessage(newTaskData, services.MessageBrokerQueueTaskNew)
 
 	forever := make(chan bool)
 	//Todo: refactor ack and publish part of this loop
@@ -64,7 +65,7 @@ func main() {
 					if err = msg.Ack(false); err != nil {
 						log.Error(err)
 					}
-					if err = mq.Publish(&task, services.TaskFinished); err != nil {
+					if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 						log.Error(err)
 					}
 				}
@@ -80,7 +81,7 @@ func main() {
 						if err = msg.Ack(false); err != nil {
 							log.Error(err)
 						}
-						if err = mq.Publish(&task, services.TaskFinished); err != nil {
+						if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 							log.Error(err)
 						}
 					}
@@ -94,7 +95,7 @@ func main() {
 						if err = msg.Ack(false); err != nil {
 							log.Error(err)
 						}
-						if err = mq.Publish(&task, services.TaskFinished); err != nil {
+						if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 							log.Error(err)
 						}
 					}
@@ -109,13 +110,24 @@ func main() {
 					if err = msg.Ack(false); err != nil {
 						log.Error(err)
 					}
-					if err = mq.Publish(&task, services.TaskFinished); err != nil {
+					if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 						log.Error(err)
 					}
 				}
 
 			case models.TaskMerge:
-				panic("Not implemented")
+				err = workerSvc.ProcessTaskMerge(&task)
+				if err != nil {
+					log.Error(err)
+				}
+				if err == nil {
+					if err = msg.Ack(false); err != nil {
+						log.Error(err)
+					}
+					if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+						log.Error(err)
+					}
+				}
 			default:
 				log.Error("No task kind found")
 				if err = msg.Nack(false, true); err != nil {

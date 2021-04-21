@@ -13,6 +13,7 @@ type Services interface {
 	ProcessTaskDash(task *models.Task) error
 	ProcessTaskSplit(task *models.Task) error
 	ProcessTaskTranscodeVideo(task *models.Task) error
+	ProcessTaskMerge(task *models.Task) error
 	ProcessTaskTranscodeAudio(task *models.Task) error
 }
 
@@ -22,8 +23,10 @@ const (
 
 type workerSvc struct {
 	messageBroker repositories.MessageBrokerRepository
-	worker        *models.Worker
-	config        *config.Configuration
+	//todo: implement this storage repository
+	storage repositories.StorageRepository
+	worker  *models.Worker
+	config  *config.Configuration
 }
 
 func NewWorkerService(mb repositories.MessageBrokerRepository, conf *config.Configuration) Services {

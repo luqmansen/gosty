@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+const (
+	videoCollectionName = "video"
+)
+
 type videoRepository struct {
 	db mongoRepository
 }
@@ -43,7 +47,7 @@ func (r videoRepository) GetAll(limit int64) (result []*models.Video, err error)
 		"dashfile": bson.M{"$ne": nil},
 	}
 
-	coll := r.db.client.Database(r.db.database).Collection("video")
+	coll := r.db.client.Database(r.db.database).Collection(videoCollectionName)
 	cur, err := coll.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, errors.New("repositories.Video.GetAll :" + err.Error())
@@ -77,7 +81,7 @@ func (r videoRepository) GetOneByName(key string) (*models.Video, error) {
 	defer cancel()
 
 	result := &models.Video{}
-	c := r.db.client.Database(r.db.database).Collection(result.TableName())
+	c := r.db.client.Database(r.db.database).Collection(videoCollectionName)
 	err := c.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		return nil, errors.New("repositories.Video.GetOneByName :" + err.Error())
@@ -95,7 +99,7 @@ func (r videoRepository) AddMany(videoList []*models.Video) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
 	defer cancel()
-	c := r.db.client.Database(r.db.database).Collection(videoList[0].TableName())
+	c := r.db.client.Database(r.db.database).Collection(videoCollectionName)
 	if _, e := c.InsertMany(ctx, docs); e != nil {
 		return errors.Wrap(e, "repositories.Video.AddMany")
 	}
@@ -113,7 +117,7 @@ func (r videoRepository) Get(videoId uint) models.Video {
 func (r videoRepository) Add(video *models.Video) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
 	defer cancel()
-	c := r.db.client.Database(r.db.database).Collection(video.TableName())
+	c := r.db.client.Database(r.db.database).Collection(videoCollectionName)
 	if _, e := c.InsertOne(ctx, video); e != nil {
 		return errors.Wrap(e, "repositories.Video.Add")
 	}
@@ -133,7 +137,7 @@ func (r videoRepository) Update(video *models.Video) error {
 	if err != nil {
 		return err
 	}
-	c := r.db.client.Database(r.db.database).Collection(video.TableName())
+	c := r.db.client.Database(r.db.database).Collection(videoCollectionName)
 	oId, _ := primitive.ObjectIDFromHex(video.Id.Hex())
 	_, err = c.UpdateOne(
 		ctx,

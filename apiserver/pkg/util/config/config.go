@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/viper"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"os"
-	"reflect"
 )
 
 func LoadConfig(path string) *Configuration {
@@ -57,14 +56,4 @@ func (m MessageBroker) GetMessageBrokerUri() string {
 
 func (f FileServer) GetFileServerUri() string {
 	return fmt.Sprintf("http://%s:%s", f.Host, f.Port)
-}
-
-func (c Configuration) DebugConfig() {
-	v := reflect.ValueOf(c)
-	typeOfS := v.Type()
-
-	log.Debug("Debugging Configuration")
-	for i := 0; i < v.NumField(); i++ {
-		fmt.Printf("Field: %s\tValue: %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
-	}
 }
