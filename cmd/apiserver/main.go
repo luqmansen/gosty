@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	inspectorApi "github.com/luqmansen/gosty/apiserver/api/video"
-	"github.com/luqmansen/gosty/apiserver/pkg"
-	"github.com/luqmansen/gosty/apiserver/pkg/util"
-	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
-	"github.com/luqmansen/gosty/apiserver/pkg/util/health"
-	"github.com/luqmansen/gosty/apiserver/repositories/mongo"
-	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
-	"github.com/luqmansen/gosty/apiserver/services"
+	inspectorApi "github.com/luqmansen/gosty/pkg/apiserver/api/video"
+	"github.com/luqmansen/gosty/pkg/apiserver/config"
+	"github.com/luqmansen/gosty/pkg/apiserver/repositories/mongo"
+	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
+	"github.com/luqmansen/gosty/pkg/apiserver/services"
+	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -45,10 +43,10 @@ func main() {
 	insSvc := services.NewVideoService(vidRepo, schedulerSvc)
 	insHandler := inspectorApi.NewInspectorHandler(cfg, insSvc)
 
-	go health.InitHealthCheck(cfg)
+	go util.InitHealthCheck(cfg)
 
 	r := inspectorApi.Routes(insHandler)
-	port := pkg.GetEnv("PORT", "8000")
+	port := util.GetEnv("PORT", "8000")
 	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	if err != nil {

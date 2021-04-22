@@ -5,9 +5,9 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/luqmansen/gosty/apiserver/pkg"
-	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
-	"github.com/luqmansen/gosty/fileserver"
+	"github.com/luqmansen/gosty/pkg/apiserver/config"
+	"github.com/luqmansen/gosty/pkg/apiserver/util"
+	"github.com/luqmansen/gosty/pkg/fileserver"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -47,7 +47,7 @@ func main() {
 	r.Get(fsPath, fileserver.HandleFileServer(pathToServe))
 	r.Post("/upload", fileserver.HandleUpload())
 
-	port := pkg.GetEnv("PORT", "8001")
+	port := util.GetEnv("PORT", "8001")
 	log.Infof("File running on port %s", port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	if err != nil {

@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/luqmansen/gosty/apiserver/models"
-	"github.com/luqmansen/gosty/apiserver/pkg/util/config"
-	"github.com/luqmansen/gosty/apiserver/repositories/rabbitmq"
-	"github.com/luqmansen/gosty/apiserver/services"
-	"github.com/luqmansen/gosty/worker"
+	"github.com/luqmansen/gosty/pkg/apiserver/config"
+	"github.com/luqmansen/gosty/pkg/apiserver/models"
+	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
+	"github.com/luqmansen/gosty/pkg/apiserver/services"
+	"github.com/luqmansen/gosty/pkg/worker"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"os"

@@ -1,0 +1,27 @@
+package scheduler
+
+import (
+	"github.com/luqmansen/gosty/pkg/apiserver/services"
+	"net/http"
+)
+
+type Handler interface {
+	Get(w http.ResponseWriter, r *http.Request)
+	Post(w http.ResponseWriter, r *http.Request)
+}
+type handler struct {
+	inspectorService services.VideoService
+}
+
+func NewSchedulerHandler(inspectorSvc services.VideoService) Handler {
+	return &handler{inspectorSvc}
+
+}
+
+func (h handler) Get(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (h handler) Post(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
