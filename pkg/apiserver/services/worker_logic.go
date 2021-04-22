@@ -64,8 +64,13 @@ func (wrk workerServices) Get(workerName string) models.Worker {
 	panic("implement me")
 }
 
-func (wrk workerServices) GetIdle() models.Worker {
-	panic("implement me")
+func (wrk workerServices) GetAll() ([]*models.Worker, error) {
+	w, err := wrk.workerRepo.GetAll(12)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return w, nil
 }
 
 func (wrk workerServices) Update(workerName string) models.Worker {

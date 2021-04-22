@@ -7,7 +7,7 @@ type WorkerService interface {
 	ReadMessage()
 	Create() error
 	Get(workerName string) models.Worker
-	GetIdle() models.Worker
+	GetAll() ([]*models.Worker, error)
 	Update(workerName string) models.Worker
 	Terminate(workerName string) error
 }

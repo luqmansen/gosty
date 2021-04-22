@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	inspectorApi "github.com/luqmansen/gosty/pkg/apiserver/api/video"
+	"github.com/luqmansen/gosty/pkg/apiserver/api"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/mongo"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
@@ -36,16 +36,20 @@ func main() {
 
 	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit)
 	workerSvc := services.NewWorkerService(workerRepo, rabbit)
+	videoSvc := services.NewVideoService(vidRepo, schedulerSvc)
 
 	go schedulerSvc.ReadMessages()
 	go workerSvc.ReadMessage()
 
-	insSvc := services.NewVideoService(vidRepo, schedulerSvc)
-	insHandler := inspectorApi.NewInspectorHandler(cfg, insSvc)
+	videoHandler := api.NewVideoHandler(cfg, videoSvc)
+	workerRestHandler := api.NewWorkerHandler(workerSvc)
 
 	go util.InitHealthCheck(cfg)
 
-	r := inspectorApi.Routes(insHandler)
+	r := api.NewRouter()
+	api.AddWorkerRoutes(r, workerRestHandler)
+	api.AddVideoRoutes(r, videoHandler)
+
 	port := util.GetEnv("PORT", "8000")
 	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), r)

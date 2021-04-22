@@ -1,4 +1,4 @@
-package video
+package api
 
 import (
 	"bufio"
@@ -22,33 +22,25 @@ const (
 	apiserverTempDir = "./tmp/"
 )
 
-type Handler interface {
-	Get(w http.ResponseWriter, r *http.Request)
+type VideoHandler interface {
 	//GetPlaylist fetch all video with finished dask task
 	GetPlaylist(w http.ResponseWriter, r *http.Request)
 	UploadHandler(w http.ResponseWriter, r *http.Request)
 }
 
-type handler struct {
+type video struct {
 	videoService services.VideoService
 	config       *config.Configuration
 }
 
-func NewInspectorHandler(
-	cfg *config.Configuration,
-	inspectorSvc services.VideoService,
-) Handler {
-	return &handler{
-		videoService: inspectorSvc,
+func NewVideoHandler(cfg *config.Configuration, videoService services.VideoService) VideoHandler {
+	return &video{
+		videoService: videoService,
 		config:       cfg,
 	}
 }
 
-func (h handler) Get(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello"))
-}
-
-func (h handler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
+func (h video) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 
 	vid := h.videoService.GetAll()
 	if len(vid) == 0 {
@@ -71,7 +63,7 @@ func (h handler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (h handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
+func (h video) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// uncomment to give upload limit
 	//r.Body = http.MaxBytesReader(w, r.Body, 32 << 20+1024)
 

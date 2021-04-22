@@ -24,6 +24,7 @@ type TaskRepository interface {
 
 type WorkerRepository interface {
 	Get(workerId uint) models.Worker
+	GetAll(limit int64) ([]*models.Worker, error)
 	Add(worker *models.Worker) error
 	Upsert(worker *models.Worker) error
 	Delete(workerId uint) error
