@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	WorkerNew = "worker_new"
+	WorkerNew      = "worker_new"
+	WorkerAssigned = "worker_assigned"
 )
 
 type workerServices struct {
@@ -33,27 +34,33 @@ func (wrk workerServices) ReadMessage() {
 
 	newWorker := make(chan interface{})
 	go wrk.mb.ReadMessage(newWorker, WorkerNew)
-	go func() {
-		for w := range newWorker {
-			msg := w.(amqp.Delivery)
-			var worker models.Worker
-			err := json.Unmarshal(msg.Body, &worker)
-			if err != nil {
-				log.Error(err)
-			}
-			log.Debugf("New worker %s added", worker.WorkerPodName)
-			if err := wrk.workerRepo.Upsert(&worker); err != nil {
-				log.Error(err)
-			}
-			if err == nil {
-				if err = msg.Ack(false); err != nil {
-					log.Error(err)
-				}
-			}
-		}
-	}()
+	go wrk.workerStateUpdate(newWorker, "added")
+
+	updateWorkerStatus := make(chan interface{})
+	go wrk.mb.ReadMessage(updateWorkerStatus, WorkerAssigned)
+	go wrk.workerStateUpdate(updateWorkerStatus, "assigned")
 
 	<-forever
+}
+
+func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action string) {
+	for w := range workerQueue {
+		msg := w.(amqp.Delivery)
+		var worker models.Worker
+		err := json.Unmarshal(msg.Body, &worker)
+		if err != nil {
+			log.Error(err)
+		}
+		log.Debugf("Worker %s %s", worker.WorkerPodName, action)
+		if err := wrk.workerRepo.Upsert(&worker); err != nil {
+			log.Error(err)
+		}
+		if err == nil {
+			if err = msg.Ack(false); err != nil {
+				log.Error(err)
+			}
+		}
+	}
 }
 
 func (wrk workerServices) Create() error {

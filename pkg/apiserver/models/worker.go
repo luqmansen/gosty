@@ -17,6 +17,7 @@ type Worker struct {
 	Id            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	WorkerPodName string             `json:"worker_pod_name"`
 	Status        WorkerStatus       `json:"status"`
+	WorkingOn     string             `json:"working_on"` // string of task id that worker working on
 	UpdatedAt     time.Time          `json:"updated_at"`
 }
 

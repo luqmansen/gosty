@@ -32,7 +32,7 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	rabbit := rabbitmq.NewRabbitMQRepo(cfg.MessageBroker.GetMessageBrokerUri())
+	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
 
 	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit)
 	workerSvc := services.NewWorkerService(workerRepo, rabbit)
@@ -40,11 +40,10 @@ func main() {
 
 	go schedulerSvc.ReadMessages()
 	go workerSvc.ReadMessage()
+	go util.InitHealthCheck(cfg)
 
 	videoHandler := api.NewVideoHandler(cfg, videoSvc)
 	workerRestHandler := api.NewWorkerHandler(workerSvc)
-
-	go util.InitHealthCheck(cfg)
 
 	r := api.NewRouter()
 	api.AddWorkerRoutes(r, workerRestHandler)
