@@ -44,7 +44,7 @@ class WorkerPage extends Component {
                     <Column
                         label='Id'
                         dataKey='id'
-                        width={300}
+                        width={200}
                     />
                     <Column
                         label='Worker Name'
@@ -54,12 +54,12 @@ class WorkerPage extends Component {
                     <Column
                         label='Status'
                         dataKey='status'
-                        width={300}
+                        width={100}
                     />
                     <Column
                         label='Working On'
                         dataKey='working_on'
-                        width={300}
+                        width={200}
                     />
                     <Column
                         label='Updated'

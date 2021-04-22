@@ -81,12 +81,13 @@ function msToTime(ms) {
 const tableData = (v) => {
     return (
         <div>
-            <p>File Name: {v.origin_video.file_name}</p>
+            <p>File : {v.origin_video.file_name}</p>
+            <p>Total Duration: {msToTime(v.total_duration / 1e+6)}</p>
 
             <Table
                 rowClassName='table-row'
                 headerHeight={40}
-                width={900}
+                width={1000}
                 height={v.task_list.length * 50}
                 rowHeight={40}
                 rowCount={v.task_list.length}
@@ -108,6 +109,11 @@ const tableData = (v) => {
                     width={250}
                 />
                 <Column
+                    label='Worker'
+                    dataKey='worker'
+                    width={250}
+                />
+                <Column
                     label='task_submitted'
                     dataKey='task_submitted'
                     width={300}
@@ -118,7 +124,7 @@ const tableData = (v) => {
                     width={300}
                 />
                 <Column
-                    label='task_duration'
+                    label='duration'
                     dataKey='task_duration'
                     width={300}
                 />

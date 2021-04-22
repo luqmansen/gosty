@@ -79,6 +79,12 @@ func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressRe
 		result = append(result, &models.TaskProgressResponse{
 			OriginVideo: originVideo,
 			TaskList:    tempTask[k],
+			TotalDuration: func() (t time.Duration) {
+				for _, v := range tempTask[k] {
+					t += v.TaskDuration
+				}
+				return
+			}(),
 		})
 	}
 
