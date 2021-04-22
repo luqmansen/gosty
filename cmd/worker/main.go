@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
-	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	"github.com/luqmansen/gosty/pkg/worker"
@@ -13,6 +12,10 @@ import (
 	"os"
 	"time"
 )
+
+type svc struct {
+	worker.Services
+}
 
 func main() {
 	cfg := config.LoadConfig(".")
@@ -40,7 +43,9 @@ func main() {
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
 	go mb.ReadMessage(newTaskData, services.MessageBrokerQueueTaskNew)
-	go processNewTask(newTaskData, workerSvc, mb)
+
+	w := svc{workerSvc}
+	go w.processNewTask(newTaskData)
 
 	go worker.InitHealthCheck(cfg)
 	log.Printf("Worker running. To exit press CTRL+C")
@@ -48,7 +53,7 @@ func main() {
 
 }
 
-func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq repositories.MessageBrokerRepository) {
+func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 	//Todo: refactor ack and publish part of this loop
 	for t := range newTaskData {
 		msg := t.(amqp.Delivery)
@@ -57,11 +62,10 @@ func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq 
 		if err != nil {
 			log.Error(err)
 		}
-
+		wrk.notifyApiServer(task)
 		switch taskKind := task.Kind; taskKind {
 		case models.TaskSplit:
-			notifyApiServer(mq, workerSvc, task)
-			err = workerSvc.ProcessTaskSplit(&task)
+			err = wrk.ProcessTaskSplit(&task)
 			if err != nil {
 				log.Error(err)
 			}
@@ -69,18 +73,16 @@ func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq 
 				if err = msg.Ack(false); err != nil {
 					log.Error(err)
 				}
-				if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 					log.Error(err)
 				}
-				notifyApiServer(mq, workerSvc, models.Task{})
+				wrk.notifyApiServer(models.Task{})
 			}
 
 		case models.TaskTranscode:
-			notifyApiServer(mq, workerSvc, task)
 			switch txType := task.TaskTranscode.TranscodeType; txType {
 			case models.TranscodeVideo:
-				notifyApiServer(mq, workerSvc, task)
-				err = workerSvc.ProcessTaskTranscodeVideo(&task)
+				err = wrk.ProcessTaskTranscodeVideo(&task)
 				if err != nil {
 					log.Error(err)
 				}
@@ -88,15 +90,14 @@ func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq 
 					if err = msg.Ack(false); err != nil {
 						log.Error(err)
 					}
-					if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+					if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 						log.Error(err)
 					}
-					notifyApiServer(mq, workerSvc, models.Task{})
+					wrk.notifyApiServer(models.Task{})
 				}
 
 			case models.TranscodeAudio:
-				notifyApiServer(mq, workerSvc, task)
-				err = workerSvc.ProcessTaskTranscodeAudio(&task)
+				err = wrk.ProcessTaskTranscodeAudio(&task)
 				if err != nil {
 					log.Error(err)
 				}
@@ -104,16 +105,15 @@ func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq 
 					if err = msg.Ack(false); err != nil {
 						log.Error(err)
 					}
-					if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+					if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 						log.Error(err)
 					}
-					notifyApiServer(mq, workerSvc, models.Task{})
+					wrk.notifyApiServer(models.Task{})
 				}
 
 			}
 		case models.TaskDash:
-			notifyApiServer(mq, workerSvc, task)
-			err = workerSvc.ProcessTaskDash(&task)
+			err = wrk.ProcessTaskDash(&task)
 			if err != nil {
 				log.Error(err)
 			}
@@ -121,15 +121,14 @@ func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq 
 				if err = msg.Ack(false); err != nil {
 					log.Error(err)
 				}
-				if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 					log.Error(err)
 				}
-				notifyApiServer(mq, workerSvc, models.Task{})
+				wrk.notifyApiServer(models.Task{})
 			}
 
 		case models.TaskMerge:
-			notifyApiServer(mq, workerSvc, task)
-			err = workerSvc.ProcessTaskMerge(&task)
+			err = wrk.ProcessTaskMerge(&task)
 			if err != nil {
 				log.Error(err)
 			}
@@ -137,34 +136,24 @@ func processNewTask(newTaskData chan interface{}, workerSvc worker.Services, mq 
 				if err = msg.Ack(false); err != nil {
 					log.Error(err)
 				}
-				if err = mq.Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 					log.Error(err)
 				}
-				notifyApiServer(mq, workerSvc, models.Task{})
+				wrk.notifyApiServer(models.Task{})
+
 			}
 		default:
+			wrk.notifyApiServer(models.Task{})
 			log.Error("No task kind found")
 			if err = msg.Nack(false, true); err != nil {
 				log.Error(err)
 			}
 		}
-
 	}
 }
 
-func notifierDecorator(
-	mb repositories.MessageBrokerRepository,
-	workerSvc worker.Services,
-	task models.Task,
-	f func(task *models.Task) error) error {
-	notifyApiServer(mb, workerSvc, task)
-	err := f(&task)
-	notifyApiServer(mb, workerSvc, models.Task{})
-	return err
-}
-
-func notifyApiServer(mb repositories.MessageBrokerRepository, workerSvc worker.Services, task models.Task) {
-	w := workerSvc.GetWorkerInfo()
+func (wrk *svc) notifyApiServer(task models.Task) {
+	w := wrk.GetWorkerInfo()
 	w.UpdatedAt = time.Now()
 
 	//check if task is empty
@@ -174,10 +163,10 @@ func notifyApiServer(mb repositories.MessageBrokerRepository, workerSvc worker.S
 
 	} else {
 		w.Status = models.WorkerStatusWorking
-		w.WorkingOn = task.Id.String()
+		w.WorkingOn = task.Id.Hex()
 	}
 
-	if err := mb.Publish(w, services.WorkerAssigned); err != nil {
+	if err := wrk.GetMessageBroker().Publish(w, services.WorkerAssigned); err != nil {
 		log.Error(err)
 	}
 }

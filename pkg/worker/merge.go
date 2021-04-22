@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func (s workerSvc) ProcessTaskMerge(task *models.Task) error {
+func (s Svc) ProcessTaskMerge(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
 	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
