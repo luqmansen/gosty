@@ -235,11 +235,13 @@ extraEnvVars: []
 
 ## Annotations to be added to the MongoDB(R) statefulset. Evaluated as a template.
 ##
-annotations: {}
+annotations:
+  linkerd.io/inject: enabled
+
 
 ## Additional labels to be added to the MongoDB(R) statefulset. Evaluated as a template.
 ##
-labels: {}
+labels: { }
 
 ## Number of MongoDB(R) replicas to deploy.
 ## Ignored when mongodb.architecture=standalone
@@ -452,11 +454,11 @@ persistence:
   ## If undefined (the default) or set to null, no storageClassName spec is
   ## set, choosing the default provisioner.
   ##
-  # storageClass: "-"
+  #  storageClass: "local-path"
   ## PV Access Mode
   ##
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   ## PVC size
   ##
   size: 4Gi

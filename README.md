@@ -52,7 +52,7 @@ helm install rabbit bitnami/rabbitmq -f k8s/rabbitmq/helm-values.yaml --create-n
 ### MongoDB
 
 ```
-kubectl create -f k8s/mongodb/mongodb.yaml # create nodePort service, skip if you don't need
+kubectl create -f k8s/mongodb/service.yaml # create nodePort service, skip if you don't need
 helm install mongodb bitnami/mongodb -f k8s/mongodb/helm-values.yaml --create-namespace --namespace gosty
 ```
 
@@ -140,6 +140,18 @@ microk8s.enable registry
 ```
 
 You can access it via microk8s's ip (NodePort service)
+
+### K3s local registry
+
+create this file on ``/etc/rancher/k3s/registries.yaml``
+
+```yaml
+mirrors:
+  registry.local:
+    endpoint:
+      - "http://192.168.56.1:5000" # your local container registry
+
+```
 
 #### Using Docker compose
 
@@ -231,11 +243,21 @@ export NS=<NAMESPACE>
 kubectl -n $NS delete rs $(kubectl -n $NS get rs | awk '{if ($2 + $3 + $4 == 0) print $1}' | grep -v 'NAME')
 ```
 
+**Pods stuck on terminating state**
+
+Sometimes this is happened on k3s cluster after a while
+
+```bash
+export NS=<namespace>
+for p in $(kubectl get pods -n $NS | grep Terminating | awk '{print $1}'); do kubectl delete pod -n $NS $p --grace-period=0 --force;done
+```
+
 **Hostpath provisioner only writable by root**
 
 If you're running into this [issue](https://github.com/kubernetes/minikube/issues/1990), where the pod won't start
-because it can't write to pv, currently my workaround is change the directory modifier.
-For every node on your cluster, run below command
+because it can't write to pv, currently my workaround is change the directory modifier. For every node on your cluster,
+run below command
+
 ````
 sudo chmod -R 777 /tmp/hostpath-provisioner/gosty
 ````

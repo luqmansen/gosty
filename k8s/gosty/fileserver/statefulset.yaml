@@ -29,7 +29,7 @@ spec:
                       - k3s-node-01
 
       containers:
-        - image: registry.local/gosty-fileserver:latest
+        - image: luqmansen/gosty-fileserver:latest
           name: gosty-fileserver
           ports:
             - containerPort: 8001

@@ -6,7 +6,7 @@ metadata:
   name: gosty-apiserver
   namespace: gosty
 spec:
-  replicas: 3
+  replicas: 1
   revisionHistoryLimit: 1
   minReadySeconds: 10
   selector:
@@ -29,7 +29,7 @@ spec:
               weight: 100
 
       containers:
-        - image: 192.168.56.1:5000/gosty-apiserver:latest
+        - image: luqmansen/gosty-apiserver:latest
           name: gosty-apiserver
           imagePullPolicy: Always
           ports:
@@ -56,10 +56,11 @@ metadata:
   name: gosty-apiserver
   namespace: gosty
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: gosty-apiserver
   ports:
   - port: 80
     name: http
     targetPort: 8000
+    nodePort: 30000
