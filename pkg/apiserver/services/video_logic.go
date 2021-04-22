@@ -5,6 +5,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"strconv"
 	"strings"
@@ -48,6 +49,7 @@ func (v videoServices) Inspect(file string) models.Video {
 	fileName := strings.Split(file, "/")
 
 	video := models.Video{
+		Id:       primitive.NewObjectID(),
 		FileName: fileName[len(fileName)-1],
 		Size:     size,
 		Bitrate:  int(bitrate), //streams["bit_rate"].(int),

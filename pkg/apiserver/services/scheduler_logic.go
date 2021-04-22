@@ -39,6 +39,42 @@ func NewSchedulerService(
 	}
 }
 
+func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressResponse) {
+	//for every task from db, group them if they are from the same video
+	allTask, err := s.taskRepo.GetAll(100)
+	if err != nil {
+		log.Error(err)
+	}
+	if len(allTask) == 0 {
+		return nil
+	}
+
+	tempTask := make(map[string][]*models.Task)
+	tempOriginVideo := make(map[string]*models.Video)
+	for _, task := range allTask {
+		idVideo := task.OriginVideo.FileName
+		if val, ok := tempTask[idVideo]; ok {
+			val = append(val, task)
+			tempTask[idVideo] = val
+		} else {
+			tempTask[idVideo] = []*models.Task{task}
+		}
+
+		if _, ok := tempOriginVideo[idVideo]; !ok {
+			tempOriginVideo[idVideo] = task.OriginVideo
+		}
+
+	}
+	for k, v := range tempTask {
+		originVideo := tempOriginVideo[v[0].OriginVideo.FileName]
+		result = append(result, &models.TaskProgressResponse{
+			OriginVideo: originVideo,
+			TaskList:    tempTask[k],
+		})
+	}
+	return
+}
+
 func (s schedulerServices) ReadMessages() {
 	log.Debugf("Starting read message from %s", MessageBrokerQueueTaskFinished)
 	finishedTask := make(chan interface{})
@@ -164,59 +200,6 @@ func (s schedulerServices) ReadMessages() {
 		}
 	}()
 	<-forever
-}
-
-func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) error {
-	//var wg sync.WaitGroup
-	//errCh := make(chan error)
-	for _, vid := range task.TaskSplit.SplitedVideo {
-		//wg.Add(1)
-		func(v *models.Video) {
-			//	defer wg.Done()
-			task := &models.Task{
-				OriginVideo:   task.OriginVideo,
-				TaskTranscode: &models.TranscodeTask{Video: v},
-			}
-			err := s.CreateTranscodeTask(task)
-			if err != nil {
-				log.Error(err)
-				//errCh <- err
-			}
-		}(vid)
-	}
-	//select {
-	//case err := <-errCh:
-	//	return err
-	//default:
-	//wg.Wait()
-	return nil
-	//}
-}
-
-//For transcode audio
-//Currently audio transcoding is disabled, original audio is embedded on audio,
-//see note on task_transcode line ~60
-func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
-	task := models.Task{
-		Kind: models.TaskTranscode,
-		TaskTranscode: &models.TranscodeTask{
-			TranscodeType: models.TranscodeAudio,
-			Video:         video,
-		},
-		Status:        models.TaskQueued,
-		TaskSubmitted: time.Now(),
-	}
-	err := s.taskRepo.Add(&task)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	err = s.mb.Publish(task, MessageBrokerQueueTaskNew)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	return nil
 }
 
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {
@@ -371,6 +354,59 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	}
 	select {
 	case err := <-errChan:
+		return err
+	default:
+		wg.Wait()
+		return nil
+	}
+}
+
+//For transcode audio
+//Currently audio transcoding is disabled, original audio is embedded on audio,
+//see note on task_transcode line ~60
+func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
+	task := models.Task{
+		Kind: models.TaskTranscode,
+		TaskTranscode: &models.TranscodeTask{
+			TranscodeType: models.TranscodeAudio,
+			Video:         video,
+		},
+		Status:        models.TaskQueued,
+		TaskSubmitted: time.Now(),
+	}
+	err := s.taskRepo.Add(&task)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	err = s.mb.Publish(task, MessageBrokerQueueTaskNew)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
+func (s schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task) error {
+	var wg sync.WaitGroup
+	errCh := make(chan error)
+	for _, vid := range task.TaskSplit.SplitedVideo {
+		wg.Add(1)
+		func(v *models.Video) {
+			defer wg.Done()
+			task := &models.Task{
+				OriginVideo:   task.OriginVideo,
+				TaskTranscode: &models.TranscodeTask{Video: v},
+			}
+			err := s.CreateTranscodeTask(task)
+			if err != nil {
+				log.Error(err)
+				errCh <- err
+			}
+		}(vid)
+	}
+	select {
+	case err := <-errCh:
 		return err
 	default:
 		wg.Wait()

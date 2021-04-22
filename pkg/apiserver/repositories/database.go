@@ -15,6 +15,7 @@ type VideoRepository interface {
 
 type TaskRepository interface {
 	Get(taskId string) models.Task
+	GetAll(limit int64) ([]*models.Task, error)
 	GetOneByVideoNameAndKind(name string, kind models.TaskKind) (*models.Task, error)
 	GetTranscodeTasksByVideoNameAndResolution(name, resolution string) ([]*models.Task, error)
 	Add(task *models.Task) error

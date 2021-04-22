@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -37,6 +38,40 @@ func NewTaskRepository(cfg config.Database) (repositories.TaskRepository, error)
 
 func (r taskRepository) Get(taskId string) models.Task {
 	panic("implement me")
+}
+
+func (r taskRepository) GetAll(limit int64) (result []*models.Task, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
+	defer cancel()
+
+	findOptions := options.Find()
+	findOptions.SetLimit(limit)
+
+	coll := r.db.client.Database(r.db.database).Collection(taskCollectionName)
+	cur, err := coll.Find(ctx, bson.M{}, findOptions)
+	if err != nil {
+		return nil, errors.New("repositories.task.GetAll :" + err.Error())
+	}
+
+	for cur.Next(ctx) {
+
+		var elem models.Task
+		err := cur.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = append(result, &elem)
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	err = cur.Close(ctx)
+	if err != nil {
+		return nil, errors.New("repositories.task.GetAll :" + err.Error())
+	}
+	return result, nil
 }
 
 func (r taskRepository) GetOneByVideoNameAndKind(name string, kind models.TaskKind) (*models.Task, error) {

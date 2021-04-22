@@ -34,3 +34,8 @@ func AddVideoRoutes(r *chi.Mux, h VideoHandler) *chi.Mux {
 
 	return r
 }
+
+func AddSchedulerRoutes(r *chi.Mux, h SchedulerHandler) *chi.Mux {
+	r.Get("/progress", h.GetAllTaskProgress)
+	return r
+}

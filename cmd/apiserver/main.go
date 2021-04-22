@@ -42,12 +42,14 @@ func main() {
 	go workerSvc.ReadMessage()
 	go util.InitHealthCheck(cfg)
 
-	videoHandler := api.NewVideoHandler(cfg, videoSvc)
+	videoRestHandler := api.NewVideoHandler(cfg, videoSvc)
 	workerRestHandler := api.NewWorkerHandler(workerSvc)
+	schedulerRestHandler := api.NewSchedulerHandler(schedulerSvc)
 
 	r := api.NewRouter()
 	api.AddWorkerRoutes(r, workerRestHandler)
-	api.AddVideoRoutes(r, videoHandler)
+	api.AddVideoRoutes(r, videoRestHandler)
+	api.AddSchedulerRoutes(r, schedulerRestHandler)
 
 	port := util.GetEnv("PORT", "8000")
 	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)

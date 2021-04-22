@@ -10,7 +10,7 @@ type TaskStatus int
 const (
 	TaskQueued TaskStatus = iota
 	TaskStatusDone
-	TaskStatusOnprogress
+	TaskStatusOnProgress
 	TaskStatusFailed
 )
 

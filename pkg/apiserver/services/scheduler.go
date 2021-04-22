@@ -5,6 +5,7 @@ import (
 )
 
 type SchedulerService interface {
+	GetAllTaskProgress() []*models.TaskProgressResponse
 	CreateSplitTask(video *models.Video) error
 	CreateTranscodeTask(task *models.Task) error
 	CreateDashTask(task *models.Task) error
