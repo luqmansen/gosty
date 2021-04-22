@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import PlayerPage from "./PlayerPage";
 import WorkerPage from "./WorkerPage";
+import ProgressPage from "./ProgressPage";
 
 export default function BasicExample() {
     return (
@@ -41,7 +42,7 @@ export default function BasicExample() {
                         <WorkerPage />
                     </Route>
                     <Route path="/progress">
-                        <Dashboard />
+                        <ProgressPage />
                     </Route>
                 </Switch>
             </div>
@@ -49,19 +50,3 @@ export default function BasicExample() {
     );
 }
 
-
-function About() {
-    return (
-        <div>
-            <h2>About</h2>
-        </div>
-    );
-}
-
-function Dashboard() {
-    return (
-        <div>
-            <h2>Dashboard</h2>
-        </div>
-    );
-}

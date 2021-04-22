@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -65,13 +66,21 @@ func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressRe
 		}
 
 	}
-	for k, v := range tempTask {
-		originVideo := tempOriginVideo[v[0].OriginVideo.FileName]
+	//sorting map by keys
+	keys := make([]string, 0, len(tempTask))
+	for k := range tempTask {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		originVideo := tempOriginVideo[k]
 		result = append(result, &models.TaskProgressResponse{
 			OriginVideo: originVideo,
 			TaskList:    tempTask[k],
 		})
 	}
+
 	return
 }
 
@@ -284,14 +293,14 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	//br = audio bitrate, currently ignored
 	availRes := []map[string]interface{}{
 		{"res": "256x144", "br": 80_000},
-		{"res": "426x240", "br": 300_000},
-		{"res": "640x360", "br": 400_000},
-		{"res": "854x480", "br": 500_000},
-		{"res": "1280x720", "br": 1_500_000},
-		{"res": "1920x1080", "br": 3_000_000},
-		{"res": "2560x1440", "br": 6_000_000},
-		{"res": "3840x2160", "br": 13_000_000},
-		{"res": "7680x4320", "br": 20_000_000},
+		//{"res": "426x240", "br": 300_000},
+		//{"res": "640x360", "br": 400_000},
+		//{"res": "854x480", "br": 500_000},
+		//{"res": "1280x720", "br": 1_500_000},
+		//{"res": "1920x1080", "br": 3_000_000},
+		//{"res": "2560x1440", "br": 6_000_000},
+		//{"res": "3840x2160", "br": 13_000_000},
+		//{"res": "7680x4320", "br": 20_000_000},
 	}
 	var target []map[string]interface{}
 	for _, v := range availRes {
