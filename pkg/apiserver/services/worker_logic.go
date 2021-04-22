@@ -12,7 +12,7 @@ import (
 
 func NewWorkerService(
 	workerRepo repositories.WorkerRepository,
-	mb repositories.MessageBrokerRepository,
+	mb repositories.Messenger,
 	sse *sse.Server,
 ) WorkerService {
 	return &workerServices{

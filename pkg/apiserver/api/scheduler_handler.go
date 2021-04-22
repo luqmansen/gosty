@@ -12,10 +12,10 @@ type SchedulerHandler interface {
 	Post(w http.ResponseWriter, r *http.Request)
 }
 type scheduler struct {
-	schedulerSvc services.SchedulerService
+	schedulerSvc services.Scheduler
 }
 
-func NewSchedulerHandler(schedulerSvc services.SchedulerService) SchedulerHandler {
+func NewSchedulerHandler(schedulerSvc services.Scheduler) SchedulerHandler {
 	return &scheduler{schedulerSvc}
 
 }

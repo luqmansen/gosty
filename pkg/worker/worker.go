@@ -11,7 +11,7 @@ import (
 
 type Services interface {
 	GetWorkerInfo() *models.Worker
-	GetMessageBroker() repositories.MessageBrokerRepository
+	GetMessageBroker() repositories.Messenger
 	ProcessTaskDash(task *models.Task) error
 	ProcessTaskSplit(task *models.Task) error
 	ProcessTaskTranscodeVideo(task *models.Task) error
@@ -24,14 +24,14 @@ const (
 )
 
 type Svc struct {
-	messageBroker repositories.MessageBrokerRepository
+	messageBroker repositories.Messenger
 	//todo: implement this storage repository
 	storage repositories.StorageRepository
 	worker  *models.Worker
 	config  *config.Configuration
 }
 
-func NewWorkerService(mb repositories.MessageBrokerRepository, conf *config.Configuration) Services {
+func NewWorkerService(mb repositories.Messenger, conf *config.Configuration) Services {
 	return &Svc{
 		messageBroker: mb,
 		worker: &models.Worker{
@@ -48,6 +48,6 @@ func (s *Svc) GetWorkerInfo() *models.Worker {
 	return s.worker
 }
 
-func (s *Svc) GetMessageBroker() repositories.MessageBrokerRepository {
+func (s *Svc) GetMessageBroker() repositories.Messenger {
 	return s.messageBroker
 }

@@ -13,10 +13,10 @@ import (
 
 type videoServices struct {
 	vidRepo      repositories.VideoRepository
-	schedulerSvc SchedulerService
+	schedulerSvc Scheduler
 }
 
-func NewVideoService(vidRepo repositories.VideoRepository, schedulerSvc SchedulerService) VideoService {
+func NewVideoService(vidRepo repositories.VideoRepository, schedulerSvc Scheduler) VideoService {
 	return &videoServices{vidRepo, schedulerSvc}
 }
 

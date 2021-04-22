@@ -14,7 +14,7 @@ type rabbitRepo struct {
 	//queue string
 }
 
-func NewRepository(uri string) repositories.MessageBrokerRepository {
+func NewRepository(uri string) repositories.Messenger {
 	//TODO defer close connection somewhere
 	log.Debugf("Rabbitmq uri: %s", uri)
 

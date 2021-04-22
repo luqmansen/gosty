@@ -2,8 +2,6 @@ package services
 
 import (
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
-	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
-	"github.com/r3labs/sse/v2"
 )
 
 const (
@@ -12,18 +10,11 @@ const (
 	MessageBrokerQueueTaskUpdateStatus = "task_update_status"
 )
 
-type schedulerServices struct {
-	taskRepo  repositories.TaskRepository
-	videoRepo repositories.VideoRepository
-	mb        repositories.MessageBrokerRepository
-	sse       *sse.Server
-}
-
 const (
 	TaskHTTPEventStream = "task"
 )
 
-type SchedulerService interface {
+type Scheduler interface {
 	GetAllTaskProgress() []*models.TaskProgressResponse
 	CreateSplitTask(video *models.Video) error
 	CreateTranscodeTask(task *models.Task) error

@@ -18,7 +18,7 @@ const (
 
 type workerServices struct {
 	workerRepo repositories.WorkerRepository
-	mb         repositories.MessageBrokerRepository
+	mb         repositories.Messenger
 	sse        *sse.Server
 }
 

@@ -7,13 +7,11 @@ import (
 )
 
 func DebugStruct(c interface{}) {
-	if log.GetLevel() == log.DebugLevel {
-		v := reflect.ValueOf(c)
-		typeOfS := v.Type()
+	v := reflect.ValueOf(c)
+	typeOfS := v.Type()
 
-		log.Debug("Debugging Configuration")
-		for i := 0; i < v.NumField(); i++ {
-			fmt.Printf("Field: %s\tValue: %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
-		}
+	log.Debug("Debugging Configuration")
+	for i := 0; i < v.NumField(); i++ {
+		fmt.Printf("Field: %s\tValue: %v\n", typeOfS.Field(i).Name, v.Field(i).Interface())
 	}
 }
