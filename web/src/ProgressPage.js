@@ -33,11 +33,15 @@ class ProgressPage extends Component {
                         if (t.task_transcode != null) {
                             t.target = t.task_transcode.target_res
                         } else if (t.task_split != null) {
-                            t.target = t.task_split.splited_video.length
-                        } else if (t.task_merge != null){
-                            t.target = t.task_merge.list_video.length
+                            if (t.task_split.splited_video != null) {
+                                t.target = t.task_split.splited_video.length
+                            }
+                        } else if (t.task_merge != null) {
+                            if (t.task_merge.list_video != null) {
+                                t.target = t.task_merge.list_video.length
+                            }
                         }
-                            })
+                    })
                 })
                 blocks.map(w => {
                     w.task_list.map(t => {
@@ -83,7 +87,7 @@ const tableData = (v) => {
                 rowClassName='table-row'
                 headerHeight={40}
                 width={900}
-                height={300}
+                height={v.task_list.length * 50}
                 rowHeight={40}
                 rowCount={v.task_list.length}
                 rowGetter={({index}) => v.task_list[index]}
