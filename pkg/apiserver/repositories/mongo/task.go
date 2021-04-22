@@ -166,7 +166,7 @@ func (r taskRepository) Update(task *models.Task) error {
 	)
 
 	if err != nil {
-		return errors.Wrap(err, "repository.Task.Add")
+		return errors.Wrap(err, "repository.Task.Update")
 	}
 	return nil
 }

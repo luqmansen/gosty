@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	MessageBrokerQueueTaskNew      = "task_new"
-	MessageBrokerQueueTaskFinished = "task_finished"
+	MessageBrokerQueueTaskNew          = "task_new"
+	MessageBrokerQueueTaskFinished     = "task_finished"
+	MessageBrokerQueueTaskUpdateStatus = "task_update_status"
 )
 
 type schedulerServices struct {
@@ -86,129 +87,155 @@ func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressRe
 
 func (s schedulerServices) ReadMessages() {
 	log.Debugf("Starting read message from %s", MessageBrokerQueueTaskFinished)
-	finishedTask := make(chan interface{})
 	forever := make(chan bool, 1)
 
+	finishedTask := make(chan interface{})
 	go s.mb.ReadMessage(finishedTask, MessageBrokerQueueTaskFinished)
+	go s.scheduleTaskFromQueue(finishedTask)
+
+	updateTaskStatusQueue := make(chan interface{})
+	go s.mb.ReadMessage(updateTaskStatusQueue, MessageBrokerQueueTaskUpdateStatus)
+	go s.updateTaskStatus(updateTaskStatusQueue)
+
+	<-forever
+}
+
+func (s schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface{}) {
+	for w := range updateTaskStatusQueue {
+		msg := w.(amqp.Delivery)
+		var task models.Task
+		if err := json.Unmarshal(msg.Body, &task); err != nil {
+			log.Error(err)
+		}
+
+		if err := s.taskRepo.Update(&task); err != nil {
+			log.Error(err)
+		} else {
+			if err = msg.Ack(false); err != nil {
+				log.Error(err)
+			}
+		}
+
+	}
+}
+
+func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) {
 	//TODO: Refactor this repetitive message ack
-	go func() {
-		for t := range finishedTask {
-			msg := t.(amqp.Delivery)
-			var task models.Task
-			err := json.Unmarshal(msg.Body, &task)
-			if err != nil {
+	for t := range finishedTask {
+		msg := t.(amqp.Delivery)
+		var task models.Task
+		err := json.Unmarshal(msg.Body, &task)
+		if err != nil {
+			log.Error(err)
+		}
+
+		log.Debugf("Updating finished task %s", task.Id.String())
+		log.Debugf("Updating filename %s", task.OriginVideo.FileName)
+		log.Debugf("Updating task kind %d", task.Kind)
+
+		err = s.taskRepo.Update(&task)
+		if err != nil {
+			log.Error(err)
+		}
+
+		switch taskKind := task.Kind; taskKind {
+		case models.TaskSplit:
+			//save each splitted video into its own record
+			if err := s.videoRepo.AddMany(task.TaskSplit.SplitedVideo); err != nil {
 				log.Error(err)
+				break
 			}
 
-			log.Debugf("Updating finished task %s", task.Id.String())
-			log.Debugf("Updating filename %s", task.OriginVideo.FileName)
-			log.Debugf("Updating task kind %d", task.Kind)
-
-			err = s.taskRepo.Update(&task)
-			if err != nil {
+			if err := s.createTranscodeTaskFromSplitTask(&task); err != nil {
 				log.Error(err)
+				break
 			}
 
-			switch taskKind := task.Kind; taskKind {
-			case models.TaskSplit:
-				//save each splitted video into its own record
-				if err := s.videoRepo.AddMany(task.TaskSplit.SplitedVideo); err != nil {
-					log.Error(err)
+			if err = msg.Ack(false); err != nil {
+				log.Error(err)
+				break
+			}
+
+		case models.TaskTranscode:
+			//TODO : Find one and update
+			toUpdate, err := s.videoRepo.GetOneByName(task.TaskTranscode.Video.FileName)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+
+			if task.TaskTranscode.TranscodeType == models.TranscodeAudio {
+				toUpdate.Audio = task.TaskTranscode.ResultAudio
+
+			} else {
+				toUpdate.Video = append(toUpdate.Video, task.TaskTranscode.ResultVideo)
+			}
+			if err = s.videoRepo.Update(toUpdate); err != nil {
+				log.Error(err)
+				break
+			}
+
+			//	check if previously is split task, then merge
+			if task.PrevTask == models.TaskSplit {
+				if err = s.CreateMergeTask(&task); err != nil {
+					log.Error(errors.Wrap(err, "failed to create merge task"))
 					break
 				}
-
-				if err := s.createTranscodeTaskFromSplitTask(&task); err != nil {
-					log.Error(err)
-					break
-				}
-
-				if err = msg.Ack(false); err != nil {
-					log.Error(err)
-					break
-				}
-
-			case models.TaskTranscode:
-				//TODO : Find one and update
-				toUpdate, err := s.videoRepo.GetOneByName(task.TaskTranscode.Video.FileName)
-				if err != nil {
-					log.Error(err)
-					break
-				}
-
-				if task.TaskTranscode.TranscodeType == models.TranscodeAudio {
-					toUpdate.Audio = task.TaskTranscode.ResultAudio
-
-				} else {
-					toUpdate.Video = append(toUpdate.Video, task.TaskTranscode.ResultVideo)
-				}
-				if err = s.videoRepo.Update(toUpdate); err != nil {
-					log.Error(err)
-					break
-				}
-
-				//	check if previously is split task, then merge
-				if task.PrevTask == models.TaskSplit {
-					if err = s.CreateMergeTask(&task); err != nil {
-						log.Error(errors.Wrap(err, "failed to create merge task"))
-						break
-					}
-				} else {
-					// must be a video with small size (prevTask == MessageBrokerQueueTaskNew)
-					if err = s.CreateDashTask(&task); err != nil {
-						log.Error(errors.Wrap(err, "failed to create dash task"))
-						break
-					}
-				}
-
-				if err = msg.Ack(false); err != nil {
-					log.Error(err)
-					break
-				}
-			case models.TaskMerge:
-				//update video with result of merged video that has been merged
-				//and of course also transcoded
-				toUpdate, err := s.videoRepo.GetOneByName(task.OriginVideo.FileName)
-				if err != nil {
-					log.Error(errors.Wrap(err, "services.Scheduler.ReadTask.TaskMerge"))
-					break
-				}
-				toUpdate.Video = append(toUpdate.Video, task.TaskMerge.Result)
-				if err = s.videoRepo.Update(toUpdate); err != nil {
-					log.Error(err)
-					break
-				}
-
+			} else {
+				// must be a video with small size (prevTask == MessageBrokerQueueTaskNew)
 				if err = s.CreateDashTask(&task); err != nil {
 					log.Error(errors.Wrap(err, "failed to create dash task"))
 					break
 				}
+			}
 
-				if err = msg.Ack(false); err != nil {
-					log.Error(err)
-					break
-				}
+			if err = msg.Ack(false); err != nil {
+				log.Error(err)
+				break
+			}
+		case models.TaskMerge:
+			//update video with result of merged video that has been merged
+			//and of course also transcoded
+			toUpdate, err := s.videoRepo.GetOneByName(task.OriginVideo.FileName)
+			if err != nil {
+				log.Error(errors.Wrap(err, "services.Scheduler.ReadTask.TaskMerge"))
+				break
+			}
+			toUpdate.Video = append(toUpdate.Video, task.TaskMerge.Result)
+			if err = s.videoRepo.Update(toUpdate); err != nil {
+				log.Error(err)
+				break
+			}
 
-			case models.TaskDash:
-				file := strings.Split(task.TaskDash.ListVideo[0].FileName, "_")
-				toUpdate, err := s.videoRepo.GetOneByName(fmt.Sprintf("%s.mp4", file[0]))
-				if err != nil {
-					log.Error(err)
-				}
+			if err = s.CreateDashTask(&task); err != nil {
+				log.Error(errors.Wrap(err, "failed to create dash task"))
+				break
+			}
 
-				toUpdate.DashFile = task.TaskDash.ResultDash
-				if err = s.videoRepo.Update(toUpdate); err != nil {
-					log.Error(err)
-				}
+			if err = msg.Ack(false); err != nil {
+				log.Error(err)
+				break
+			}
 
-				if err = msg.Ack(false); err != nil {
-					log.Error(err)
-				}
+		case models.TaskDash:
+			file := strings.Split(task.TaskDash.ListVideo[0].FileName, "_")
+			toUpdate, err := s.videoRepo.GetOneByName(fmt.Sprintf("%s.mp4", file[0]))
+			if err != nil {
+				log.Error(err)
+			}
 
+			toUpdate.DashFile = task.TaskDash.ResultDash
+			if err = s.videoRepo.Update(toUpdate); err != nil {
+				log.Error(err)
+			}
+
+			if err = msg.Ack(false); err != nil {
+				log.Error(err)
 			}
 
 		}
-	}()
-	<-forever
+
+	}
 }
 
 func (s schedulerServices) CreateSplitTask(video *models.Video) error {

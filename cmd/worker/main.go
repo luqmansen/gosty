@@ -62,7 +62,7 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 		if err != nil {
 			log.Error(err)
 		}
-		wrk.notifyApiServer(task)
+		wrk.notifyApiServer(&task)
 		switch taskKind := task.Kind; taskKind {
 		case models.TaskSplit:
 			err = wrk.ProcessTaskSplit(&task)
@@ -76,7 +76,7 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 					log.Error(err)
 				}
-				wrk.notifyApiServer(models.Task{})
+				wrk.notifyApiServer(nil)
 			}
 
 		case models.TaskTranscode:
@@ -93,7 +93,7 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 					if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 						log.Error(err)
 					}
-					wrk.notifyApiServer(models.Task{})
+					wrk.notifyApiServer(nil)
 				}
 
 			case models.TranscodeAudio:
@@ -108,7 +108,7 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 					if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 						log.Error(err)
 					}
-					wrk.notifyApiServer(models.Task{})
+					wrk.notifyApiServer(nil)
 				}
 
 			}
@@ -124,7 +124,7 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 					log.Error(err)
 				}
-				wrk.notifyApiServer(models.Task{})
+				wrk.notifyApiServer(nil)
 			}
 
 		case models.TaskMerge:
@@ -139,11 +139,10 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
 					log.Error(err)
 				}
-				wrk.notifyApiServer(models.Task{})
-
+				wrk.notifyApiServer(nil)
 			}
 		default:
-			wrk.notifyApiServer(models.Task{})
+			wrk.notifyApiServer(nil)
 			log.Error("No task kind found")
 			if err = msg.Nack(false, true); err != nil {
 				log.Error(err)
@@ -152,21 +151,29 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 	}
 }
 
-func (wrk *svc) notifyApiServer(task models.Task) {
+func (wrk *svc) notifyApiServer(task *models.Task) {
 	w := wrk.GetWorkerInfo()
 	w.UpdatedAt = time.Now()
 
 	//check if task is empty
-	if task == (models.Task{}) {
+	if task == nil {
 		w.Status = models.WorkerStatusIdle
 		w.WorkingOn = ""
 
 	} else {
 		w.Status = models.WorkerStatusWorking
 		w.WorkingOn = task.Id.Hex()
+
+		//only update task status if task is actually assigned to a worker
+		task.Status = models.TaskStatusOnProgress
+		task.Worker = w.WorkerPodName
+		if err := wrk.GetMessageBroker().Publish(task, services.MessageBrokerQueueTaskUpdateStatus); err != nil {
+			log.Error(err)
+		}
 	}
 
 	if err := wrk.GetMessageBroker().Publish(w, services.WorkerAssigned); err != nil {
 		log.Error(err)
 	}
+
 }
