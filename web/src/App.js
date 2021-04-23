@@ -3,13 +3,12 @@ import {
     BrowserRouter as Router,
     Switch,
     Route,
-    Link
 } from "react-router-dom";
 import PlayerPage from "./Pages/VideoPlayer/PlayerPage";
 import WorkerPage from "./Pages/Worker/WorkerPage";
 import ProgressPage from "./Pages/Progress/ProgressPage";
-import {VideoUpload} from "./Pages/VideoUpload/VideoUpload";
 import Header from "./Components/Header";
+import VideoUpload from "./Pages/VideoUpload/VideoUpload";
 
 export default function BasicExample() {
     return (
@@ -28,7 +27,8 @@ export default function BasicExample() {
                         <ProgressPage />
                     </Route>
                     <Route path="/upload">
-                        <VideoUpload width={400} height={300} />
+                        <VideoUpload/>
+                        {/*<VideoUpload/>*/}
                     </Route>
 
                 </Switch>

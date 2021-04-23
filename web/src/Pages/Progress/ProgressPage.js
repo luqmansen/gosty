@@ -10,13 +10,13 @@ class ProgressPage extends Component {
         data: []
     }
 
-    //TODO: this stupid, need to apply websocket or sse
-    // instead of requesting every 100ms
+    //TODO: update this stupid function to use websocket or sse
+    // instead of requesting every few ms
     async componentDidMount() {
         try {
             setInterval(async () => {
                 const res = await fetch(APISERVER_HOST + TASK_PROGRESS_ENDPOINT);
-                if (res.status === 200){
+                if (res.status === 200) {
                     const blocks = await res.json();
                     blocks.map(w => {
                         w.task_list.map(t => {
@@ -51,13 +51,13 @@ class ProgressPage extends Component {
                     this.setState({
                         data: blocks,
                     })
-                } else{
+                } else {
                     this.setState({
                         data: [],
                     })
                 }
 
-            }, 100);
+            }, 500);
 
         } catch (e) {
             console.log(e);
@@ -65,21 +65,20 @@ class ProgressPage extends Component {
     }
 
     render() {
-
         return (
             <>
-            <div class="container">
-                <h1 >Task Progress</h1>
-                {(() => {
-                    if (this.state.data.length > 0) {
-                        return (this.state.data.map(v => tableData(v)))
-                    } else {
-                        return (
+                <div class="container">
+                    <h1>Task Progress</h1>
+                    {(() => {
+                        if (this.state.data.length > 0) {
+                            return (this.state.data.map(v => tableData(v)))
+                        } else {
+                            return (
                                 <p>No Task</p>
-                        )
-                    }
-                })()}
-            </div>
+                            )
+                        }
+                    })()}
+                </div>
             </>
         )
     }

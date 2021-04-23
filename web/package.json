@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@material-ui/core": "^4.11.3",
+    "react-dropzone-uploader": "^2.11.0",
     "react-transition-group": "^4.4.1"
   }
 }
