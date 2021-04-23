@@ -9,7 +9,7 @@ type Video struct {
 	Id       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	FileName string             `gorm:"size:255;not null;unique" json:"file_name"`
 
-	Size     int64   `json:",omitempty,size"` // File size in Byte
+	Size     int64   `json:"size,omitempty"` // File size in Byte
 	Bitrate  int     `json:"bitrate"`
 	Duration float32 `json:"duration"`
 	Width    int     `json:"width"`

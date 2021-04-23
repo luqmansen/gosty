@@ -16,40 +16,47 @@ class ProgressPage extends Component {
         try {
             setInterval(async () => {
                 const res = await fetch(APISERVER_HOST + TASK_PROGRESS_ENDPOINT);
-                const blocks = await res.json();
-                blocks.map(w => {
-                    w.task_list.map(t => {
-                        t.kind = TASK_KIND[t.kind]
+                if (res.status === 200){
+                    const blocks = await res.json();
+                    blocks.map(w => {
+                        w.task_list.map(t => {
+                            t.kind = TASK_KIND[t.kind]
+                        })
                     })
-                })
-                blocks.map(w => {
-                    w.task_list.map(t => {
-                        t.status = TASK_STATUS[t.status]
+                    blocks.map(w => {
+                        w.task_list.map(t => {
+                            t.status = TASK_STATUS[t.status]
+                        })
                     })
-                })
-                blocks.map(w => {
-                    w.task_list.map(t => {
-                        if (t.task_transcode != null) {
-                            t.target = t.task_transcode.target_res
-                        } else if (t.task_split != null) {
-                            if (t.task_split.splited_video != null) {
-                                t.target = t.task_split.splited_video.length
+                    blocks.map(w => {
+                        w.task_list.map(t => {
+                            if (t.task_transcode != null) {
+                                t.target = t.task_transcode.target_res
+                            } else if (t.task_split != null) {
+                                if (t.task_split.splited_video != null) {
+                                    t.target = t.task_split.splited_video.length
+                                }
+                            } else if (t.task_merge != null) {
+                                if (t.task_merge.list_video != null) {
+                                    t.target = t.task_merge.list_video.length
+                                }
                             }
-                        } else if (t.task_merge != null) {
-                            if (t.task_merge.list_video != null) {
-                                t.target = t.task_merge.list_video.length
-                            }
-                        }
+                        })
                     })
-                })
-                blocks.map(w => {
-                    w.task_list.map(t => {
-                        t.task_duration = msToTime(t.task_duration / 1e+6)
+                    blocks.map(w => {
+                        w.task_list.map(t => {
+                            t.task_duration = msToTime(t.task_duration / 1e+6)
+                        })
                     })
-                })
-                this.setState({
-                    data: blocks,
-                })
+                    this.setState({
+                        data: blocks,
+                    })
+                } else{
+                    this.setState({
+                        data: [],
+                    })
+                }
+
             }, 100);
 
         } catch (e) {
@@ -58,11 +65,22 @@ class ProgressPage extends Component {
     }
 
     render() {
+
         return (
+            <>
             <div class="container">
                 <h1 >Task Progress</h1>
-                {this.state.data.map(v => tableData(v))}
+                {(() => {
+                    if (this.state.data.length > 0) {
+                        return (this.state.data.map(v => tableData(v)))
+                    } else {
+                        return (
+                                <p>No Task</p>
+                        )
+                    }
+                })()}
             </div>
+            </>
         )
     }
 }
