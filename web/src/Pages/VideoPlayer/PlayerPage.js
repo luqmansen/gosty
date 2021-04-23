@@ -1,11 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {APISERVER_HOST, FILESERVER_HOST} from '../Constant'
-import Header from '../Components/Header';
-import VideoList from './VideoPlayer/VideoList';
+import {APISERVER_HOST, FILESERVER_HOST} from '../../Constant'
+import HeaderVideo from '../../Components/HeaderVideo';
+import VideoList from './VideoList';
 import 'shaka-player/dist/controls.css';
-import '../style/App.css';
-import Loader from "../Components/Loader";
-import Video from "./VideoPlayer/Video";
+import '../../style/App.css';
+import Loader from "../../Components/Loader";
+import Video from "./Video";
 
 const PlayerPage = () => {
     const [ui, setUI] = useState({
@@ -47,7 +47,7 @@ const PlayerPage = () => {
     return (
         <div className='app'>
             <div className='app__video'>
-                <Header title={ui.header}/>
+                <HeaderVideo title={ui.header}/>
                 <Video video={activeVideo}/>
             </div>
             <div className='app__videoList'>

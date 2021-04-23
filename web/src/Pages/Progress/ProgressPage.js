@@ -1,7 +1,8 @@
 import {Component} from "react";
 import 'react-virtualized/styles.css';
+import '../../style/style.css';
 import {Column, Table} from 'react-virtualized';
-import {APISERVER_HOST, TASK_KIND, TASK_PROGRESS_ENDPOINT, TASK_STATUS} from "../Constant";
+import {APISERVER_HOST, TASK_KIND, TASK_PROGRESS_ENDPOINT, TASK_STATUS} from "../../Constant";
 
 class ProgressPage extends Component {
 
@@ -59,6 +60,7 @@ class ProgressPage extends Component {
     render() {
         return (
             <div class="container">
+                <h1 >Task Progress</h1>
                 {this.state.data.map(v => tableData(v))}
             </div>
         )
@@ -79,7 +81,7 @@ function msToTime(ms) {
 const tableData = (v) => {
     return (
         <div>
-            <p>File : {v.origin_video.file_name}</p>
+            <p><b>File : {v.origin_video.file_name}</b></p>
             <p>Total Duration: {msToTime(v.total_duration / 1e+6)}</p>
 
             <Table

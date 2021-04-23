@@ -1,7 +1,7 @@
 import {Component} from "react";
 import 'react-virtualized/styles.css';
 import {Column, Table} from 'react-virtualized';
-import {APISERVER_HOST, WORKER_STATUS_ENDPOINT, WORKER_STATUS} from "../Constant";
+import {APISERVER_HOST, WORKER_STATUS_ENDPOINT, WORKER_STATUS} from "../../Constant";
 
 class WorkerPage extends Component {
 
