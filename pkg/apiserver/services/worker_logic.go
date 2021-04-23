@@ -6,11 +6,13 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"time"
 )
 
 const (
 	WorkerNew      = "worker_new"
 	WorkerAssigned = "worker_assigned"
+	WorkerStatus   = "worker_status"
 )
 
 type workerServices struct {
@@ -29,16 +31,21 @@ func NewWorkerService(
 }
 
 func (wrk workerServices) ReadMessage() {
-	log.Debugf("Starting read message from %s", WorkerNew)
+	log.Debug("Starting read message from queue")
 	forever := make(chan bool, 1)
 
 	newWorker := make(chan interface{})
 	go wrk.mb.ReadMessage(newWorker, WorkerNew)
 	go wrk.workerStateUpdate(newWorker, "added")
 
-	updateWorkerStatus := make(chan interface{})
-	go wrk.mb.ReadMessage(updateWorkerStatus, WorkerAssigned)
-	go wrk.workerStateUpdate(updateWorkerStatus, "assigned")
+	workerAssigned := make(chan interface{})
+	go wrk.mb.ReadMessage(workerAssigned, WorkerAssigned)
+	go wrk.workerStateUpdate(workerAssigned, "assigned")
+
+	workerAvailable := make(chan interface{})
+	go wrk.mb.ReadMessage(workerAvailable, WorkerStatus)
+	go wrk.workerStateUpdate(workerAvailable, "updated")
+	go wrk.workerWatcher()
 
 	<-forever
 }
@@ -51,14 +58,30 @@ func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action
 		if err != nil {
 			log.Error(err)
 		}
-		log.Debugf("Worker %s %s", worker.WorkerPodName, action)
 		if err := wrk.workerRepo.Upsert(&worker); err != nil {
 			log.Error(err)
 		} else {
+			log.Debugf("Worker %s %s", worker.WorkerPodName, action)
 			if err = msg.Ack(false); err != nil {
 				log.Error(err)
 			}
 		}
+	}
+}
+
+func (wrk workerServices) workerWatcher() {
+	for {
+		workerList, _ := wrk.GetAll()
+		for _, worker := range workerList {
+			if time.Since(worker.UpdatedAt) > 4*time.Second {
+				worker.Status = models.WorkerStatusTerminated
+			}
+
+			if err := wrk.workerRepo.Upsert(worker); err != nil {
+				log.Error(err)
+			}
+		}
+		time.Sleep(4 * time.Second)
 	}
 }
 
@@ -71,7 +94,7 @@ func (wrk workerServices) Get(workerName string) models.Worker {
 }
 
 func (wrk workerServices) GetAll() ([]*models.Worker, error) {
-	w, err := wrk.workerRepo.GetAll(12)
+	w, err := wrk.workerRepo.GetAll(100)
 	if err != nil {
 		log.Error(err)
 		return nil, err

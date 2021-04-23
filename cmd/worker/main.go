@@ -24,12 +24,6 @@ func main() {
 	mb := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
 	workerSvc := worker.NewWorkerService(mb, cfg)
 
-	go func() {
-		if err := mb.Publish(workerSvc.GetWorkerInfo(), services.WorkerNew); err != nil {
-			log.Error(err)
-		}
-	}()
-
 	//todo: this initiation should be handled by storage service
 	if _, err := os.Stat(worker.TmpPath); os.IsNotExist(err) {
 		err = os.Mkdir(worker.TmpPath, 0700)
@@ -46,6 +40,7 @@ func main() {
 
 	w := svc{workerSvc}
 	go w.processNewTask(newTaskData)
+	go w.workerStatusNotifier()
 
 	go worker.InitHealthCheck(cfg)
 	log.Printf("Worker running. To exit press CTRL+C")
@@ -151,6 +146,8 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 	}
 }
 
+//notifyApiServer will notify ApiServer when task is assigned
+//to a worker, this will update the task and the worker status
 func (wrk *svc) notifyApiServer(task *models.Task) {
 	w := wrk.GetWorkerInfo()
 	w.UpdatedAt = time.Now()
@@ -176,4 +173,22 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 		log.Error(err)
 	}
 
+}
+
+// Notify availability of worker every 3 second to message broker
+// ApiServer will consume the message and update the worker status
+func (wrk *svc) workerStatusNotifier() {
+	w := wrk.GetWorkerInfo()
+
+	//this part will only executed at worker boot initiation
+	if err := wrk.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
+		log.Error(err)
+	}
+	for {
+		w.UpdatedAt = time.Now()
+		if err := wrk.GetMessageBroker().Publish(w, services.WorkerStatus); err != nil {
+			log.Error(err)
+		}
+		time.Sleep(3 * time.Second)
+	}
 }

@@ -44,7 +44,7 @@ func NewWorkerService(mb repositories.MessageBrokerRepository, conf *config.Conf
 	}
 }
 
-func (s Svc) GetWorkerInfo() *models.Worker {
+func (s *Svc) GetWorkerInfo() *models.Worker {
 	return s.worker
 }
 
