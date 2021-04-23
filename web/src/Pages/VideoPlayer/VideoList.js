@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import VideoTile from './VideoTile.js';
-import Loader from './Loader.js';
+import Loader from '../../Components/Loader.js';
 
 class VideoList extends Component {
     constructor(props) {

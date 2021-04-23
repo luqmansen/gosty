@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import './Header.css'
+import '../style/Header.css'
 
 /*
  * Simple header for the application.

@@ -1,6 +1,7 @@
 import {Component} from "react";
 import 'react-virtualized/styles.css';
 import {Column, Table} from 'react-virtualized';
+import {APISERVER_HOST, TASK_KIND, TASK_PROGRESS_ENDPOINT, TASK_STATUS} from "../Constant";
 
 class ProgressPage extends Component {
 
@@ -8,24 +9,21 @@ class ProgressPage extends Component {
         data: []
     }
 
-    TASK_KIND = ["NEW", "SPLIT", "MERGE", "TRANSCODE", "DASH"]
-    TASK_STATUS = ["QUEUED", "DONE", "ON PROGRESS", "FAILED"]
-
     //TODO: this stupid, need to apply websocket or sse
     // instead of requesting every 100ms
     async componentDidMount() {
         try {
             setInterval(async () => {
-                const res = await fetch('http://localhost:8000/progress');
+                const res = await fetch(APISERVER_HOST + TASK_PROGRESS_ENDPOINT);
                 const blocks = await res.json();
                 blocks.map(w => {
                     w.task_list.map(t => {
-                        t.kind = this.TASK_KIND[t.kind]
+                        t.kind = TASK_KIND[t.kind]
                     })
                 })
                 blocks.map(w => {
                     w.task_list.map(t => {
-                        t.status = this.TASK_STATUS[t.status]
+                        t.status = TASK_STATUS[t.status]
                     })
                 })
                 blocks.map(w => {

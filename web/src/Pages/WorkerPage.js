@@ -1,6 +1,7 @@
 import {Component} from "react";
 import 'react-virtualized/styles.css';
 import {Column, Table} from 'react-virtualized';
+import {APISERVER_HOST, WORKER_STATUS_ENDPOINT, WORKER_STATUS} from "../Constant";
 
 class WorkerPage extends Component {
 
@@ -8,16 +9,17 @@ class WorkerPage extends Component {
         data: []
     }
 
-    WORKER_STATUS = ["IDLE", "WORKING", "TERMINATED"]
 
     //TODO: this stupid, need to apply websocket or sse
     // instead of requesting every 100ms
     async componentDidMount() {
         try {
             setInterval(async () => {
-                const res = await fetch('http://localhost:8000/worker');
+                const res = await fetch(APISERVER_HOST + WORKER_STATUS_ENDPOINT);
                 const blocks = await res.json();
-                blocks.map(w => {w.status = this.WORKER_STATUS[w.status]})
+                blocks.map(w => {
+                    w.status = WORKER_STATUS[w.status]
+                })
                 this.setState({
                     data: blocks,
                 })
@@ -39,7 +41,7 @@ class WorkerPage extends Component {
                     height={300}
                     rowHeight={40}
                     rowCount={this.state.data.length}
-                    rowGetter={({ index }) => this.state.data[index]}
+                    rowGetter={({index}) => this.state.data[index]}
                 >
                     <Column
                         label='Id'

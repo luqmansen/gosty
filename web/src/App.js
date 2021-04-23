@@ -5,9 +5,10 @@ import {
     Route,
     Link
 } from "react-router-dom";
-import PlayerPage from "./PlayerPage";
-import WorkerPage from "./WorkerPage";
-import ProgressPage from "./ProgressPage";
+import PlayerPage from "./Pages/PlayerPage";
+import WorkerPage from "./Pages/WorkerPage";
+import ProgressPage from "./Pages/ProgressPage";
+import {VideoUpload} from "./Pages/VideoUpload/VideoUpload";
 
 export default function BasicExample() {
     return (
@@ -22,6 +23,9 @@ export default function BasicExample() {
                     </li>
                     <li>
                         <Link to="/progress">Task Progress</Link>
+                    </li>
+                    <li>
+                        <Link to="/upload">Upload Video</Link>
                     </li>
                 </ul>
 
@@ -44,9 +48,14 @@ export default function BasicExample() {
                     <Route path="/progress">
                         <ProgressPage />
                     </Route>
+                    <Route path="/upload">
+                        <VideoUpload width={400} height={300} />
+                    </Route>
+
                 </Switch>
             </div>
         </Router>
     );
 }
+
 

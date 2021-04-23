@@ -1,11 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {APISERVER_HOST, FILESERVER_HOST} from './Constant'
-import Header from './Header';
-import VideoList from './VideoList';
+import {APISERVER_HOST, FILESERVER_HOST} from '../Constant'
+import Header from '../Components/Header';
+import VideoList from './VideoPlayer/VideoList';
 import 'shaka-player/dist/controls.css';
-import './App.css';
-import Loader from "./Loader";
-import Video from "./Video";
+import '../style/App.css';
+import Loader from "../Components/Loader";
+import Video from "./VideoPlayer/Video";
 
 const PlayerPage = () => {
     const [ui, setUI] = useState({

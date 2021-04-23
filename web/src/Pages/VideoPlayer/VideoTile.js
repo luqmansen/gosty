@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import './VideoTile.css';
+import '../../style/VideoTile.css';
 import {getMpd} from "./Utils";
 
 
