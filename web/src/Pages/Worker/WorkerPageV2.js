@@ -26,7 +26,15 @@ const WorkerPageV2 = () => {
     useEffect(() => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
-            processData(JSON.parse(event.data))
+            let d = JSON.parse(event.data)
+            d.sort(
+                (a, b) => {
+                    if (a.status < b.status) {return -1}
+                    if (a.status > b.status) {return 1}
+                    return 0;
+                }
+            )
+            processData(d)
         }
     }, [])
 
@@ -50,7 +58,7 @@ const WorkerPageV2 = () => {
                     rowClassName='table-row'
                     headerHeight={40}
                     width={900}
-                    height={300}
+                    height={data.length * 50}
                     rowHeight={40}
                     rowCount={data.length}
                     rowGetter={({index}) => data[index]}

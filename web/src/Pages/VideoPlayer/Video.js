@@ -1,6 +1,6 @@
 import React from 'react';
 import {FILESERVER_HOST}from '../../Constant'
-import {getMpd} from "./Utils";
+import {getMpd} from "../../Utils";
 import ShakaPlayer from "shaka-player-react";
 
 

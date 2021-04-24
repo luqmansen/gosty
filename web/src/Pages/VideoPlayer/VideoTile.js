@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import '../../style/VideoTile.css';
-import {getMpd} from "./Utils";
+import {getMpd} from "../../Utils";
 
 
 class VideoTile extends Component {
