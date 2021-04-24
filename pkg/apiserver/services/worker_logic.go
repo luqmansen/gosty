@@ -38,7 +38,6 @@ func (wrk workerServices) ReadMessage() {
 	go wrk.mb.ReadMessage(workerAvailable, WorkerStatus)
 	go wrk.workerStateUpdate(workerAvailable, "updated")
 	go wrk.workerWatcher()
-	//go wrk.workerEventStream()
 
 	<-forever
 }

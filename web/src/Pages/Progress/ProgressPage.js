@@ -67,7 +67,7 @@ class ProgressPage extends Component {
     render() {
         return (
             <>
-                <div class="container">
+                <div className="container">
                     <h1>Task Progress</h1>
                     {(() => {
                         if (this.state.data.length > 0) {

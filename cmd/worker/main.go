@@ -154,7 +154,7 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 
 	//check if task is empty
 	if task == nil {
-		w.Status = models.WorkerStatusIdle
+		w.Status = models.WorkerStatusReady
 		w.WorkingOn = ""
 
 	} else {

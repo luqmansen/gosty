@@ -32,8 +32,10 @@ func main() {
 
 	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
 	sseServer := sse.New()
+	sseServer.CreateStream(services.WorkerHTTPEventStream)
+	sseServer.CreateStream(services.TaskHTTPEventStream)
 
-	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit)
+	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit, sseServer)
 	workerSvc := services.NewWorkerService(workerRepo, rabbit, sseServer)
 	videoSvc := services.NewVideoService(vidRepo, schedulerSvc)
 
@@ -44,9 +46,6 @@ func main() {
 	videoRestHandler := api.NewVideoHandler(cfg, videoSvc)
 	workerRestHandler := api.NewWorkerHandler(workerSvc)
 	schedulerRestHandler := api.NewSchedulerHandler(schedulerSvc)
-
-	//create sse stream event for every service
-	sseServer.CreateStream(services.WorkerHTTPEventStream)
 
 	port := util.GetEnv("PORT", "8000")
 	server := api.NewServer(port, "8000")

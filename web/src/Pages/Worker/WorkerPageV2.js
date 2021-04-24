@@ -1,4 +1,4 @@
-import React, {Component, useEffect} from "react";
+import {useEffect, useState} from "react";
 import 'react-virtualized/styles.css';
 import {Column, Table} from 'react-virtualized';
 import {
@@ -10,7 +10,7 @@ import {
 
 const WorkerPageV2 = () => {
 
-    const [data, setData] = React.useState([])
+    const [data, setData] = useState([])
 
     useEffect(() => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)

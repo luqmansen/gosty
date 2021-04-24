@@ -7,6 +7,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/pkg/errors"
+	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"math"
@@ -17,27 +18,17 @@ import (
 	"time"
 )
 
-const (
-	MessageBrokerQueueTaskNew          = "task_new"
-	MessageBrokerQueueTaskFinished     = "task_finished"
-	MessageBrokerQueueTaskUpdateStatus = "task_update_status"
-)
-
-type schedulerServices struct {
-	taskRepo  repositories.TaskRepository
-	videoRepo repositories.VideoRepository
-	mb        repositories.MessageBrokerRepository
-}
-
 func NewSchedulerService(
 	taskRepo repositories.TaskRepository,
 	videoRepo repositories.VideoRepository,
 	mb repositories.MessageBrokerRepository,
+	sse *sse.Server,
 ) SchedulerService {
 	return &schedulerServices{
 		taskRepo:  taskRepo,
 		videoRepo: videoRepo,
 		mb:        mb,
+		sse:       sse,
 	}
 }
 
@@ -121,8 +112,19 @@ func (s schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface
 				log.Error(err)
 			}
 		}
-
+		s.publishTaskEvent()
 	}
+}
+
+func (s *schedulerServices) publishTaskEvent() {
+	tasks := s.GetAllTaskProgress()
+	resp, err := json.Marshal(tasks)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.sse.Publish(TaskHTTPEventStream, &sse.Event{
+		Data: resp,
+	})
 }
 
 func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) {

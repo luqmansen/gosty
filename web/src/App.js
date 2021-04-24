@@ -10,6 +10,7 @@ import ProgressPage from "./Pages/Progress/ProgressPage";
 import Header from "./Components/Header";
 import VideoUpload from "./Pages/VideoUpload/VideoUpload";
 import WorkerPageV2 from "./Pages/Worker/WorkerPageV2";
+import ProgressPageV2 from "./Pages/Progress/ProgressPageV2";
 
 export default function BasicExample() {
     return (
@@ -24,12 +25,17 @@ export default function BasicExample() {
                     <Route path="/worker">
                         <WorkerPageV2 />
                     </Route>
-                    <Route path="/progress">
+                    <Route path="/workerv1">
+                        <WorkerPage />
+                    </Route>
+                    <Route path="/progressv1">
                         <ProgressPage />
+                    </Route>
+                    <Route path="/progress">
+                        <ProgressPageV2 />
                     </Route>
                     <Route path="/upload">
                         <VideoUpload/>
-                        {/*<VideoUpload/>*/}
                     </Route>
 
                 </Switch>

@@ -8,7 +8,7 @@ import (
 type WorkerStatus int
 
 const (
-	WorkerStatusIdle WorkerStatus = iota
+	WorkerStatusReady WorkerStatus = iota
 	WorkerStatusWorking
 	WorkerStatusTerminated
 )
