@@ -5,7 +5,7 @@ import {
     APISERVER_HOST,
     WORKER_STATUS,
     EVENTSTREAM_ENDPOINT,
-    WORKER_STREAM_NAME
+    WORKER_STREAM_NAME, TASK_PROGRESS_ENDPOINT, WORKER_STATUS_ENDPOINT
 } from "../../Constant";
 
 const WorkerPageV2 = () => {
@@ -13,12 +13,22 @@ const WorkerPageV2 = () => {
     const [data, setData] = useState([])
 
     useEffect(() => {
+        (async () => {
+            const res = await fetch(APISERVER_HOST + WORKER_STATUS_ENDPOINT);
+            if (res.status === 200) {
+                const blocks = await res.json();
+                processData(blocks)
+            }
+        })()
+
+    }, [])
+
+    useEffect(() => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
             processData(event.data)
         }
     }, [])
-
 
     const processData = (eventData) => {
         let blocks = JSON.parse(eventData)
