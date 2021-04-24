@@ -24,11 +24,14 @@ cleanup:
 docker-base-worker: cleanup
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
-docker-web:
-	#docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .
-	DOCKER_BUILDKIT=1 docker build -t localhost:5000/gosty-web -f docker/web.Dockerfile .
-	docker push localhost:5000/gosty-web
+docker-web-dev:
+	npm run build --prefix=web/
+	docker build -t localhost:5000/gosty-web-dev -f docker/web.dev.Dockerfile .
+	docker push localhost:5000/gosty-web-dev
 
+docker-web:
+	npm run build --prefix=web/
+	DOCKER_BUILDKIT=1 docker build -t localhost:5000/gosty-web -f docker/web.Dockerfile .
 
 docker-worker: cleanup worker-bin
 	#docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .

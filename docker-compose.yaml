@@ -3,7 +3,7 @@ version: '3.7'
 
 services:
   web:
-    image: localhost:5000/gosty-web
+    image: localhost:5000/gosty-web-dev
     restart: always
     ports:
       - "8082:80"
@@ -31,7 +31,7 @@ services:
       RABBITMQ_PASSWORD: password
 
       GOSTY_FILESERVER_SERVICE_HOST: fileserver
-      GOSTY_FILESERVER_SERVICE_PORT: 8081
+      GOSTY_FILESERVER_SERVICE_PORT: 8001
 
   worker:
     image: localhost:5000/gosty-worker
@@ -61,11 +61,11 @@ services:
     volumes:
       - ./storage:/app/storage/
     ports:
-      - "8081:8081"
+      - "8001:8001"
     expose:
       - 8081
     environment:
-      PORT: "8081"
+      PORT: "8001"
 
   mongo:
     image: mongo:4.4.4-bionic

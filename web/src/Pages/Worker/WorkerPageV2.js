@@ -26,12 +26,11 @@ const WorkerPageV2 = () => {
     useEffect(() => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
-            processData(event.data)
+            processData(JSON.parse(event.data))
         }
     }, [])
 
-    const processData = (eventData) => {
-        let blocks = JSON.parse(eventData)
+    const processData = (blocks) => {
         if (blocks.length > 0) {
             blocks.map(w => {
                 w.status = WORKER_STATUS[w.status]
