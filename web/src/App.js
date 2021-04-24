@@ -9,6 +9,7 @@ import WorkerPage from "./Pages/Worker/WorkerPage";
 import ProgressPage from "./Pages/Progress/ProgressPage";
 import Header from "./Components/Header";
 import VideoUpload from "./Pages/VideoUpload/VideoUpload";
+import WorkerPageV2 from "./Pages/Worker/WorkerPageV2";
 
 export default function BasicExample() {
     return (
@@ -21,7 +22,7 @@ export default function BasicExample() {
                         <PlayerPage />
                     </Route>
                     <Route path="/worker">
-                        <WorkerPage />
+                        <WorkerPageV2 />
                     </Route>
                     <Route path="/progress">
                         <ProgressPage />
