@@ -4,29 +4,21 @@ import (
 	"encoding/json"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
+	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"time"
 )
 
-const (
-	WorkerNew      = "worker_new"
-	WorkerAssigned = "worker_assigned"
-	WorkerStatus   = "worker_status"
-)
-
-type workerServices struct {
-	workerRepo repositories.WorkerRepository
-	mb         repositories.MessageBrokerRepository
-}
-
 func NewWorkerService(
 	workerRepo repositories.WorkerRepository,
 	mb repositories.MessageBrokerRepository,
+	sse *sse.Server,
 ) WorkerService {
 	return &workerServices{
 		mb:         mb,
 		workerRepo: workerRepo,
+		sse:        sse,
 	}
 }
 
@@ -46,6 +38,7 @@ func (wrk workerServices) ReadMessage() {
 	go wrk.mb.ReadMessage(workerAvailable, WorkerStatus)
 	go wrk.workerStateUpdate(workerAvailable, "updated")
 	go wrk.workerWatcher()
+	//go wrk.workerEventStream()
 
 	<-forever
 }
@@ -65,6 +58,7 @@ func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action
 			if err = msg.Ack(false); err != nil {
 				log.Error(err)
 			}
+			wrk.publishWorkerEvent()
 		}
 	}
 }
@@ -80,9 +74,26 @@ func (wrk workerServices) workerWatcher() {
 			if err := wrk.workerRepo.Upsert(worker); err != nil {
 				log.Error(err)
 			}
+			wrk.publishWorkerEvent()
 		}
 		time.Sleep(4 * time.Second)
 	}
+}
+
+func (wrk workerServices) publishWorkerEvent() {
+	allWorker, err := wrk.GetAll()
+	if err != nil {
+		log.Error(err)
+	}
+
+	resp, err := json.Marshal(allWorker)
+	if err != nil {
+		log.Error(err)
+	}
+
+	wrk.sse.Publish(WorkerHTTPEventStream, &sse.Event{
+		Data: resp,
+	})
 }
 
 func (wrk workerServices) Create() error {

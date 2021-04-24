@@ -1,6 +1,26 @@
 package services
 
-import "github.com/luqmansen/gosty/pkg/apiserver/models"
+import (
+	"github.com/luqmansen/gosty/pkg/apiserver/models"
+	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
+	"github.com/r3labs/sse/v2"
+)
+
+const (
+	WorkerNew      = "worker_new"
+	WorkerAssigned = "worker_assigned"
+	WorkerStatus   = "worker_status"
+)
+
+const (
+	WorkerHTTPEventStream = "worker"
+)
+
+type workerServices struct {
+	workerRepo repositories.WorkerRepository
+	mb         repositories.MessageBrokerRepository
+	sse        *sse.Server
+}
 
 type WorkerService interface {
 	//ReadMessage will read all message from message broker

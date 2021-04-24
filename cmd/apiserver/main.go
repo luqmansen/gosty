@@ -1,16 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/api"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/mongo"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
+	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
 )
 
 func main() {
@@ -33,9 +31,10 @@ func main() {
 	}
 
 	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
+	sseServer := sse.New()
 
 	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit)
-	workerSvc := services.NewWorkerService(workerRepo, rabbit)
+	workerSvc := services.NewWorkerService(workerRepo, rabbit, sseServer)
 	videoSvc := services.NewVideoService(vidRepo, schedulerSvc)
 
 	go schedulerSvc.ReadMessages()
@@ -46,15 +45,16 @@ func main() {
 	workerRestHandler := api.NewWorkerHandler(workerSvc)
 	schedulerRestHandler := api.NewSchedulerHandler(schedulerSvc)
 
-	r := api.NewRouter()
-	api.AddWorkerRoutes(r, workerRestHandler)
-	api.AddVideoRoutes(r, videoRestHandler)
-	api.AddSchedulerRoutes(r, schedulerRestHandler)
+	//create sse stream event for every service
+	sseServer.CreateStream(services.WorkerHTTPEventStream)
 
 	port := util.GetEnv("PORT", "8000")
-	log.Infof("apiserver running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
-	err = http.ListenAndServe(fmt.Sprintf(":%s", port), r)
-	if err != nil {
-		log.Println(err.Error())
-	}
+	server := api.NewServer(port, "8000")
+	server.AddWorkerRoutes(workerRestHandler)
+	server.AddVideoRoutes(videoRestHandler)
+	server.AddSchedulerRoutes(schedulerRestHandler)
+	server.AddEventStreamServer(sseServer)
+	server.AddEventStreamRoute()
+
+	server.Serve()
 }

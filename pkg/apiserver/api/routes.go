@@ -6,9 +6,9 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func NewRouter() *chi.Mux {
+func newRouter() *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	//r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:     []string{"*"},
@@ -21,23 +21,22 @@ func NewRouter() *chi.Mux {
 	return r
 }
 
-func AddWorkerRoutes(r *chi.Mux, h WorkerHandler) *chi.Mux {
-
-	r.Get("/worker", h.GetWorkerInfo)
-	r.Post("/worker", h.Post)
-
-	return r
+func (server *Server) AddEventStreamRoute() {
+	if server.sseServer != nil {
+		server.router.Get("/events", server.sseServer.HTTPHandler)
+	}
 }
 
-func AddVideoRoutes(r *chi.Mux, h VideoHandler) *chi.Mux {
-
-	r.Get("/playlist", h.GetPlaylist)
-	r.Post("/video/upload", h.UploadHandler)
-
-	return r
+func (server *Server) AddWorkerRoutes(h WorkerHandler) {
+	server.router.Get("/worker", h.GetWorkerInfo)
+	server.router.Post("/worker", h.Post)
 }
 
-func AddSchedulerRoutes(r *chi.Mux, h SchedulerHandler) *chi.Mux {
-	r.Get("/progress", h.GetAllTaskProgress)
-	return r
+func (server *Server) AddVideoRoutes(h VideoHandler) {
+	server.router.Get("/playlist", h.GetPlaylist)
+	server.router.Post("/video/upload", h.UploadHandler)
+}
+
+func (server *Server) AddSchedulerRoutes(h SchedulerHandler) {
+	server.router.Get("/progress", h.GetAllTaskProgress)
 }
