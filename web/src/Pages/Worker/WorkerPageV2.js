@@ -36,6 +36,11 @@ const WorkerPageV2 = () => {
             )
             processData(d)
         }
+        eventSource.onerror = e => {
+            console.log(e)
+        }
+
+        return (() => {eventSource.close()})
     }, [])
 
     const processData = (blocks) => {

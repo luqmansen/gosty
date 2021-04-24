@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"time"
 )
 
 func newRouter() *chi.Mux {
@@ -23,6 +24,7 @@ func newRouter() *chi.Mux {
 
 func (server *Server) AddEventStreamRoute() {
 	if server.sseServer != nil {
+		server.sseServer.EventTTL = 1 * time.Second
 		server.router.Get("/events", server.sseServer.HTTPHandler)
 	}
 }

@@ -10,6 +10,7 @@ import {
     TASK_STATUS, TASK_STREAM_NAME,
     WORKER_STREAM_NAME
 } from "../../Constant";
+import {msToTime} from "../../Utils";
 
 //Progress Page V2 use SSE for updating state
 const ProgressPageV2 = () => {
@@ -31,6 +32,15 @@ const ProgressPageV2 = () => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${TASK_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
             processData(JSON.parse(event.data))
+        }
+        eventSource.onerror = e => {
+            eventSource.close()
+            console.log(e)
+        }
+
+        return () => {
+            console.log("PROGRESS STREAM CLOSED")
+            eventSource.close()
         }
     }, [])
 
@@ -86,16 +96,6 @@ const ProgressPageV2 = () => {
     )
 }
 
-function msToTime(ms) {
-    let seconds = (ms / 1000).toFixed(1);
-    let minutes = (ms / (1000 * 60)).toFixed(1);
-    let hours = (ms / (1000 * 60 * 60)).toFixed(1);
-    let days = (ms / (1000 * 60 * 60 * 24)).toFixed(1);
-    if (seconds < 60) return seconds + " Sec";
-    else if (minutes < 60) return minutes + " Min";
-    else if (hours < 24) return hours + " Hrs";
-    else return days + " Days"
-}
 
 const tableData = (v) => {
     let data = ""
@@ -104,7 +104,7 @@ const tableData = (v) => {
             rowClassName='table-row'
             headerHeight={40}
             width={1000}
-            height={v.task_list.length * 50}
+            height={v.task_list.length * 40}
             rowHeight={40}
             rowCount={v.task_list.length}
             rowGetter={({index}) => v.task_list[index]}

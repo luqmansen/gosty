@@ -3,6 +3,7 @@ import 'react-virtualized/styles.css';
 import '../../style/style.css';
 import {Column, Table} from 'react-virtualized';
 import {APISERVER_HOST, TASK_KIND, TASK_PROGRESS_ENDPOINT, TASK_STATUS} from "../../Constant";
+import {msToTime} from "../../Utils";
 
 class ProgressPage extends Component {
 
@@ -84,16 +85,7 @@ class ProgressPage extends Component {
     }
 }
 
-function msToTime(ms) {
-    let seconds = (ms / 1000).toFixed(1);
-    let minutes = (ms / (1000 * 60)).toFixed(1);
-    let hours = (ms / (1000 * 60 * 60)).toFixed(1);
-    let days = (ms / (1000 * 60 * 60 * 24)).toFixed(1);
-    if (seconds < 60) return seconds + " Sec";
-    else if (minutes < 60) return minutes + " Min";
-    else if (hours < 24) return hours + " Hrs";
-    else return days + " Days"
-}
+
 
 const tableData = (v) => {
     return (
@@ -105,7 +97,7 @@ const tableData = (v) => {
                 rowClassName='table-row'
                 headerHeight={40}
                 width={1000}
-                height={v.task_list.length * 50}
+                height={v.task_list.length * 40}
                 rowHeight={40}
                 rowCount={v.task_list.length}
                 rowGetter={({index}) => v.task_list[index]}

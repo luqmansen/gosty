@@ -53,7 +53,7 @@ services:
       RABBITMQ_PASSWORD: password
 
       GOSTY_FILESERVER_SERVICE_HOST: fileserver
-      GOSTY_FILESERVER_SERVICE_PORT: 8081
+      GOSTY_FILESERVER_SERVICE_PORT: 8001
 
   fileserver:
     image: localhost:5000/gosty-fileserver
