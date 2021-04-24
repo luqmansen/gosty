@@ -32,9 +32,9 @@ func (server *Server) AddEventStreamServer(s *sse.Server) {
 
 func (server *Server) Serve() {
 
-	log.Infof("apiserver running on pod %server, listening to %s server",
-		os.Getenv("HOSTNAME"), server.port)
-	err := http.ListenAndServe(fmt.Sprintf(":%s", server.port), server.router)
+	log.Infof("apiserver running on pod %server, listening to %s:%s server",
+		os.Getenv("HOSTNAME"), server.host, server.port)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", server.host, server.port), server.router)
 	if err != nil {
 		log.Println(err.Error())
 	}

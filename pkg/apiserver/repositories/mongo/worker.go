@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -20,19 +21,15 @@ const (
 	workerCollectionName = "worker"
 )
 
-func NewWorkerRepository(db config.Database) (repositories.WorkerRepository, error) {
+func NewWorkerRepository(db config.Database, client *mongo.Client) repositories.WorkerRepository {
 	workerRepo := &workerRepository{
 		db: mongoRepository{
+			client:   client,
 			timeout:  time.Duration(db.Timeout) * time.Second,
 			database: db.Name,
 		},
 	}
-	client, e := newMongoClient(db.GetDatabaseUri(), db.Timeout)
-	if e != nil {
-		return nil, errors.Wrap(e, "repositories.NewWorkerRepository")
-	}
-	workerRepo.db.client = client
-	return workerRepo, nil
+	return workerRepo
 }
 
 func (w workerRepository) GetAll(limit int64) (result []*models.Worker, err error) {

@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -21,19 +22,15 @@ type videoRepository struct {
 	db mongoRepository
 }
 
-func NewVideoRepository(cfg config.Database) (repositories.VideoRepository, error) {
+func NewVideoRepository(cfg config.Database, client *mongo.Client) repositories.VideoRepository {
 	vidRepo := &videoRepository{
 		db: mongoRepository{
+			client:   client,
 			timeout:  time.Duration(cfg.Timeout) * time.Second,
 			database: cfg.Name,
 		},
 	}
-	client, e := newMongoClient(cfg.GetDatabaseUri(), cfg.Timeout)
-	if e != nil {
-		return nil, errors.Wrap(e, "repositories.NewVideoRepository")
-	}
-	vidRepo.db.client = client
-	return vidRepo, nil
+	return vidRepo
 }
 
 func (r videoRepository) GetAll(limit int64) (result []*models.Video, err error) {

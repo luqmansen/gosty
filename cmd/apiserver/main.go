@@ -15,20 +15,14 @@ func main() {
 	cfg := config.LoadConfig(".")
 	util.DebugStruct(*cfg)
 
-	vidRepo, err := mongo.NewVideoRepository(cfg.Database)
+	client, err := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to init mongo client: %s", err.Error())
 	}
 
-	taskRepo, err := mongo.NewTaskRepository(cfg.Database)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	workerRepo, err := mongo.NewWorkerRepository(cfg.Database)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
+	vidRepo := mongo.NewVideoRepository(cfg.Database, client)
+	taskRepo := mongo.NewTaskRepository(cfg.Database, client)
+	workerRepo := mongo.NewWorkerRepository(cfg.Database, client)
 
 	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
 	sseServer := sse.New()
@@ -48,7 +42,7 @@ func main() {
 	schedulerRestHandler := api.NewSchedulerHandler(schedulerSvc)
 
 	port := util.GetEnv("PORT", "8000")
-	server := api.NewServer(port, "8000")
+	server := api.NewServer(port, "0.0.0.0")
 	server.AddWorkerRoutes(workerRestHandler)
 	server.AddVideoRoutes(videoRestHandler)
 	server.AddSchedulerRoutes(schedulerRestHandler)

@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -21,19 +22,15 @@ type taskRepository struct {
 	db mongoRepository
 }
 
-func NewTaskRepository(cfg config.Database) (repositories.TaskRepository, error) {
+func NewTaskRepository(cfg config.Database, client *mongo.Client) repositories.TaskRepository {
 	repo := &taskRepository{
 		db: mongoRepository{
+			client:   client,
 			timeout:  time.Duration(cfg.Timeout) * time.Second,
 			database: cfg.Name,
 		},
 	}
-	client, e := newMongoClient(cfg.GetDatabaseUri(), cfg.Timeout)
-	if e != nil {
-		return nil, errors.Wrap(e, "repository.NewNewsRepository")
-	}
-	repo.db.client = client
-	return repo, nil
+	return repo
 }
 
 func (r taskRepository) Get(taskId string) models.Task {

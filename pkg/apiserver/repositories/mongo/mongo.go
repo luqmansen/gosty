@@ -15,7 +15,7 @@ type mongoRepository struct {
 	timeout  time.Duration
 }
 
-func newMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
+func NewMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(mongoTimeout)*time.Second)
 	defer cancel()
 	log.Debug("mongourl: ", mongoURL)
