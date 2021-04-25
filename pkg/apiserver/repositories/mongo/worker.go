@@ -43,7 +43,7 @@ func (w workerRepository) GetAll(limit int64) (result []*models.Worker, err erro
 	coll := w.db.client.Database(w.db.database).Collection(workerCollectionName)
 	cur, err := coll.Find(ctx, filter, findOptions)
 	if err != nil {
-		return nil, errors.New("repositories.Video.GetAll :" + err.Error())
+		return nil, errors.New("repositories.Worker.GetAll :" + err.Error())
 	}
 
 	for cur.Next(ctx) {

@@ -72,7 +72,7 @@ func (v videoServices) Inspect(file string) models.Video {
 }
 
 func (v videoServices) GetAll() (vids []*models.Video) {
-	vids, err := v.vidRepo.GetAll(12)
+	vids, err := v.vidRepo.GetAvailable(100)
 	if err != nil {
 		log.Error(err)
 	}

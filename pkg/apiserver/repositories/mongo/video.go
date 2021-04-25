@@ -33,13 +33,13 @@ func NewVideoRepository(cfg config.Database, client *mongo.Client) repositories.
 	return vidRepo
 }
 
-func (r videoRepository) GetAll(limit int64) (result []*models.Video, err error) {
+func (r videoRepository) GetAvailable(limit int64) (result []*models.Video, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.db.timeout)
 	defer cancel()
 
 	findOptions := options.Find()
 	findOptions.SetLimit(limit)
-	//findOptions.SetProjection(bson.M{"_id": 0, "dashfile": 1, "filename": 1})
+
 	filter := &bson.M{
 		"dashfile": bson.M{"$ne": nil},
 	}
@@ -47,7 +47,7 @@ func (r videoRepository) GetAll(limit int64) (result []*models.Video, err error)
 	coll := r.db.client.Database(r.db.database).Collection(videoCollectionName)
 	cur, err := coll.Find(ctx, filter, findOptions)
 	if err != nil {
-		return nil, errors.New("repositories.Video.GetAll :" + err.Error())
+		return nil, errors.New("repositories.Video.GetAvailable :" + err.Error())
 	}
 
 	for cur.Next(ctx) {
