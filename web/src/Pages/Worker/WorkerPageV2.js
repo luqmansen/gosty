@@ -63,7 +63,7 @@ const WorkerPageV2 = () => {
                     rowClassName='table-row'
                     headerHeight={40}
                     width={900}
-                    height={data.length * 50}
+                    height={data.length * 60}
                     rowHeight={40}
                     rowCount={data.length}
                     rowGetter={({index}) => data[index]}
