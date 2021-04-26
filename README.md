@@ -45,7 +45,7 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 ### RabbitMQ
 
 ```
-kubectl create -f k8s/rabbit/rabbitmq.yaml # create nodePort service, skip if you don't need
+kubectl create -f k8s/rabbitmq/service.yaml # create nodePort service, skip if you don't need
 helm install rabbit bitnami/rabbitmq -f k8s/rabbitmq/helm-values.yaml --create-namespace --namespace gosty
 ```
 
