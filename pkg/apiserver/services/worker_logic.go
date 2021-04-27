@@ -51,9 +51,8 @@ func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action
 			log.Error(err)
 		}
 		if err := wrk.workerRepo.Upsert(&worker); err != nil {
-			log.Error(err)
+			log.Errorf("Worker %s failed to %s, err %s", worker.WorkerPodName, action, err)
 		} else {
-			log.Debugf("Worker %s %s", worker.WorkerPodName, action)
 			if err = msg.Ack(false); err != nil {
 				log.Error(err)
 			}

@@ -65,10 +65,8 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 			Body:         dataToSend,
 		},
 	)
-	log.Debugf("Success publish %s to %s queue", dataToSend, q.Name)
-
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("Error when publish %s to %s queue: %s", dataToSend, q.Name, err)
 	}
 
 	return err
