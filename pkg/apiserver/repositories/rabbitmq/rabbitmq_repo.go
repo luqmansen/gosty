@@ -67,6 +67,8 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 	)
 	if err != nil {
 		log.Errorf("Error when publish %s to %s queue: %s", dataToSend, q.Name, err)
+	} else {
+		log.Debugf("Success publish %s to %s queue", dataToSend, q.Name)
 	}
 
 	return err
@@ -89,6 +91,10 @@ func (r rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 	)
 	if err != nil {
 		log.Fatal(err)
+	}
+	err = ch.Qos(1, 0, true)
+	if err != nil {
+		log.Errorf("Failed to set QoS for the channel: %s", err)
 	}
 
 	msg, err := ch.Consume(
