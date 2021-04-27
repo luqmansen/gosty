@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/luqmansen/gosty/pkg/apiserver/api"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/mongo"
@@ -9,6 +12,8 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/streadway/amqp"
+	"net/http"
 )
 
 func main() {
@@ -49,5 +54,42 @@ func main() {
 	server.AddEventStreamServer(sseServer)
 	server.AddEventStreamRoute()
 
+	// for development purposes
+	r := server.GetRouter()
+	dropEverything(r, cfg)
+
 	server.Serve()
+}
+
+func dropEverything(router *chi.Mux, cfg *config.Configuration) {
+	router.Get("/drop", func(writer http.ResponseWriter, request *http.Request) {
+		c, _ := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
+		writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))
+		err := c.Database("gosty").Drop(context.Background())
+		if err != nil {
+			writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
+		}
+
+		conn, err := amqp.Dial(cfg.MessageBroker.GetMessageBrokerUri())
+		if err != nil {
+			log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
+		}
+		ch, err := conn.Channel()
+		if err != nil {
+			log.Error()
+		}
+
+		queue := []string{services.MessageBrokerQueueTaskUpdateStatus, services.MessageBrokerQueueTaskFinished,
+			services.MessageBrokerQueueTaskNew, services.WorkerStatus, services.WorkerAssigned, services.WorkerNew}
+
+		for _, q := range queue {
+			writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
+			_, err = ch.QueuePurge(q, true)
+			if err != nil {
+				writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
+			}
+		}
+
+		writer.Write([]byte("DROP SUCCESS"))
+	})
 }

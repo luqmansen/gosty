@@ -26,6 +26,10 @@ func NewServer(port, host string) *Server {
 	}
 }
 
+func (server *Server) GetRouter() *chi.Mux {
+	return server.router
+}
+
 func (server *Server) AddEventStreamServer(s *sse.Server) {
 	server.sseServer = s
 }
