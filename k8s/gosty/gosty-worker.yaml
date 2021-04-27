@@ -25,7 +25,14 @@ spec:
               podAffinityTerm:
                 topologyKey: topology.kubernetes.io/hostname
       containers:
-        - envFrom:
+        - resources:
+            requests:
+              cpu: "256m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          envFrom:
             - configMapRef:
                 name: gosty-config
           image: luqmansen/gosty-worker:latest
