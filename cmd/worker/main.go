@@ -159,7 +159,7 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 
 	} else {
 		w.Status = models.WorkerStatusWorking
-		w.WorkingOn = task.Id.Hex()
+		w.WorkingOn = task.OriginVideo.FileName
 
 		//only update task status if task is actually assigned to a worker
 		task.Status = models.TaskStatusOnProgress
@@ -172,7 +172,6 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 	if err := wrk.GetMessageBroker().Publish(w, services.WorkerAssigned); err != nil {
 		log.Error(err)
 	}
-
 }
 
 // Notify availability of worker every 3 second to message broker

@@ -67,6 +67,7 @@ func (wrk workerServices) workerWatcher() {
 		for _, worker := range workerList {
 			if time.Since(worker.UpdatedAt) > 4*time.Second {
 				worker.Status = models.WorkerStatusTerminated
+				worker.WorkingOn = ""
 			}
 
 			if err := wrk.workerRepo.Upsert(worker); err != nil {
