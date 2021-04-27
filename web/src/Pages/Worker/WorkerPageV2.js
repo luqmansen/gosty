@@ -5,7 +5,7 @@ import {
     APISERVER_HOST,
     WORKER_STATUS,
     EVENTSTREAM_ENDPOINT,
-    WORKER_STREAM_NAME, TASK_PROGRESS_ENDPOINT, WORKER_STATUS_ENDPOINT
+    WORKER_STREAM_NAME, TASK_PROGRESS_ENDPOINT, WORKER_STATUS_ENDPOINT, WORKER_STATUS_TERMINATED
 } from "../../Constant";
 
 const WorkerPageV2 = () => {
@@ -27,20 +27,29 @@ const WorkerPageV2 = () => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
             let d = JSON.parse(event.data)
-            d.sort(
-                (a, b) => {
-                    if (a.status < b.status) {return -1}
-                    if (a.status > b.status) {return 1}
-                    return 0;
-                }
-            )
-            processData(d)
+            if (d.length > 0){
+                d.sort(
+                    (a, b) => {
+                        if (a.status < b.status) {
+                            return -1
+                        }
+                        if (a.status > b.status) {
+                            return 1
+                        }
+                        return 0;
+                    }
+                )
+                processData(d)
+            }
+
         }
         eventSource.onerror = e => {
             console.log(e)
         }
 
-        return (() => {eventSource.close()})
+        return (() => {
+            eventSource.close()
+        })
     }, [])
 
     const processData = (blocks) => {
@@ -48,9 +57,16 @@ const WorkerPageV2 = () => {
             blocks.map(w => {
                 w.status = WORKER_STATUS[w.status]
             })
-            setData(blocks)
-        } else {
-            setData([])
+
+            let filtered = []
+            blocks.map(w => {
+                if (w.status !== WORKER_STATUS_TERMINATED) {
+                    filtered.push(w)
+                }
+            })
+            if (filtered.length > 0){
+                setData(filtered)
+            }
         }
     }
 
@@ -62,7 +78,7 @@ const WorkerPageV2 = () => {
                 <Table
                     rowClassName='table-row'
                     headerHeight={40}
-                    width={900}
+                    width={10000}
                     height={data.length * 60}
                     rowHeight={40}
                     rowCount={data.length}
@@ -71,12 +87,12 @@ const WorkerPageV2 = () => {
                     <Column
                         label='Id'
                         dataKey='id'
-                        width={200}
+                        width={100}
                     />
                     <Column
                         label='Worker Name'
                         dataKey='worker_pod_name'
-                        width={170}
+                        width={250}
                     />
                     <Column
                         label='Status'

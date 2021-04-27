@@ -103,7 +103,7 @@ const tableData = (v) => {
         data = (<Table
             rowClassName='table-row'
             headerHeight={40}
-            width={1000}
+            width={1500}
             height={v.task_list.length * 40}
             rowHeight={40}
             rowCount={v.task_list.length}
@@ -112,22 +112,22 @@ const tableData = (v) => {
             <Column
                 label='Task Kind'
                 dataKey='kind'
-                width={300}
+                width={170}
             />
             <Column
                 label='Target'
                 dataKey='target'
-                width={300}
+                width={150}
             />
             <Column
                 label='Status'
                 dataKey='status'
-                width={250}
+                width={200}
             />
             <Column
                 label='Worker'
                 dataKey='worker'
-                width={250}
+                width={350}
             />
             <Column
                 label='task_submitted'
