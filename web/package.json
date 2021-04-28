@@ -9,6 +9,7 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.3",
     "react-virtualized": "^9.22.3",
+    "serve": "^11.3.2",
     "shaka-player-react": "^1.1.2"
   },
   "scripts": {

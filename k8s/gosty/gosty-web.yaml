@@ -25,7 +25,7 @@ spec:
                 topologyKey: topology.kubernetes.io/hostname
               weight: 100
       containers:
-        - image: 192.168.56.1:5000/gosty-web:latest
+        - image: registry.local/gosty-web-dev:latest
           imagePullPolicy: Always
           name: gosty-web
           ports:
@@ -38,10 +38,12 @@ metadata:
   name: gosty-web
   namespace: gosty
 spec:
-  type: ClusterIP
+  type: NodePort
+  selector:
+    app: gosty-web
   ports:
     - port: 80
       targetPort: 80
-  selector:
-    app: gosty-web
+      nodePort: 30002
+
 ---

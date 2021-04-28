@@ -91,7 +91,7 @@ const tableData = (v) => {
     return (
         <div>
             <p><b>File : {v.origin_video.file_name}</b></p>
-            <p>Total Duration: {msToTime(v.total_duration / 1e+6)}</p>
+            <p>Elapsed time: {msToTime(v.total_duration / 1e+6)}</p>
 
             <Table
                 rowClassName='table-row'

@@ -53,20 +53,22 @@ const WorkerPageV2 = () => {
     }, [])
 
     const processData = (blocks) => {
+        let filtered = []
+
         if (blocks.length > 0) {
             blocks.map(w => {
                 w.status = WORKER_STATUS[w.status]
             })
-
-            let filtered = []
             blocks.map(w => {
                 if (w.status !== WORKER_STATUS_TERMINATED) {
                     filtered.push(w)
                 }
             })
-            if (filtered.length > 0){
-                setData(filtered)
-            }
+        }
+        if (filtered.length > 0){
+            setData(filtered)
+        } else {
+            setData(blocks) // if no data, display previously terminated worker
         }
     }
 
@@ -79,7 +81,7 @@ const WorkerPageV2 = () => {
                     rowClassName='table-row'
                     headerHeight={40}
                     width={10000}
-                    height={data.length * 60}
+                    height={data.length * 80}
                     rowHeight={40}
                     rowCount={data.length}
                     rowGetter={({index}) => data[index]}
