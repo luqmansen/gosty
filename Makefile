@@ -18,6 +18,8 @@ worker-bin:
 fs-bin:
 	CGO_ENABLED=0 go build -o build/fileserver/app cmd/fileserver/main.go
 
+all-bin: api-bin worker-bin fs-bin
+
 cleanup:
 	rm -rf build/*
 

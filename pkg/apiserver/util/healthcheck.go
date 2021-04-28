@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
 	hc "github.com/heptiolabs/healthcheck"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	log "github.com/sirupsen/logrus"
@@ -20,9 +21,9 @@ func InitHealthCheck(cfg *config.Configuration) {
 	//too many goroutine might be a sign of a resource leak
 	health.AddLivenessCheck("goroutine-threshold", hc.GoroutineCountCheck(200000))
 
-	health.AddReadinessCheck("database", MongoDBPingCheck(cfg.Database.GetDatabaseUri(), 2*time.Second))
-	health.AddReadinessCheck("rabbitmq", RabbitPingCheck(cfg.MessageBroker.GetMessageBrokerUri()))
-	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 2*time.Second))
+	health.AddReadinessCheck("database", MongoDBPingCheck(cfg.Database.GetDatabaseUri(), 30*time.Second))
+	health.AddReadinessCheck("rabbitmq", RabbitPingCheck(cfg.MessageBroker.GetMessageBrokerUri(), 3*time.Minute))
+	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 30*time.Second))
 
 	port := "8086"
 	log.Infof("healthcheck running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
@@ -53,16 +54,28 @@ func MongoDBPingCheck(dbURI string, timeout time.Duration) hc.Check {
 	}
 }
 
-func RabbitPingCheck(rabbitURI string) hc.Check {
+func RabbitPingCheck(rabbitURI string, duration time.Duration) hc.Check {
 	return func() error {
 
 		if rabbitURI == "" {
 			return fmt.Errorf("rabbitmq URI is nil")
 		}
 
-		conn, err := amqp.Dial(rabbitURI)
+		var conn *amqp.Connection
+		dial := func() (err error) {
+			conn, err = amqp.Dial(rabbitURI)
+			if err != nil {
+				log.Errorf("Failed to dial URI: %s, retrying.....", err)
+				return
+			}
+			return
+		}
+		b := backoff.NewExponentialBackOff()
+		b.MaxElapsedTime = duration
+		err := backoff.Retry(dial, b)
 		if err != nil {
 			return fmt.Errorf("failed to connect to rabbitmq: %s", err)
+
 		}
 
 		ch, err := conn.Channel()

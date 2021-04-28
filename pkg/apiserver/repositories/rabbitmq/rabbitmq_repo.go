@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
@@ -16,24 +17,35 @@ type rabbitRepo struct {
 func NewRepository(uri string) repositories.MessageBrokerRepository {
 	//TODO defer close connection somewhere
 	log.Debugf("Rabbitmq uri: %s", uri)
-	conn, err := amqp.Dial(uri)
-	if err != nil {
-		log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
-	}
 
 	return &rabbitRepo{
-		conn: conn,
+		conn: connectWithBackoff(uri),
 		uri:  uri,
 	}
 }
+func connectWithBackoff(connectionUri string) (conn *amqp.Connection) {
 
-func (r rabbitRepo) Publish(data interface{}, queueName string) error {
-	var err error
-	if r.conn.IsClosed() {
-		r.conn, err = amqp.Dial(r.uri)
+	dial := func() (err error) {
+		conn, err = amqp.Dial(connectionUri)
 		if err != nil {
-			log.Fatalf("Failed to re-connect to rabbitmq: %s", err.Error())
+			log.Errorf("Failed to dial URI: %s, retrying.....", err)
+			return
 		}
+		return
+	}
+
+	err := backoff.Retry(dial, backoff.NewExponentialBackOff())
+	if err != nil {
+		log.Fatalf("Failed to connect to rabbitmq: %s", err)
+		return nil
+	}
+	return conn
+}
+
+func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
+
+	if r.conn.IsClosed() {
+		r.conn = connectWithBackoff(r.uri)
 	}
 	ch, err := r.conn.Channel()
 	if (err != nil) || (ch == nil) {
@@ -68,13 +80,18 @@ func (r rabbitRepo) Publish(data interface{}, queueName string) error {
 	if err != nil {
 		log.Errorf("Error when publish %s to %s queue: %s", dataToSend, q.Name, err)
 	} else {
-		log.Debugf("Success publish %s to %s queue", dataToSend, q.Name)
+		//log.Debugf("Success publish %s to %s queue", dataToSend, q.Name)
 	}
 
 	return err
 }
 
-func (r rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
+func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
+
+	if r.conn.IsClosed() {
+		r.conn = connectWithBackoff(r.uri)
+	}
+
 	ch, err := r.conn.Channel()
 	if (err != nil) || (ch == nil) {
 		log.Fatal(err, ch)

@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -54,11 +55,19 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	// Submit the request
-	client := http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		logrus.Error(err)
+	var res *http.Response
+	post := func() (err error) {
+		client := http.Client{}
+		res, err = client.Do(req)
+		if err != nil {
+			logrus.Errorf("Uploading file error: %s, url: %s", err, url)
+			return
+		}
 		return
+	}
+
+	if err := backoff.Retry(post, backoff.NewExponentialBackOff()); err != nil {
+		return err
 	}
 
 	// Check the response
@@ -73,23 +82,41 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	return
 }
 
-func Download(filepath string, url string) error {
+func Download(filepath string, url string) (err error) {
 
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
+	var resp *http.Response
+
+	get := func() error {
+		resp, err = http.Get(url)
+		if err != nil {
+			logrus.Errorf("Downloading file error: %s, url: %s", err, url)
+			return err
+		}
+		return nil
+	}
+
+	if err := backoff.Retry(get, backoff.NewExponentialBackOff()); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
 
-	// Write the body to file
+	defer func() {
+		if err := out.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+
 	_, err = io.Copy(out, resp.Body)
 	return err
 }

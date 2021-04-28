@@ -16,8 +16,8 @@ func InitHealthCheck(cfg *config.Configuration) {
 	//too many goroutine might be a sign of a resource leak
 	health.AddLivenessCheck("goroutine-threshold", hc.GoroutineCountCheck(200000))
 
-	health.AddReadinessCheck("rabbitmq", util2.RabbitPingCheck(cfg.MessageBroker.GetMessageBrokerUri()))
-	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 2*time.Second))
+	health.AddReadinessCheck("rabbitmq", util2.RabbitPingCheck(cfg.MessageBroker.GetMessageBrokerUri(), 3*time.Minute))
+	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 30*time.Second))
 
 	port := "8002"
 	log.Infof("healthcheck running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)

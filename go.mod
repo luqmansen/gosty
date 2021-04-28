@@ -3,6 +3,7 @@ module github.com/luqmansen/gosty
 go 1.15
 
 require (
+	github.com/cenkalti/backoff/v4 v4.1.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-chi/chi v1.5.1
 	github.com/go-chi/cors v1.1.1
