@@ -3,7 +3,7 @@ TAG:=$(shell git rev-parse --short=5 HEAD)
 
 .PHONY: dev
 api:
-	nodemon --exec go run cmd/apiserver/main.go --signal SIGTERM
+	FILE_MIN_SIZE_MB=50 nodemon --exec go run cmd/apiserver/main.go --signal SIGTERM
 
 wrk:
 	nodemon --exec go run cmd/worker/main.go --signal SIGTERM

@@ -250,14 +250,25 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 	//split by size in Byte
 	var sizePerVid int64
 	var sizeLeft int64
-	var minSize int64 = 10240 << 10 // 10 MB (Skip this until merge task is done)
 
+	//TODO: make the chunk file size is dynamic base on number of worker, worker failure rate, etc
+	// since lots of smaller task with same number of worker will just add overhead
+	// in processing. The pros is, in case of pod failure in the middle of a processing,
+	// the task that need to be re-processed is in smaller chunk. Currently I'll set this dynamically
+	// via env var.
+	fileSize, err := strconv.Atoi(util.GetEnv("FILE_MIN_SIZE_MB", "10")) // Default 10 MB (Skip this until merge task is done)
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to convert size to mb"))
+	}
+	log.Debug(fileSize)
+	minSize := int64(fileSize * 1e+6) // convert Megabyte to Byte
+	log.Debug(minSize)
 	// if video size less than min file size, forward to transcode task
 	if video.Size < minSize {
 		//Todo: make this task definition not redundant.
-		//Task is re-defined on CreateTranscodeTask, but
-		//this is a current workaround for preserve origin
-		//video field, later pls redesign the data models
+		// Task is re-defined on CreateTranscodeTask, but
+		// this is a current workaround for preserve origin
+		// video field, later please redesign the data models
 		task := &models.Task{
 			OriginVideo:   video,
 			TaskTranscode: &models.TranscodeTask{Video: video},
@@ -297,7 +308,7 @@ func (s schedulerServices) CreateSplitTask(video *models.Video) error {
 		TaskSubmitted: time.Now(),
 	}
 
-	err := s.taskRepo.Add(&task)
+	err = s.taskRepo.Add(&task)
 	if err != nil {
 		log.Fatal(err)
 		return err

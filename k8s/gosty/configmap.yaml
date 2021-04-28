@@ -11,3 +11,5 @@ data:
 
   RABBITMQ_USERNAME: "username"
   RABBITMQ_PASSWORD: "password"
+
+  FILE_MIN_SIZE_MB: "50"
