@@ -6,7 +6,7 @@ metadata:
   name: gosty-apiserver
   namespace: gosty
 spec:
-  replicas: 1
+  replicas: 3
   revisionHistoryLimit: 1
   minReadySeconds: 10
   selector:
@@ -60,7 +60,11 @@ spec:
   selector:
     app: gosty-apiserver
   ports:
-  - port: 80
-    name: http
-    targetPort: 8000
-    nodePort: 30000
+    - port: 80
+      name: http
+      targetPort: 8000
+      nodePort: 30000
+    - port: 8086
+      name: health
+      targetPort: 8086
+      nodePort: 30086

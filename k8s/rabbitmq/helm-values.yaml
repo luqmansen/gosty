@@ -71,7 +71,7 @@ auth:
   ## Erlang cookie to determine whether different nodes are allowed to communicate with each other
   ## ref: https://github.com/bitnami/bitnami-docker-rabbitmq#environment-variables
   ##
-  # erlangCookie:
+  erlangCookie: superSecretStuff!@#
   # existingErlangSecret: name-of-existing-secret
 
   ## Enable encryption to rabbitmq
@@ -323,7 +323,7 @@ extraSecrets: {}
 
 ## Number of RabbitMQ replicas to deploy
 ##
-replicaCount: 3
+replicaCount: 1
 
 ## Use an alternate scheduler, e.g. "stork".
 ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
@@ -340,7 +340,7 @@ replicaCount: 3
 ## you must change podManagementPolicy to 'Parallel'.
 ## ref : https://www.rabbitmq.com/clustering.html#restarting
 ##
-podManagementPolicy: OrderedReady
+podManagementPolicy: Parallel
 
 ## Pod labels. Evaluated as a template
 ## Ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
@@ -606,7 +606,7 @@ networkPolicy:
 ## Kubernetes service type
 ##
 service:
-  type: ClusterIP
+  type: NodePort
   ## Amqp port
   ## ref: https://github.com/bitnami/bitnami-docker-rabbitmq#environment-variables
   ##
@@ -627,7 +627,7 @@ service:
   ## Node port
   ## ref: https://github.com/bitnami/bitnami-docker-rabbitmq#environment-variables
   ##
-  # nodePort: 30672
+  nodePort: 30672
 
   ## Node port Tls
   ##
@@ -659,7 +659,7 @@ service:
 
   ## Node port (Manager)
   ##
-  # managerNodePort: 30673
+  managerNodePort: 30673
 
   ## RabbitMQ Prometheues metrics port
   ##

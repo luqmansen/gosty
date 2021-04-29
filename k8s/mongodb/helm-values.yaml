@@ -246,7 +246,7 @@ labels: { }
 ## Number of MongoDB(R) replicas to deploy.
 ## Ignored when mongodb.architecture=standalone
 ##
-replicaCount: 3
+replicaCount: 1
 
 ## StrategyType for MongoDB(R) statefulset
 ## It can be set to RollingUpdate or Recreate by default.
@@ -432,7 +432,7 @@ pdb:
   create: false
   ## Min number of pods that must still be available after the eviction
   ##
-  minAvailable: 3
+  minAvailable: 1
   ## Max number of pods that can be unavailable after the eviction
   ##
   # maxUnavailable: 1
@@ -503,7 +503,7 @@ service:
   ## Specify the nodePort value for the LoadBalancer and NodePort service types.
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
   ##
-  nodePort: ""
+  nodePort: 32017
   ## MongoDB(R) service clusterIP IP
   ##
   # clusterIP: None
@@ -761,17 +761,18 @@ arbiter:
   ## Tolerations for pod assignment
   ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
   ##
-  tolerations: []
+  tolerations: [ ]
 
   ## Labels for MongoDB(R) Arbiter pods. Evaluated as a template.
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
   ##
-  podLabels: {}
+  podLabels: { }
 
   ## Annotations for MongoDB(R) Arbiter pods. Evaluated as a template.
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
   ##
-  podAnnotations: {}
+  podAnnotations:
+    linkerd.io/inject: enabled
 
   ## MongoDB(R) Arbiter pods' priority.
   ## ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/

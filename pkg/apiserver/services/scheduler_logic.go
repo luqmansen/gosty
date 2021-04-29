@@ -385,7 +385,6 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	var wg sync.WaitGroup
 
 	for _, task := range taskList {
-		fmt.Println("add transcode task")
 		wg.Add(1)
 		go func(t *models.Task) {
 			defer wg.Done()

@@ -268,6 +268,12 @@ If you notice, the config.env is still added to final docker images since viper
 has [this issue](https://github.com/spf13/viper/issues/584). The env value later will be replaced by injected env values
 from K8s
 
+**Scaling statefulsets rabbitmq problem**
+
+RabbitMQ using `erlang cookie` as shared secret used for authentication between RabbitMQ nodes. It will be stored on the
+volume. If `erlang cookie` is not defined on secret, it will generated randomly and in case of scaling via kubernetes
+API, each node will have different cookie, so they can't work together. Remove previous volume to make sure cookie is
+renewed.
 
 
  ___
