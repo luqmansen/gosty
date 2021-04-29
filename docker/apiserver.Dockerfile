@@ -7,8 +7,8 @@ WORKDIR /app
 #RUN find /tmp/build
 
 #docker alpine by default doesn't have mime.types file
-ADD "http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?revision=1884511&view=co" /etc/mime.types
-COPY ./build/apiserver/app .
+ADD "https://gist.githubusercontent.com/luqmansen/690dd7e79d2f8c7bb9046f5e404ef5c6/raw/86e75df7eef30bafb5fee0162fd9b9a27265ff14/mime.types" /etc/mime.types
+COPY ./build/apiserver/apiserver .
 COPY ./config.env .
 RUN mkdir tmp
 

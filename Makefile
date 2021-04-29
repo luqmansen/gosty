@@ -12,11 +12,11 @@ fs:
 	nodemon --exec go run cmd/fileserver/main.go --signal SIGTERM
 
 api-bin:
-	CGO_ENABLED=0 go build -o build/apiserver/app cmd/apiserver/main.go
+	CGO_ENABLED=0 go build -o build/apiserver/apiserver cmd/apiserver/main.go
 worker-bin:
-	CGO_ENABLED=0 go build -o build/worker/app cmd/worker/main.go
+	CGO_ENABLED=0 go build -o build/worker/worker cmd/worker/main.go
 fs-bin:
-	CGO_ENABLED=0 go build -o build/fileserver/app cmd/fileserver/main.go
+	CGO_ENABLED=0 go build -o build/fileserver/fileserver cmd/fileserver/main.go
 
 all-bin: api-bin worker-bin fs-bin
 
