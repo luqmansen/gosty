@@ -84,7 +84,7 @@ func HandleUpload() func(writer http.ResponseWriter, request *http.Request) {
 		lmt := io.MultiReader(buf, io.LimitReader(p, maxSize-511))
 
 		written, err := f.ReadFrom(lmt)
-		log.Debugf("Written %s byte", written)
+		log.Debugf("Written %v byte", written)
 		if err != nil {
 			log.Error(err)
 		}
