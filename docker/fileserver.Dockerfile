@@ -6,4 +6,4 @@ ADD ./build/fileserver/fileserver .
 ADD ./config.env .
 RUN mkdir storage
 
-CMD ["./app"]
+CMD ["./fileserver"]

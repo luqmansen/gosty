@@ -15,4 +15,4 @@ RUN mkdir tmp
 #to override base image entrypoint
 ENTRYPOINT ["/usr/bin/env"]
 
-CMD ["./app"]
+CMD ["./apiserver"]

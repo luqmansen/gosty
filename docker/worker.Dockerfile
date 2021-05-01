@@ -7,4 +7,4 @@ ADD script/*.sh ./script/
 ADD ./config.env .
 RUN mkdir tmp-worker
 
-CMD ["./app"]
+CMD ["./worker"]
