@@ -6,6 +6,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"time"
 )
 
 type rabbitRepo struct {
@@ -28,13 +29,17 @@ func connectWithBackoff(connectionUri string) (conn *amqp.Connection) {
 	dial := func() (err error) {
 		conn, err = amqp.Dial(connectionUri)
 		if err != nil {
-			log.Errorf("Failed to dial URI: %s, retrying.....", err)
+			log.Errorf("Failed to dial URI %s: %s, retrying.....", connectionUri, err)
 			return
 		}
 		return
 	}
 
-	err := backoff.Retry(dial, backoff.NewExponentialBackOff())
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = 30 * time.Second
+	maxRetries := uint64(10)
+
+	err := backoff.Retry(dial, backoff.WithMaxRetries(b, maxRetries))
 	if err != nil {
 		log.Fatalf("Failed to connect to rabbitmq: %s", err)
 		return nil
@@ -45,6 +50,7 @@ func connectWithBackoff(connectionUri string) (conn *amqp.Connection) {
 func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 
 	if r.conn.IsClosed() {
+		log.Debug("Connection is closed, attempting to open it")
 		r.conn = connectWithBackoff(r.uri)
 	}
 	ch, err := r.conn.Channel()
@@ -109,6 +115,7 @@ func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	err = ch.Qos(1, 0, true)
 	if err != nil {
 		log.Errorf("Failed to set QoS for the channel: %s", err)
