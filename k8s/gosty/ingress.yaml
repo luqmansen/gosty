@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: gosty-ingress
@@ -15,27 +15,23 @@ spec:
           - pathType: Prefix
             path: "/"
             backend:
-              service:
-                name: gosty-web
-                port:
-                  number: 80
+              serviceName: gosty-web
+              servicePort: 80
+
     - host: api.gosty.local
       http:
         paths:
           - pathType: Prefix
             path: "/"
             backend:
-              service:
-                name: gosty-apiserver
-                port:
-                  number: 80
+              serviceName: gosty-apiserver
+              servicePort: 80
+
     - host: fs.gosty.local
       http:
         paths:
           - pathType: Prefix
             path: "/"
             backend:
-              service:
-                name: gosty-fileserver
-                port:
-                  number: 80
+              serviceName: gosty-fileserver
+              servicePort: 80
