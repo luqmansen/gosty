@@ -45,11 +45,19 @@ func LoadConfig(path string) *Configuration {
 }
 
 func (d Database) GetDatabaseUri() string {
+	return fmt.Sprint(d.DbUri)
+}
+
+func (d Database) FormatGetDatabaseUri() string {
 	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin",
 		d.Username, d.Password, d.Host, d.Port, d.Name)
 }
 
 func (m MessageBroker) GetMessageBrokerUri() string {
+	return fmt.Sprint(m.MbUri)
+}
+
+func (m MessageBroker) FormatGetMessageBrokerUri() string {
 	return fmt.Sprintf("amqp://%s:%s@%s:%s",
 		m.Username, m.Password, m.Host, m.Port)
 }

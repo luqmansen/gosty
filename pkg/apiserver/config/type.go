@@ -8,6 +8,7 @@ type Configuration struct {
 }
 
 type Database struct {
+	DbUri    string `mapstructure:"MONGODB_URI"`
 	Host     string `mapstructure:"MONGODB_SERVICE_HOST"`
 	Port     string `mapstructure:"MONGODB_SERVICE_PORT"`
 	Username string `mapstructure:"MONGODB_USERNAME"`
@@ -27,6 +28,7 @@ type FileServer struct {
 }
 
 type MessageBroker struct {
+	MbUri    string `mapstructure:"RABBITMQ_URI"`
 	Host     string `mapstructure:"RABBIT_RABBITMQ_SERVICE_HOST"`
 	Port     string `mapstructure:"RABBIT_RABBITMQ_SERVICE_PORT"`
 	Username string `mapstructure:"RABBITMQ_USERNAME"`
