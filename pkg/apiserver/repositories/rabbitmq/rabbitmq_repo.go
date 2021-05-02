@@ -13,11 +13,13 @@ type rabbitRepo struct {
 	channel
 }
 
+/*
+Reuse the channel so it doesn't exhaust the server, since channel
+can't be used concurrently for different purposes (declare, publish, etc),
+here I multiple channel for different action.
+reference: https://github.com/streadway/amqp/issues/170
+*/
 type channel struct {
-	//reuse the channel so it doesn't exhaust the server
-	// Also since on channel can't be used concurrently for different purposes
-	//(declare, publish, etc), here I multiple channel for different action
-	// reference: https://github.com/streadway/amqp/issues/170
 	setQosChan       *amqp.Channel
 	queueDeclareChan *amqp.Channel
 	consumerChan     *amqp.Channel

@@ -49,24 +49,37 @@ func RabbitPingCheck(connection *amqp.Connection) hc.Check {
 		// everytime this endpoint got hit
 		ch, err := connection.Channel()
 		if err != nil {
-			return fmt.Errorf("failed to get rabbitmq channel: %s", err)
+			log.Errorf("failed to get rabbitmq channel: %s", err)
+			return fmt.Errorf("failed to open rabbitmq channel: %s", err)
 		}
 		if ch == nil {
+			log.Errorf("rabbitmq channel channel empty: %s", err)
 			return fmt.Errorf("rabbitmq channel channel empty: %s", err)
 		}
 
 		q, err := ch.QueueDeclare("HEALTH_CHECK_QUEUE", false, true, false, false, nil)
 		if err != nil {
+			log.Errorf("failed create queue: %s", err)
 			return fmt.Errorf("failed create queue: %s", err)
 		}
 
-		_, err = ch.QueueDelete(q.Name, false, false, true)
+		ch2, err := connection.Channel()
+		if ch2 == nil {
+			return fmt.Errorf("failed to open rabbitmq channel2: %s", err)
+		}
+		_, err = ch2.QueueDelete(q.Name, false, false, true)
 		if err != nil {
+			log.Errorf("failed delete queue: %s", err)
 			return fmt.Errorf("failed delete queue: %s", err)
 		}
 
 		if err = ch.Close(); err != nil {
+			log.Errorf("failed close channel: %s", err)
 			return fmt.Errorf("failed close channel: %s", err)
+		}
+		if err = ch2.Close(); err != nil {
+			log.Errorf("failed close channel2: %s", err)
+			return fmt.Errorf("failed close channel2: %s", err)
 		}
 
 		return nil
