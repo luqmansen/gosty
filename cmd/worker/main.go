@@ -21,7 +21,8 @@ func main() {
 	cfg := config.LoadConfig(".")
 	forever := make(chan bool)
 
-	mb := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
+	rabbitClient := rabbitmq.NewRabbitMQConn(cfg.MessageBroker.GetMessageBrokerUri())
+	mb := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
 	workerSvc := worker.NewWorkerService(mb, cfg)
 
 	//todo: this initiation should be handled by storage service
@@ -42,7 +43,7 @@ func main() {
 	go w.processNewTask(newTaskData)
 	go w.workerStatusNotifier()
 
-	go worker.InitHealthCheck(cfg)
+	go worker.InitHealthCheck(cfg, rabbitClient)
 	log.Printf("Worker running. To exit press CTRL+C")
 	<-forever
 

@@ -13,8 +13,10 @@ services:
     restart: always
     ports:
       - "8000:8000"
+      - "8086:8086"
     expose:
       - "8000"
+      - "8086"
     environment:
       PORT: 8000
 
@@ -89,7 +91,6 @@ services:
       - rabbitmq-volume-etc:/etc/rabbitmq/
       - rabbitmq-volume-data:/var/lib/rabbitmq/
       - rabbitmq-volume-logs:/var/log/rabbitmq/
-#      - rabbitmq-volume-enabled_plugins:/etc/rabbitmq/enabled_plugins
     environment:
       RABBITMQ_DEFAULT_USER: username
       RABBITMQ_DEFAULT_PASS: password
@@ -101,5 +102,4 @@ volumes:
   rabbitmq-volume-etc:
   rabbitmq-volume-data:
   rabbitmq-volume-logs:
-#  rabbitmq-volume-enables_plugins:
   mongo-volume:

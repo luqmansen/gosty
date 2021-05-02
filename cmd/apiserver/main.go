@@ -20,16 +20,17 @@ func main() {
 	cfg := config.LoadConfig(".")
 	util.DebugStruct(*cfg)
 
-	client, err := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
+	mongoClient, err := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
 	if err != nil {
-		log.Fatalf("failed to init mongo client: %s", err.Error())
+		log.Fatalf("failed to init mongo mongoClient: %s", err.Error())
 	}
 
-	vidRepo := mongo.NewVideoRepository(cfg.Database, client)
-	taskRepo := mongo.NewTaskRepository(cfg.Database, client)
-	workerRepo := mongo.NewWorkerRepository(cfg.Database, client)
+	vidRepo := mongo.NewVideoRepository(cfg.Database, mongoClient)
+	taskRepo := mongo.NewTaskRepository(cfg.Database, mongoClient)
+	workerRepo := mongo.NewWorkerRepository(cfg.Database, mongoClient)
 
-	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri())
+	rabbitClient := rabbitmq.NewRabbitMQConn(cfg.MessageBroker.GetMessageBrokerUri())
+	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
 	sseServer := sse.New()
 	sseServer.CreateStream(services.WorkerHTTPEventStream)
 	sseServer.CreateStream(services.TaskHTTPEventStream)
@@ -40,7 +41,7 @@ func main() {
 
 	go schedulerSvc.ReadMessages()
 	go workerSvc.ReadMessage()
-	go util.InitHealthCheck(cfg)
+	go util.InitHealthCheck(cfg, mongoClient, rabbitClient)
 
 	videoRestHandler := api.NewVideoHandler(cfg, videoSvc)
 	workerRestHandler := api.NewWorkerHandler(workerSvc)
@@ -64,32 +65,40 @@ func main() {
 func dropEverything(router *chi.Mux, cfg *config.Configuration) {
 	router.Get("/drop", func(writer http.ResponseWriter, request *http.Request) {
 		c, _ := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
-		writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))
+		_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))
 		err := c.Database("gosty").Drop(context.Background())
 		if err != nil {
-			writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
+			_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
 		}
 
 		conn, err := amqp.Dial(cfg.MessageBroker.GetMessageBrokerUri())
 		if err != nil {
 			log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
 		}
+		if conn == nil {
+			_, _ = writer.Write([]byte("Failed drop, connection is nil"))
+			return
+		}
 		ch, err := conn.Channel()
 		if err != nil {
 			log.Error()
+		}
+		if ch == nil {
+			_, _ = writer.Write([]byte("Failed drop, channel is nil"))
+			return
 		}
 
 		queue := []string{services.MessageBrokerQueueTaskUpdateStatus, services.MessageBrokerQueueTaskFinished,
 			services.MessageBrokerQueueTaskNew, services.WorkerStatus, services.WorkerAssigned, services.WorkerNew}
 
 		for _, q := range queue {
-			writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
+			_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
 			_, err = ch.QueuePurge(q, true)
 			if err != nil {
-				writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
+				_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
 			}
 		}
 
-		writer.Write([]byte("DROP SUCCESS"))
+		_, _ = writer.Write([]byte("DROP SUCCESS"))
 	})
 }
