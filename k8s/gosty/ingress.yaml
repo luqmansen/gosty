@@ -12,8 +12,7 @@ spec:
     - host: gosty.local
       http:
         paths:
-          - pathType: Prefix
-            path: "/"
+          - path: /*
             backend:
               serviceName: gosty-web
               servicePort: 80
@@ -21,8 +20,7 @@ spec:
     - host: api.gosty.local
       http:
         paths:
-          - pathType: Prefix
-            path: "/"
+          - path: /*
             backend:
               serviceName: gosty-apiserver
               servicePort: 80
@@ -30,8 +28,7 @@ spec:
     - host: fs.gosty.local
       http:
         paths:
-          - pathType: Prefix
-            path: "/"
+          - path: /*
             backend:
               serviceName: gosty-fileserver
               servicePort: 80
