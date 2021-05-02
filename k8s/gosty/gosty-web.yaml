@@ -25,7 +25,7 @@ spec:
                 topologyKey: topology.kubernetes.io/hostname
               weight: 100
       containers:
-        - image: registry.local/gosty-web-dev:latest
+        - image: luqmansen/gosty-web:latest
           imagePullPolicy: Always
           name: gosty-web
           ports:

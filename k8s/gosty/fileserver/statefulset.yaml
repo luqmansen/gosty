@@ -19,14 +19,11 @@ spec:
         app: gosty-fileserver
     spec:
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - k3s-node-01
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: topology.kubernetes.io/hostname
 
       containers:
         - image: luqmansen/gosty-fileserver:latest
@@ -36,6 +33,7 @@ spec:
           volumeMounts:
             - name: gosty-fileserver-volume
               mountPath: /app/storage
+
 
       volumes:
         - name: gosty-fileserver-volume
