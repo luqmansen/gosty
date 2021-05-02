@@ -8,16 +8,51 @@ import (
 )
 
 type rabbitRepo struct {
-	conn *amqp.Connection
 	uri  string
+	conn *amqp.Connection
+	channel
+}
+
+type channel struct {
+	//reuse the channel so it doesn't exhaust the server
+	// Also since on channel can't be used concurrently for different purposes
+	//(declare, publish, etc), here I multiple channel for different action
+	// reference: https://github.com/streadway/amqp/issues/170
+	setQosChan       *amqp.Channel
+	queueDeclareChan *amqp.Channel
+	consumerChan     *amqp.Channel
+	publisherChan    *amqp.Channel
+}
+
+func initChannel(connection *amqp.Connection, name string) *amqp.Channel {
+	c := make(chan *amqp.Error)
+	go func() {
+		err := <-c
+		log.Errorf("trying to reconnect: %s", err.Error())
+		initChannel(connection, name)
+	}()
+	rmqChannel, err := connection.Channel()
+	if err != nil {
+		log.Errorf("Failed to init %s channel: %s", name, err)
+	}
+	if rmqChannel != nil {
+		rmqChannel.NotifyClose(c)
+	}
+	return rmqChannel
 }
 
 func NewRepository(uri string, client *amqp.Connection) repositories.Messenger {
 	log.Debugf("Rabbitmq uri: %s", uri)
 
 	return &rabbitRepo{
-		conn: client,
 		uri:  uri,
+		conn: client,
+		channel: channel{
+			setQosChan:       initChannel(client, "setQos"),
+			queueDeclareChan: initChannel(client, "queueDeclare"),
+			consumerChan:     initChannel(client, "consumer"),
+			publisherChan:    initChannel(client, "publisher"),
+		},
 	}
 }
 
@@ -31,7 +66,7 @@ func NewRabbitMQConn(connectionUri string) (conn *amqp.Connection) {
 
 	conn, err := amqp.Dial(connectionUri)
 	if err != nil {
-		log.Fatalf("cannot connect: %s", err.Error())
+		log.Fatalf("cannot connect to rabbitmq: %s", err.Error())
 	}
 	if conn != nil {
 		conn.NotifyClose(c)
@@ -42,12 +77,7 @@ func NewRabbitMQConn(connectionUri string) (conn *amqp.Connection) {
 
 func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 
-	ch, err := r.conn.Channel()
-	if (err != nil) || (ch == nil) {
-		log.Fatal(err, ch)
-	}
-
-	q, err := ch.QueueDeclare(
+	q, err := r.queueDeclareChan.QueueDeclare(
 		queueName, // queueName
 		true,      // durable
 		false,     // delete when unused
@@ -61,7 +91,7 @@ func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 		log.Error(err)
 	}
 
-	err = ch.Publish(
+	err = r.publisherChan.Publish(
 		"",
 		q.Name,
 		false,
@@ -83,13 +113,8 @@ func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 
 func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 
-	ch, err := r.conn.Channel()
-	if (err != nil) || (ch == nil) {
-		log.Fatal(err, ch)
-	}
-
 	//declare queue name, in  case the queue haven't created
-	q, err := ch.QueueDeclare(
+	q, err := r.queueDeclareChan.QueueDeclare(
 		queueName, // queueName
 		true,      // durable
 		false,     // delete when unused
@@ -101,12 +126,12 @@ func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 		log.Fatal(err)
 	}
 
-	err = ch.Qos(1, 0, true)
+	err = r.setQosChan.Qos(1, 0, true)
 	if err != nil {
 		log.Errorf("Failed to set QoS for the channel: %s", err)
 	}
 
-	msg, err := ch.Consume(
+	msg, err := r.consumerChan.Consume(
 		q.Name,
 		"",
 		false,

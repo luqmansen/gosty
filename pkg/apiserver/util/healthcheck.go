@@ -45,7 +45,8 @@ func MongoDBPingCheck(mongoClient *mongo.Client, timeout time.Duration) hc.Check
 
 func RabbitPingCheck(connection *amqp.Connection) hc.Check {
 	return func() error {
-
+		//TODO: try to reuse the channel instead of opening new channel
+		// everytime this endpoint got hit
 		ch, err := connection.Channel()
 		if err != nil {
 			return fmt.Errorf("failed to get rabbitmq channel: %s", err)
