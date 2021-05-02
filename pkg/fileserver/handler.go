@@ -2,13 +2,16 @@ package fileserver
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 )
 
 //
@@ -97,5 +100,31 @@ func HandleUpload() func(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Error(err)
 		}
+	}
+}
+
+func DropAll(path string) func(writer http.ResponseWriter, request *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var wg sync.WaitGroup
+		for _, f := range files {
+			wg.Add(1)
+			go func(filename string) {
+				defer wg.Done()
+				w.Write([]byte(fmt.Sprintf("Removing %s\n", filename)))
+				err := os.Remove(path + "/" + filename)
+				if err != nil {
+					log.Errorf("error removing %s: %s", filename, err)
+					w.Write([]byte(fmt.Sprintf("error removing %s: %s\n", filename, err)))
+				}
+			}(f.Name())
+		}
+		wg.Wait()
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

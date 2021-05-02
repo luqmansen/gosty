@@ -13,6 +13,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -98,6 +99,19 @@ func dropEverything(router *chi.Mux, cfg *config.Configuration) {
 				_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
 			}
 		}
+
+		resp, err := http.Get(cfg.FileServer.GetFileServerUri() + "/drop")
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if resp.StatusCode != http.StatusNoContent {
+			writer.Write([]byte("failed to drop file server data\n"))
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		writer.Write(body)
 
 		_, _ = writer.Write([]byte("DROP SUCCESS"))
 	})

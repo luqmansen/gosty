@@ -46,10 +46,12 @@ func main() {
 	r.Get("/", fileserver.Index())
 	r.Get(fsPath, fileserver.HandleFileServer(pathToServe))
 	r.Post("/upload", fileserver.HandleUpload())
+	r.Get("/drop", fileserver.DropAll(pathToServe))
 
 	port := util.GetEnv("PORT", "8001")
-	log.Infof("File running on port %s", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
+	host := util.GetEnv("FS_HOST", "0.0.0.0")
+	log.Infof("File running on port http://%s:%s", host, port)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", host, port), r)
 	if err != nil {
 		log.Error(err)
 	}
