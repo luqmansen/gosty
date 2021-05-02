@@ -3,7 +3,7 @@ version: '3.7'
 
 services:
   web:
-    image: localhost:5000/gosty-web-dev
+    image: luqmansen/gosty-web
     restart: always
     ports:
       - "8082:80"
