@@ -203,7 +203,8 @@ kubectl -n kube-system port-forward svc/kubernetes-dashboard 8443:443
 
 ### Chaos Mesh
 
-I add some testing scenario on [k8s/chaos](./k8s/chaos) using chaos mesh. First install chaos mesh on the cluster
+I add some testing scenario on [k8s/chaos](deployment/k8s/chaos) using chaos mesh. First install chaos mesh on the
+cluster
 
 ```
 curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash

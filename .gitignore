@@ -34,4 +34,4 @@
 /tmp-worker/
 /web/node_modules/
 /web/build/
-/k8s/playground/
+/deployment/k8s/playground/

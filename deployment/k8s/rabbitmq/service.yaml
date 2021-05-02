@@ -1,0 +1,49 @@
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: rabbitmq-external
+#  namespace: gosty
+#spec:
+#  type: NodePort
+#  selector:
+#    app.kubernetes.io/instance: rabbit
+#    app.kubernetes.io/name: rabbitmq
+#  ports:
+#    - port: 15672
+#      name: rabbitmq-web
+#      targetPort: 15672
+#      nodePort: 30672
+#    - port: 5672
+#      name: rabbitmq-amqp
+#      targetPort: 5672
+#      nodePort: 31672
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: rabbit-rabbitmq
+  namespace: gosty
+spec:
+  selector:
+    name: rabbit-rabbitmq
+  ports:
+    - name: "amqp"
+      port: 5672
+      targetPort: 5672
+    - name: "web"
+      port: 15672
+      targetPort: 15672
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: rabbit-rabbitmq
+  namespace: gosty
+subsets:
+  - addresses:
+      - ip: 192.168.56.1
+    ports:
+      - port: 5672
+        name: amqp
+      - port: 15672
+        name: web

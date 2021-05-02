@@ -192,7 +192,6 @@ spec:
         checksum/secret: d1ac789266f4608b2474dd145fb984ae7657eeec364e5d7a95e9925c53bafb07
         linkerd.io/inject: enabled
     spec:
-      
       serviceAccountName: rabbit-rabbitmq
       affinity:
         nodeAffinity:
