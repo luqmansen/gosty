@@ -1,18 +1,24 @@
 import time
+from datetime import datetime
 import argparse
 import requests
 import json
 
-def uptime_check(url_test: str, delay: int, run_min: int):
+def uptime_check(url_test: str, delay: int, run_min: int, file):
     ret = []
     t_end = time.time() + 60 * run_min
     cnt = 0
     while time.time() < t_end:
         x = requests.get(url_test)
-        ret.append({"time": time.time(), "status": x.status_code})
+        ret.append({"time": str(datetime.now()), "status": x.status_code})
         time.sleep(delay)
-        cnt += 1
-        if cnt == 100:
+
+        file.seek(0)
+        file.truncate(0)
+        json.dump(ret, file)
+
+        cnt += delay
+        if int(cnt) == 1:
             print("*", end="", flush=True)
             cnt = 0
 
@@ -26,9 +32,9 @@ def main():
     parser.add_argument('--min', help="how many minute to run", type=float, required=True)
 
     args = parser.parse_args()
-    ret = uptime_check(args.url, args.delay, args.min)
-    with open('result.json', 'w') as fout:
-        json.dump(ret, fout)
+    with open(f'{datetime.now()}.json', 'w') as fout:
+        uptime_check(args.url, args.delay, args.min, fout)
+
 
 
 if __name__ == '__main__':
