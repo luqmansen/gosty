@@ -54,19 +54,19 @@ func RabbitPingCheck(connection *amqp.Connection) hc.Check {
 			return fmt.Errorf("rabbitmq channel channel empty: %s", err)
 		}
 
-		q, err := ch.QueueDeclare(
-			"HEALTH_CHECK_QUEUE",
-			false,
-			true,
-			false,
-			false,
-			nil,
-		)
+		q, err := ch.QueueDeclare("HEALTH_CHECK_QUEUE", false, true, false, false, nil)
 		if err != nil {
 			return fmt.Errorf("failed create queue: %s", err)
 		}
 
-		_, _ = ch.QueueDelete(q.Name, false, false, true)
+		_, err = ch.QueueDelete(q.Name, false, false, true)
+		if err != nil {
+			return fmt.Errorf("failed delete queue: %s", err)
+		}
+
+		if err = ch.Close(); err != nil {
+			return fmt.Errorf("failed close channel: %s", err)
+		}
 
 		return nil
 	}
