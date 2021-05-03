@@ -30,6 +30,26 @@ docker run --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 loca
 
 ## Deployment
 
+### Deploy on GKE
+
+Init cluster script
+
+```bash
+bash ./deployment/create-cluster.sh
+```
+
+#### Using Managed RabbitMQ and MongoDB
+
+Set your mongodb & rabbitmq secret on configmap (change to secret if you want, modify the manifest accordingly)
+
+Then apply linkerd & gosty component
+
+```bash
+bash ./deployment/deploy.sh
+```
+
+#### Deploy RabbitMQ and MongoDB inside Cluster
+
 RabbitMQ and MongoDB deployed using helm, make sure to install helm before
 
 ```
@@ -288,4 +308,5 @@ renewed.
 
 ## Acknowledgements
 
-Credit to [gibbok](https://github.com/gibbok) for web client, which I modify for this project use case   
+Credit to [gibbok](https://github.com/gibbok) for [video player](https://github.com/gibbok/react-video-list) web client,
+which I modify for this project use case   

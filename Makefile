@@ -32,13 +32,7 @@ docker-web-dev:
 	docker push localhost:5000/gosty-web-dev
 
 docker-web:
-	npm run build --prefix=web/
 	DOCKER_BUILDKIT=1 docker build -t luqmansen/gosty-web -f docker/web.Dockerfile .
-
-docker-web-dev:
-	npm run build --prefix=web/
-	docker build -t localhost:5000/gosty-web -f docker/web.dev.Dockerfile .
-
 
 docker-worker: cleanup worker-bin
 	#docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .

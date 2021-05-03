@@ -3,10 +3,16 @@ version: '3.7'
 
 services:
   web:
-    image: luqmansen/gosty-web
+    image: localhost:5000/gosty-web-dev
     restart: always
     ports:
       - "8082:80"
+    environment:
+      GOSTY_FILESERVER_SERVICE_HOST: 0.0.0.0
+      GOSTY_FILESERVER_SERVICE_PORT: 8001
+
+      GOSTY_APISERVER_SERVICE_HOST: 0.0.0.0
+      GOSTY_APISERVER_SERVICE_PORT: 8000
 
   apiserver:
     image: localhost:5000/gosty-apiserver

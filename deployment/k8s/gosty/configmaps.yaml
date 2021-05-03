@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gosty-config
+  namespace: gosty
+data:
+  MONGODB_USERNAME: "root"
+  MONGODB_PASSWORD: "root"
+  MONGODB_DATABASE: "gosty"
+  MONGODB_TIMEOUT: "5"
+
+  RABBITMQ_USERNAME: "username"
+  RABBITMQ_PASSWORD: "password"
+
+  FILE_MIN_SIZE_MB: "50"
