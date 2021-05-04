@@ -26,7 +26,8 @@ spec:
                 topologyKey: topology.kubernetes.io/hostname
               weight: 100
       containers:
-        - image: luqmansen/gosty-web:latest
+        - command: [ './sed.sh' ]
+          image: luqmansen/gosty-web:latest
           imagePullPolicy: Always
           name: gosty-web
           ports:
