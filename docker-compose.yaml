@@ -1,24 +1,35 @@
 version: '3.7'
 
-
 services:
   #this nginx is only for testing reverse proxy from web to other service
   nginx:
     image: nginx:1.19.6-alpine
     volumes:
-      - ./web/config/default.conf:/etc/nginx/conf.d/default.conf
+      - ./web/config/default.conf.template:/etc/nginx/templates/default.conf.template
       - ./web/config/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "6969:80"
+    environment:
+      GOSTY_APISERVER_SERVICE_HOST: apiserver
+      GOSTY_APISERVER_SERVICE_PORT: 8000
+
+      GOSTY_FILESERVER_SERVICE_HOST: fileserver
+      GOSTY_FILESERVER_SERVICE_PORT: 8001
 
   web:
     image: localhost:5000/gosty-web-dev
     restart: always
     volumes:
-      - ./web/config/default.conf:/etc/nginx/conf.d/default.conf
+      - ./web/config/default.conf.template:/etc/nginx/templates/default.conf.template
       - ./web/config/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "8082:80"
+    environment:
+      GOSTY_APISERVER_SERVICE_HOST: apiserver
+      GOSTY_APISERVER_SERVICE_PORT: 8000
+
+      GOSTY_FILESERVER_SERVICE_HOST: fileserver
+      GOSTY_FILESERVER_SERVICE_PORT: 8001
 
   apiserver:
     image: localhost:5000/gosty-apiserver
@@ -101,8 +112,20 @@ services:
       - "5672:5672"
       - "15672:15672"
 
+  # This container doesn't related to application,
+  # but very handy on development
+  registry:
+    container_name: gosty-registry
+    restart: unless-stopped
+    image: registry:2.7.1
+    ports:
+      - 5000:5000
+    volumes:
+      - gosty-registry:/var/lib/registry:rw
+
 volumes:
   rabbitmq-volume-etc:
   rabbitmq-volume-data:
   rabbitmq-volume-logs:
   mongo-volume:
+  gosty-registry:

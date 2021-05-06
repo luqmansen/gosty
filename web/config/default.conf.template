@@ -1,3 +1,11 @@
+upstream fileserver{
+     server ${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
+}
+
+upstream apiserver{
+     server ${GOSTY_APISERVER_SERVICE_HOST}:${GOSTY_APISERVER_SERVICE_PORT};
+}
+
 server {
     listen       80;
     listen  [::]:80;
@@ -10,15 +18,13 @@ server {
         try_files $uri /index.html;
     }
 
-
     location /api {
-        proxy_pass http://apiserver:8000;
-    }
+        proxy_pass http://apiserver;
+   }
 
     location /files {
-        proxy_pass http://fileserver:8001;
+        proxy_pass http://fileserver;
     }
-
 
 
     error_page   500 502 503 504  /50x.html;
