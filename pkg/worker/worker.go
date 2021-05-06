@@ -25,7 +25,7 @@ const (
 
 type Svc struct {
 	messageBroker repositories.Messenger
-	// TODO:  implement this storage repository
+	// TODO [$609358567c9cf10008f9351b]:  implement this storage repository
 	storage repositories.StorageRepository
 	worker  *models.Worker
 	config  *config.Configuration

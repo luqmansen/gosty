@@ -74,7 +74,7 @@ func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressRe
 	}
 	sort.Strings(keys)
 
-	// TODO:  create model for this return response
+	// TODO [$609358567c9cf10008f93512]:  create model for this return response
 	for _, k := range keys {
 		originVideo := tempOriginVideo[k]
 		result = append(result, &models.TaskProgressResponse{
@@ -179,7 +179,7 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 		go func(t *models.Task) {
 			defer wg.Done()
 
-			// TODO:  add retry mechanism
+			// TODO [$609358567c9cf10008f93513]:  add retry mechanism
 			err := s.taskRepo.Add(t)
 			if err != nil {
 				log.Error(err)
@@ -354,7 +354,7 @@ func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Sched
 	var sizePerVid int64
 	var sizeLeft int64
 
-	// TODO:  make the chunk file size is dynamic base on number of worker, worker failure rate, etc
+	// TODO [$609358567c9cf10008f93514]:  make the chunk file size is dynamic base on number of worker, worker failure rate, etc
 	// since lots of smaller task with same number of worker will just add overhead
 	// in processing. The pros is, in case of pod failure in the middle of a processing,
 	// the task that need to be re-processed is in smaller chunk. Currently I'll set this dynamically
@@ -367,7 +367,7 @@ func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Sched
 	minSize := int64(fileSize * 1e+6) // convert Megabyte to Byte
 	// if video size less than min file size, forward to transcode task
 	if video.Size < minSize {
-		// TODO:  make this task definition not redundant.
+		// TODO [$609358567c9cf10008f93515]:  make this task definition not redundant.
 		// Task is re-defined on CreateTranscodeTask, but
 		// this is a current workaround for preserve origin
 		// video field, later please redesign the data models
@@ -464,7 +464,7 @@ func (s schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface
 }
 
 func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) {
-	// TODO:  Refactor this repetitive message ack
+	// TODO [$609358567c9cf10008f93516]:  Refactor this repetitive message ack
 	for t := range finishedTask {
 		msg := t.(amqp.Delivery)
 		var task models.Task
