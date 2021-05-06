@@ -4,11 +4,39 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/r3labs/sse/v2"
 	"time"
 )
 
-func newRouter() *chi.Mux {
+func NewRouter(
+	schedulerHandler SchedulerHandler,
+	workerHandler WorkerHandler,
+	videoHandler VideoHandler,
+) *chi.Mux {
+	r := initRouter()
+
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/worker", func(r chi.Router) {
+			r.Get("/", workerHandler.GetWorkerInfo)
+			r.Post("/", workerHandler.Post)
+		})
+
+		r.Route("/video", func(r chi.Router) {
+			r.Get("/playlist", videoHandler.GetPlaylist)
+			r.Post("/upload", videoHandler.UploadHandler)
+		})
+
+		r.Route("/scheduler", func(r chi.Router) {
+			r.Get("/progress", schedulerHandler.GetAllTaskProgress)
+		})
+
+	})
+	return r
+}
+
+func initRouter() *chi.Mux {
 	r := chi.NewRouter()
+	//TODO: find compatible logger middleware with SSE Server
 	//r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -22,23 +50,10 @@ func newRouter() *chi.Mux {
 	return r
 }
 
-func (server *Server) AddEventStreamRoute() {
+func (server *Server) AddEventStreamRoute(s *sse.Server) {
+	server.sseServer = s
 	if server.sseServer != nil {
 		server.sseServer.EventTTL = 1 * time.Second
-		server.router.Get("/events", server.sseServer.HTTPHandler)
+		server.router.Get("/api/events", server.sseServer.HTTPHandler)
 	}
-}
-
-func (server *Server) AddWorkerRoutes(h WorkerHandler) {
-	server.router.Get("/worker", h.GetWorkerInfo)
-	server.router.Post("/worker", h.Post)
-}
-
-func (server *Server) AddVideoRoutes(h VideoHandler) {
-	server.router.Get("/playlist", h.GetPlaylist)
-	server.router.Post("/video/upload", h.UploadHandler)
-}
-
-func (server *Server) AddSchedulerRoutes(h SchedulerHandler) {
-	server.router.Get("/progress", h.GetAllTaskProgress)
 }

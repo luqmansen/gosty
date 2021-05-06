@@ -49,21 +49,18 @@ func main() {
 	schedulerRestHandler := api.NewSchedulerHandler(schedulerSvc)
 
 	port := util.GetEnv("PORT", "8000")
-	server := api.NewServer(port, "0.0.0.0")
-	server.AddWorkerRoutes(workerRestHandler)
-	server.AddVideoRoutes(videoRestHandler)
-	server.AddSchedulerRoutes(schedulerRestHandler)
-	server.AddEventStreamServer(sseServer)
-	server.AddEventStreamRoute()
+	router := api.NewRouter(schedulerRestHandler, workerRestHandler, videoRestHandler)
+	server := api.NewServer(port, "0.0.0.0", router)
+	server.AddEventStreamRoute(sseServer)
 
 	// for development purposes
 	r := server.GetRouter()
-	dropEverything(r, cfg)
+	dropEverythingRoute(r, cfg)
 
 	server.Serve()
 }
 
-func dropEverything(router *chi.Mux, cfg *config.Configuration) {
+func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration) {
 	router.Get("/drop", func(writer http.ResponseWriter, request *http.Request) {
 		c, _ := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
 		_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))

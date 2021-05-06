@@ -16,11 +16,9 @@ type Server struct {
 	port      string
 }
 
-func NewServer(port, host string) *Server {
-	r := newRouter()
-
+func NewServer(port, host string, router *chi.Mux) *Server {
 	return &Server{
-		router: r,
+		router: router,
 		host:   host,
 		port:   port,
 	}
@@ -28,10 +26,6 @@ func NewServer(port, host string) *Server {
 
 func (server *Server) GetRouter() *chi.Mux {
 	return server.router
-}
-
-func (server *Server) AddEventStreamServer(s *sse.Server) {
-	server.sseServer = s
 }
 
 func (server *Server) Serve() {
