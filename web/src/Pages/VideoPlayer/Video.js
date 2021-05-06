@@ -5,7 +5,7 @@ import ShakaPlayer from "shaka-player-react";
 
 
 const Video = (props) => {
-    const src = FILESERVER_HOST + "/files/" + getMpd(props.video.dash_file)
+    const src = FILESERVER_HOST + "/" + getMpd(props.video.dash_file)
 
     return <ShakaPlayer
         autoPlay={false}

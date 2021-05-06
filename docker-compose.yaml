@@ -2,17 +2,23 @@ version: '3.7'
 
 
 services:
+  #this nginx is only for testing reverse proxy from web to other service
+  nginx:
+    image: nginx:1.19.6-alpine
+    volumes:
+      - ./web/config/default.conf:/etc/nginx/conf.d/default.conf
+      - ./web/config/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "6969:80"
+
   web:
     image: localhost:5000/gosty-web-dev
     restart: always
+    volumes:
+      - ./web/config/default.conf:/etc/nginx/conf.d/default.conf
+      - ./web/config/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "8082:80"
-    environment:
-      GOSTY_FILESERVER_SERVICE_HOST: 0.0.0.0
-      GOSTY_FILESERVER_SERVICE_PORT: 8001
-
-      GOSTY_APISERVER_SERVICE_HOST: 0.0.0.0
-      GOSTY_APISERVER_SERVICE_PORT: 8000
 
   apiserver:
     image: localhost:5000/gosty-apiserver
@@ -46,16 +52,7 @@ services:
   worker:
     image: localhost:5000/gosty-worker
     restart: always
-    #    mem_limit: 4096M
-    #    cpu_quota: 4000
-    #    deploy:
-    #      resources:
-    #        limits:
-    #          cpus: '0.25'
-    #          memory: 4096M
-    #        reservations:
-    #          cpus: '0.125'
-    #          memory: 20M
+
     environment:
       RABBIT_RABBITMQ_SERVICE_HOST: rabbitmq
       RABBIT_RABBITMQ_SERVICE_PORT: 5672
@@ -73,7 +70,7 @@ services:
     ports:
       - "8001:8001"
     expose:
-      - 8081
+      - 8001
     environment:
       PORT: "8001"
 

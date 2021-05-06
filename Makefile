@@ -27,7 +27,7 @@ docker-base-worker: cleanup
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
 docker-web-dev:
-	npm run build --prefix=web/
+	yarn --cwd ./web/ build
 	docker build -t localhost:5000/gosty-web-dev -f docker/web.dev.Dockerfile .
 	docker push localhost:5000/gosty-web-dev
 
