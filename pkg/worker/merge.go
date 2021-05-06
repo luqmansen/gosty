@@ -158,7 +158,7 @@ func (s Svc) ProcessTaskMerge(task *models.Task) error {
 		}(f)
 	}
 	//Removing named pipe file
-	// TODO [$609358567c9cf10008f9351a]:  (improvement) make the pipe generic name (eg: temp1)
+	// TODO [#13]:  (improvement) make the pipe generic name (eg: temp1)
 	// and can be reused to next process, might reducing io if the
 	// created pipe file is a lot
 	log.Debug("removing pipe file")

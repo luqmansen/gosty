@@ -25,7 +25,7 @@ func main() {
 	mb := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
 	workerSvc := worker.NewWorkerService(mb, cfg)
 
-	// TODO [$609358567c9cf10008f93510]:  this initiation should be handled by storage service
+	// TODO [#3]:  this initiation should be handled by storage service
 	if _, err := os.Stat(worker.TmpPath); os.IsNotExist(err) {
 		err = os.Mkdir(worker.TmpPath, 0700)
 		if err != nil {
@@ -50,7 +50,7 @@ func main() {
 }
 
 func (wrk *svc) processNewTask(newTaskData chan interface{}) {
-	// TODO [$609358567c9cf10008f93511]:  refactor ack and publish part of this loop
+	// TODO [#4]:  refactor ack and publish part of this loop
 	for t := range newTaskData {
 		msg := t.(amqp.Delivery)
 		var task models.Task
