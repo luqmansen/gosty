@@ -11,8 +11,7 @@ class ProgressPage extends Component {
         data: []
     }
 
-    //TODO: update this stupid function to use websocket or sse
-    // instead of requesting every few ms
+    //  This page is deprecated, use V2
     async componentDidMount() {
         try {
             setInterval(async () => {

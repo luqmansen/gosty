@@ -14,7 +14,7 @@ class VideoTile extends Component {
         // passed in `props` by a parent component
         this.props.setActiveVideo(this.props.video);
     }
-    //TODO: add small thumbnail for each video
+    // TODO:  add small thumbnail for each video
     render() {
         return (
             <div className='videoTile' onClick={this.onClickVideoTile}>

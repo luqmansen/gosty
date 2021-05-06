@@ -10,7 +10,7 @@ class WorkerPage extends Component {
     }
 
 
-    //TODO: this stupid, need to apply websocket or sse
+    // TODO:  this stupid, need to apply websocket or sse
     // instead of requesting every 100ms
     async componentDidMount() {
         try {
