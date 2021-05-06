@@ -5,7 +5,7 @@ WORKDIR '/app'
 COPY web/package*.json .
 RUN npm install
 
-# TODO: Build react on runner
+# TODO [#17]: Build react on runner
 # Build react on CI runner so we improve built speed
 # by using github actions runner caching support
 COPY web/ .
