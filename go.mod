@@ -10,9 +10,11 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/uuid v1.2.0
+	github.com/gorilla/handlers v1.5.1
 	github.com/h2non/filetype v1.1.1
 	github.com/heptiolabs/healthcheck v0.0.0-20180807145615-6ff867650f40
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/modfy/fluent-ffmpeg v0.0.1

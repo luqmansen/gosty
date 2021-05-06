@@ -36,8 +36,6 @@ func NewRouter(
 
 func initRouter() *chi.Mux {
 	r := chi.NewRouter()
-	//TODO: find compatible logger middleware with SSE Server
-	//r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:     []string{"*"},

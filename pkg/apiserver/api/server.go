@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/gorilla/handlers"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -32,7 +33,9 @@ func (server *Server) Serve() {
 
 	log.Infof("apiserver running on pod %server, listening to %s:%s server",
 		os.Getenv("HOSTNAME"), server.host, server.port)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", server.host, server.port), server.router)
+
+	loggedRouter := handlers.LoggingHandler(os.Stdout, server.router)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", server.host, server.port), loggedRouter)
 	if err != nil {
 		log.Println(err.Error())
 	}
