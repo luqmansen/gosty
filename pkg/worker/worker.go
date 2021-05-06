@@ -37,6 +37,7 @@ func NewWorkerService(mb repositories.Messenger, conf *config.Configuration) Ser
 		worker: &models.Worker{
 			Id:            primitive.NewObjectID(),
 			WorkerPodName: viper.GetString("HOSTNAME"),
+			IpAddress:     viper.GetString("POD_IP"),
 			Status:        models.WorkerStatusReady,
 			UpdatedAt:     time.Now(),
 		},

@@ -20,7 +20,7 @@ func InitHealthCheck(cfg *config.Configuration, connection *amqp.Connection) {
 	health.AddReadinessCheck("rabbitmq", util2.RabbitPingCheck(connection))
 	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 30*time.Second))
 
-	port := "8002"
+	port := "8087"
 	log.Infof("healthcheck running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), health); err != nil {
 		log.Error(err)

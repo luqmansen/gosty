@@ -25,7 +25,30 @@ spec:
               podAffinityTerm:
                 topologyKey: topology.kubernetes.io/hostname
       containers:
-        - resources:
+        - name: gosty-worker
+          image: luqmansen/gosty-worker:latest
+          imagePullPolicy: Always
+
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8087
+            initialDelaySeconds: 5
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8087
+            initialDelaySeconds: 5
+            periodSeconds: 3
+
+          resources:
             requests:
               cpu: "256m"
               memory: "256Mi"
@@ -35,19 +58,4 @@ spec:
           envFrom:
             - configMapRef:
                 name: gosty-config
-          image: luqmansen/gosty-worker:latest
-          imagePullPolicy: Always
-          livenessProbe:
-            httpGet:
-              path: /live
-              port: 8002
-            initialDelaySeconds: 5
-            periodSeconds: 3
-          name: gosty-worker
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 8002
-            initialDelaySeconds: 5
-            periodSeconds: 3
 ---

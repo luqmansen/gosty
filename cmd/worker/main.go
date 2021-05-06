@@ -33,7 +33,13 @@ func main() {
 		}
 	}
 
-	log.Infof("Worker %s started", workerSvc.GetWorkerInfo().WorkerPodName)
+	//Registering worker to API Server
+	if w := workerSvc.GetWorkerInfo(); w != nil {
+		log.Infof("Worker %s started, Ip: %s", w.WorkerPodName, w.IpAddress)
+		if err := workerSvc.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
+			log.Error(err)
+		}
+	}
 
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
@@ -41,7 +47,6 @@ func main() {
 
 	w := svc{workerSvc}
 	go w.processNewTask(newTaskData)
-	go w.workerStatusNotifier()
 
 	go worker.InitHealthCheck(cfg, rabbitClient)
 	log.Printf("Worker running. To exit press CTRL+C")
@@ -172,23 +177,5 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 
 	if err := wrk.GetMessageBroker().Publish(w, services.WorkerAssigned); err != nil {
 		log.Error(err)
-	}
-}
-
-// Notify availability of worker every 3 second to message broker
-// ApiServer will consume the message and update the worker status
-func (wrk *svc) workerStatusNotifier() {
-	w := wrk.GetWorkerInfo()
-
-	//this part will only executed at worker boot initiation
-	if err := wrk.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
-		log.Error(err)
-	}
-	for {
-		w.UpdatedAt = time.Now()
-		if err := wrk.GetMessageBroker().Publish(w, services.WorkerStatus); err != nil {
-			log.Error(err)
-		}
-		time.Sleep(3 * time.Second)
 	}
 }
