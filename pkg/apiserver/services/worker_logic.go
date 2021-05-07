@@ -69,7 +69,7 @@ func (wrk workerServices) workerWatcher() {
 	var wg sync.WaitGroup
 	var workerRetryAttempt sync.Map
 	for {
-		// TODO [$6094b2d54e87c600092fa68f]: cache worker.GetAll() function
+		// TODO [#18]: cache worker.GetAll() function
 		// Cache get all worker function and expire the cache
 		// when new worker registered
 		workerList, _ := wrk.GetAll()
@@ -80,7 +80,7 @@ func (wrk workerServices) workerWatcher() {
 				retry, _ := workerRetryAttempt.LoadOrStore(w.WorkerPodName, 0)
 
 				if retry.(int) > 5 {
-					// TODO [$6094b2d54e87c600092fa690]: Also remove worker from db if retry failed > 5
+					// TODO [#19]: Also remove worker from db if retry failed > 5
 					w.Status = models.WorkerStatusTerminated
 					w.WorkingOn = ""
 					if err := wrk.workerRepo.Upsert(w); err != nil {
