@@ -69,18 +69,18 @@ func (wrk workerServices) workerWatcher() {
 	var wg sync.WaitGroup
 	var workerRetryAttempt sync.Map
 	for {
-		// Todo: cache worker.GetAll() function
+		// TODO: cache worker.GetAll() function
 		// Cache get all worker function and expire the cache
 		// when new worker registered
 		workerList, _ := wrk.GetAll()
 		for _, worker := range workerList {
 			wg.Add(1)
-			func(w *models.Worker) {
+			go func(w *models.Worker) {
 				defer wg.Done()
 				retry, _ := workerRetryAttempt.LoadOrStore(w.WorkerPodName, 0)
 
 				if retry.(int) > 5 {
-					//TODO: Also remove worker from db if retry failed > 5
+					// TODO: Also remove worker from db if retry failed > 5
 					w.Status = models.WorkerStatusTerminated
 					w.WorkingOn = ""
 					if err := wrk.workerRepo.Upsert(w); err != nil {
