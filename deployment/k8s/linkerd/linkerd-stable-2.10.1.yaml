@@ -1,0 +1,2328 @@
+---
+###
+### Linkerd Namespace
+###
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: linkerd
+  annotations:
+    linkerd.io/inject: disabled
+  labels:
+    linkerd.io/is-control-plane: "true"
+    config.linkerd.io/admission-webhooks: disabled
+    linkerd.io/control-plane-ns: linkerd
+---
+###
+### Identity Controller Service RBAC
+###
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-identity
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "authentication.k8s.io" ]
+    resources: [ "tokenreviews" ]
+    verbs: [ "create" ]
+  - apiGroups: [ "apps" ]
+    resources: [ "deployments" ]
+    verbs: [ "get" ]
+  - apiGroups: [ "" ]
+    resources: [ "events" ]
+    verbs: [ "create", "patch" ]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-identity
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: linkerd-linkerd-identity
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-identity
+    namespace: linkerd
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: linkerd-identity
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+---
+###
+### Controller RBAC
+###
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-controller
+  labels:
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "extensions", "apps" ]
+    resources: [ "daemonsets", "deployments", "replicasets", "statefulsets" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "extensions", "batch" ]
+    resources: [ "cronjobs", "jobs" ]
+    verbs: [ "list" , "get", "watch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods", "endpoints", "services", "replicationcontrollers", "namespaces" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "linkerd.io" ]
+    resources: [ "serviceprofiles" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "split.smi-spec.io" ]
+    resources: [ "trafficsplits" ]
+    verbs: [ "list", "get", "watch" ]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-controller
+  labels:
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: linkerd-linkerd-controller
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-controller
+    namespace: linkerd
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: linkerd-controller
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+---
+###
+### Destination Controller Service
+###
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-destination
+  labels:
+    linkerd.io/control-plane-component: destination
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "apps" ]
+    resources: [ "replicasets" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "batch" ]
+    resources: [ "jobs" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods", "endpoints", "services", "nodes", "namespaces" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "linkerd.io" ]
+    resources: [ "serviceprofiles" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "split.smi-spec.io" ]
+    resources: [ "trafficsplits" ]
+    verbs: [ "list", "get", "watch" ]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-destination
+  labels:
+    linkerd.io/control-plane-component: destination
+    linkerd.io/control-plane-ns: linkerd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: linkerd-linkerd-destination
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-destination
+    namespace: linkerd
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: linkerd-destination
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: destination
+    linkerd.io/control-plane-ns: linkerd
+---
+###
+### Heartbeat RBAC
+###
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: linkerd-heartbeat
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get" ]
+    resourceNames: [ "linkerd-config" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: linkerd-heartbeat
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+roleRef:
+  kind: Role
+  name: linkerd-heartbeat
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-heartbeat
+    namespace: linkerd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: linkerd-heartbeat
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "namespaces" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "linkerd.io" ]
+    resources: [ "serviceprofiles" ]
+    verbs: [ "list" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: linkerd-heartbeat
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+roleRef:
+  kind: ClusterRole
+  name: linkerd-heartbeat
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-heartbeat
+    namespace: linkerd
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: linkerd-heartbeat
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: heartbeat
+    linkerd.io/control-plane-ns: linkerd
+---
+###
+### Service Profile CRD
+###
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: serviceprofiles.linkerd.io
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+spec:
+  group: linkerd.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              description: Spec is the custom resource spec
+              required:
+                - routes
+              properties:
+                dstOverrides:
+                  type: array
+                  required:
+                    - authority
+                    - weight
+                  items:
+                    type: object
+                    description: WeightedDst is a weighted alternate destination.
+                    properties:
+                      authority:
+                        type: string
+                      weight:
+                        x-kubernetes-int-or-string: true
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                opaquePorts:
+                  type: array
+                  items:
+                    type: string
+                retryBudget:
+                  type: object
+                  required:
+                    - minRetriesPerSecond
+                    - retryRatio
+                    - ttl
+                  description: RetryBudget describes the maximum number of retries that should be issued to this service.
+                  properties:
+                    minRetriesPerSecond:
+                      format: int32
+                      type: integer
+                    retryRatio:
+                      type: number
+                      format: float
+                    ttl:
+                      type: string
+                routes:
+                  type: array
+                  items:
+                    type: object
+                    description: RouteSpec specifies a Route resource.
+                    required:
+                      - condition
+                      - name
+                    properties:
+                      condition:
+                        type: object
+                        description: RequestMatch describes the conditions under which to match a Route.
+                        properties:
+                          pathRegex:
+                            type: string
+                          method:
+                            type: string
+                          all:
+                            type: array
+                            items:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                          any:
+                            type: array
+                            items:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                          not:
+                            type: array
+                            items:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                      isRetryable:
+                        type: boolean
+                      name:
+                        type: string
+                      timeout:
+                        type: string
+                      responseClasses:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - condition
+                          description: ResponseClass describes how to classify a response (e.g. success or failures).
+                          properties:
+                            condition:
+                              type: object
+                              description: ResponseMatch describes the conditions under
+                                which to classify a response.
+                              properties:
+                                all:
+                                  type: array
+                                  items:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                any:
+                                  type: array
+                                  items:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                not:
+                                  type: array
+                                  items:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                status:
+                                  type: object
+                                  description: Range describes a range of integers (e.g. status codes).
+                                  properties:
+                                    max:
+                                      format: int32
+                                      type: integer
+                                    min:
+                                      format: int32
+                                      type: integer
+                            isFailure:
+                              type: boolean
+    - name: v1alpha2
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              description: Spec is the custom resource spec
+              required:
+                - routes
+              properties:
+                dstOverrides:
+                  type: array
+                  required:
+                    - authority
+                    - weight
+                  items:
+                    type: object
+                    description: WeightedDst is a weighted alternate destination.
+                    properties:
+                      authority:
+                        type: string
+                      weight:
+                        x-kubernetes-int-or-string: true
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                opaquePorts:
+                  type: array
+                  items:
+                    type: string
+                retryBudget:
+                  type: object
+                  required:
+                    - minRetriesPerSecond
+                    - retryRatio
+                    - ttl
+                  description: RetryBudget describes the maximum number of retries that should be issued to this service.
+                  properties:
+                    minRetriesPerSecond:
+                      format: int32
+                      type: integer
+                    retryRatio:
+                      type: number
+                      format: float
+                    ttl:
+                      type: string
+                routes:
+                  type: array
+                  items:
+                    type: object
+                    description: RouteSpec specifies a Route resource.
+                    required:
+                      - condition
+                      - name
+                    properties:
+                      condition:
+                        type: object
+                        description: RequestMatch describes the conditions under which to match a Route.
+                        properties:
+                          pathRegex:
+                            type: string
+                          method:
+                            type: string
+                          all:
+                            type: array
+                            items:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                          any:
+                            type: array
+                            items:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                          not:
+                            type: array
+                            items:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                      isRetryable:
+                        type: boolean
+                      name:
+                        type: string
+                      timeout:
+                        type: string
+                      responseClasses:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - condition
+                          description: ResponseClass describes how to classify a response (e.g. success or failures).
+                          properties:
+                            condition:
+                              type: object
+                              description: ResponseMatch describes the conditions under
+                                which to classify a response.
+                              properties:
+                                all:
+                                  type: array
+                                  items:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                any:
+                                  type: array
+                                  items:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                not:
+                                  type: array
+                                  items:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                status:
+                                  type: object
+                                  description: Range describes a range of integers (e.g. status codes).
+                                  properties:
+                                    max:
+                                      format: int32
+                                      type: integer
+                                    min:
+                                      format: int32
+                                      type: integer
+                            isFailure:
+                              type: boolean
+  scope: Namespaced
+  preserveUnknownFields: false
+  names:
+    plural: serviceprofiles
+    singular: serviceprofile
+    kind: ServiceProfile
+    shortNames:
+      - sp
+---
+###
+### TrafficSplit CRD
+### Copied from github.com/servicemeshinterface/smi-sdk-go/blob/d4e76b1cd7a33ead5f38d1262dd838a31c80f4e5/crds/split.yaml
+###
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: trafficsplits.split.smi-spec.io
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+spec:
+  group: split.smi-spec.io
+  scope: Namespaced
+  conversion:
+    strategy: None
+  names:
+    kind: TrafficSplit
+    listKind: TrafficSplitList
+    shortNames:
+      - ts
+    plural: trafficsplits
+    singular: trafficsplit
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - service
+                - backends
+              properties:
+                service:
+                  description: The apex service of this split.
+                  type: string
+                backends:
+                  description: The backend services of this split.
+                  type: array
+                  items:
+                    type: object
+                    required: [ 'service', 'weight' ]
+                    properties:
+                      service:
+                        description: Name of the Kubernetes service.
+                        type: string
+                      weight:
+                        description: Traffic weight value of this backend.
+                        x-kubernetes-int-or-string: true
+      additionalPrinterColumns:
+        - name: Service
+          type: string
+          description: The apex service of this split.
+          jsonPath: .spec.service
+    - name: v1alpha2
+      served: true
+      storage: false
+      additionalPrinterColumns:
+        - name: Service
+          type: string
+          description: The apex service of this split.
+          jsonPath: .spec.service
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - service
+                - backends
+              properties:
+                service:
+                  description: The apex service of this split.
+                  type: string
+                backends:
+                  description: The backend services of this split.
+                  type: array
+                  items:
+                    type: object
+                    required: [ 'service', 'weight' ]
+                    properties:
+                      service:
+                        description: Name of the Kubernetes service.
+                        type: string
+                      weight:
+                        description: Traffic weight value of this backend.
+                        type: number
+  preserveUnknownFields: false
+---
+###
+### Proxy Injector RBAC
+###
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-proxy-injector
+  labels:
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "events" ]
+    verbs: [ "create", "patch" ]
+  - apiGroups: [ "" ]
+    resources: [ "namespaces", "replicationcontrollers" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "list", "watch" ]
+  - apiGroups: [ "extensions", "apps" ]
+    resources: [ "deployments", "replicasets", "daemonsets", "statefulsets" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "extensions", "batch" ]
+    resources: [ "cronjobs", "jobs" ]
+    verbs: [ "list", "get", "watch" ]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-proxy-injector
+  labels:
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-proxy-injector
+    namespace: linkerd
+    apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: linkerd-linkerd-proxy-injector
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: linkerd-proxy-injector
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: linkerd-proxy-injector-k8s-tls
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURVekNDQWp1Z0F3SUJBZ0lSQUxFRUNmQmRUd0tCR2FlNnZvRWd3T1F3RFFZSktvWklodmNOQVFFTEJRQXcKTFRFck1Da0dBMVVFQXhNaWJHbHVhMlZ5WkMxd2NtOTRlUzFwYm1wbFkzUnZjaTVzYVc1clpYSmtMbk4yWXpBZQpGdzB5TVRBMU1EZ3hOVE0yTXpKYUZ3MHlNakExTURneE5UTTJNekphTUMweEt6QXBCZ05WQkFNVElteHBibXRsCmNtUXRjSEp2ZUhrdGFXNXFaV04wYjNJdWJHbHVhMlZ5WkM1emRtTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUEKQTRJQkR3QXdnZ0VLQW9JQkFRQ2p3U1RHTUIveEsxRlJkMmdFZ0JnZVhMYlY2bHhTVlZXcU0zOVU4Z2hiS3J0NgppNENDa1I5aU5henJBdDFHU0R6RHNiQ0hqaTQwUjFzVjZRbXQzRFBhRWs1c0VqRFA5NXFFOENBbFVvYlVkeDYwCmZGdTl2M1JLSFBVV2NKQmdNeWlaVnhmRlZRWGFXbkpteHMvdzc5bXpzeDMwZUZVL2ltT2JOd2k2cFRqV1lVZ3UKdGJINFJHTExmRVEwZHVmMmVrTlQ2UDJwK0lqd05IZHJHU252MmtyYmViRUtrTHZGZnBqdVgwRisvbW53Z2RzKwpHdlM3bFBEb2tvSmRLV2FDeGRKRTN4MVc0bGx2ZmI5RFN0UW1Jcnc1dDdHUVpJUmtIbzNraDh0eXN6cVJEZWxECnNCN3p5bGhSemVTN1N6Mm0zUzhiY2I5V3Y3a09IR0lnSDZSSHdRZnBBZ01CQUFHamJqQnNNQTRHQTFVZER3RUIKL3dRRUF3SUZvREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0RBWURWUjBUQVFILwpCQUl3QURBdEJnTlZIUkVFSmpBa2dpSnNhVzVyWlhKa0xYQnliM2g1TFdsdWFtVmpkRzl5TG14cGJtdGxjbVF1CmMzWmpNQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUUFEYjkxUEs3Tlc4UUM0QnhIVGlhTURkRy9IVmQvU1g2UXoKS0l2dTFPN1VlYWJvKzlSTFJKcWVrZmxMN3lNcHpRMTh4RlZacHNtZS9vZEpqVWxuOXNVeDhUTm4wY0s4Nk1jaAoxZDNCZEc1YU5nUjd5N0ZldFF2MUcyZ3VQTjRCVUlmZitCa29WNWtjVTBBMkhMQTRRNjYybWhoVkc5cFZTaFptClVJSEoxT0paaVFtTnF1UXBiOHFQVVJTRmpHSzRSTE12VmR6YzFzZzBWQ1JMcG9MdXlwU2JUeEhjejE2bnVwZDEKaXlNVXdCQW53Nkt2TWYxOFVsNFFyYTBLeEJKZlFYeWVReVFvem9laWhNbWpXKzRxWTBsdGplZWY5dnM4a2dLUwpZVjJRZHJVUmg0SXhkNERPNTNiZ1Z4dXRPdlN3MkYxbDJCa21HT1BUOXNmTHlnTTN2MTU0Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0=
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBbzhFa3hqQWY4U3RSVVhkb0JJQVlIbHkyMWVwY1VsVlZxak4vVlBJSVd5cTdlb3VBCmdwRWZZaldzNndMZFJrZzh3N0d3aDQ0dU5FZGJGZWtKcmR3ejJoSk9iQkl3ei9lYWhQQWdKVktHMUhjZXRIeGIKdmI5MFNoejFGbkNRWURNb21WY1h4VlVGMmxweVpzYlA4Ty9aczdNZDlIaFZQNHBqbXpjSXVxVTQxbUZJTHJXeAorRVJpeTN4RU5IYm45bnBEVStqOXFmaUk4RFIzYXhrcDc5cEsyM214Q3BDN3hYNlk3bDlCZnY1cDhJSGJQaHIwCnU1VHc2SktDWFNsbWdzWFNSTjhkVnVKWmIzMi9RMHJVSmlLOE9iZXhrR1NFWkI2TjVJZkxjck02a1EzcFE3QWUKODhwWVVjM2t1MHM5cHQwdkczRy9Wcis1RGh4aUlCK2tSOEVINlFJREFRQUJBb0lCQUJ0cThscFFvbmlCMVRxNwpzR25ZZkxGUXVyZzBaa0xPME9vUGQwbGt3T3RxeXpzb2NscnFLNFFKRXF2Q3JnUGZnblVOb2s0QUMxSnJoQisyCkJnM2JLYjlnZzBycS9NdEZYTlRYVTdxTUI5RTVKS1g1a0c3RHlKZkVJM0VmWmIwRnM4MkEzSlVJdUZNb0E3R2IKcGlOa05XSTJJbFRWZFFpUGhqL3R4Z05pT0pNRU1EYXpvUnJpVFFwM1p5ak45MTdIY3lmQ1BoeVh2RWFWQ3RMWApaQ2d5dGZWVnBsYzVPWCt1d0h4T1grcHFJcEtvTmIyMFU2RWpZNWlFZ3VNMEowemFGTlQwWmFkY3J0K3MrTHB5CnpiVUlVbEx5dGhsZk1kenkyRHlWQTNTTnE1Q0FCbEVkd1IwSkpqTGhZYTc1U1VHZUtpc2luZVdwWUF0dFUzR0kKbG9HQXpvRUNnWUVBeHJUSWRSSVBnMFZYYmw4MzJweGNrZituWkR1TjdIRFozSVBlQUlDS1ZMVzc0dCsxT2s0SgprRVJVK2hJMUtwVTN2cW5taHpKR2tKRUhCNXV3REJmelN2eVRYbU4yblBRckl5cUVGdGdYVXlmb0l3cWhaM0xJCnN0STFLa0pkY1lGZGF4bG5FdFhTdWFvQVEwYjFMb2hlbnFWY093cW9DKys5eWF5Q0QwNWtESGtDZ1lFQTB2aHkKN0ZvbHFlckhkRDBodnVBNGtnUHg5Q3Bkem1TV1JoUC9FRmRnL1I4OTB4Zk9sbDlaOTVYVzhxWVBZTE16dEo5YQozaStnRDVOaVB2ZTNIb2R3ZXRpLzlqT3Y1cWRyaEVwWEZCaWtQS1NhTFRZUFg1SGdPTHRGMGhORFZDQ2Mva1JSCjZFbCtzZWJyc0p4VEVVU0pLVDRNNkVKL1hKQ1Zva3pYSXRkMUd2RUNnWUJqRWRGNzVRUk0rNjZLdmZpWUN5dHcKTTFtZTlMNWU2eWtEODg4a3l2R3RLR3JEdzZ1VXBVSEpadmhETWY3RisxMnV0d0RUMlRJcmM5TmdiTFFLWTRxTwprWDFjS3hVQlRnK1AyZXUvZy8rbEd4bDNGeDYvK0ErdWNIWEhXdzFCd1REMWE5WGpJeTZNR1FGR2ljTkdid0ZWCjhiWVpUY2ZaSTYrcE5GUW9FM3A0YVFLQmdIMmJOSGtwMXVES2lzUFhIYjlTS2Z3dFl5RzNFN0N0VEpjZWtxNjkKQjE3TStmY3pabWs3RGdxTmFMT0JVUWlHeVJNU0NYemRxQk45OFhHQjlNRzFhNitJV3dvUGpmdnEwK1dvaVIzSwo2Z1c5RHBvNlpIN0hFRk5XbEdSVjJiRTkxWnJCUEc3clN3WktjU3J1ZDdxQkxwU2lmL2JNbUoyWTY2Mzh4OTNUCm44SlJBb0dCQU1LVFAxQVBvSzFhYmIvZmVwa3BGd1dWREUxWVFEREpwUkZsNjgxbGl2bm1nbCtBUVVZTmw1ZTgKUW9TWXF3Zmh1cGoxMVlweGxyTU00RmVVSVNVQ091b2RVUDIyaGxJRSszNjh5YU9BZE9yQmZxdlA3WFR5djVqQgpUS1VTUTJ4ZERZQVlxamE5REFGb0JSTldJdWhadlZZcVJlL290MjZkNVY0RlNISDVqR2ZaCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0t
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: linkerd-proxy-injector-webhook-config
+  labels:
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+webhooks:
+  - name: linkerd-proxy-injector.linkerd.io
+    namespaceSelector:
+      matchExpressions:
+        - key: config.linkerd.io/admission-webhooks
+          operator: NotIn
+          values:
+            - disabled
+    clientConfig:
+      service:
+        name: linkerd-proxy-injector
+        namespace: linkerd
+        path: "/"
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURVekNDQWp1Z0F3SUJBZ0lSQUxFRUNmQmRUd0tCR2FlNnZvRWd3T1F3RFFZSktvWklodmNOQVFFTEJRQXcKTFRFck1Da0dBMVVFQXhNaWJHbHVhMlZ5WkMxd2NtOTRlUzFwYm1wbFkzUnZjaTVzYVc1clpYSmtMbk4yWXpBZQpGdzB5TVRBMU1EZ3hOVE0yTXpKYUZ3MHlNakExTURneE5UTTJNekphTUMweEt6QXBCZ05WQkFNVElteHBibXRsCmNtUXRjSEp2ZUhrdGFXNXFaV04wYjNJdWJHbHVhMlZ5WkM1emRtTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUEKQTRJQkR3QXdnZ0VLQW9JQkFRQ2p3U1RHTUIveEsxRlJkMmdFZ0JnZVhMYlY2bHhTVlZXcU0zOVU4Z2hiS3J0NgppNENDa1I5aU5henJBdDFHU0R6RHNiQ0hqaTQwUjFzVjZRbXQzRFBhRWs1c0VqRFA5NXFFOENBbFVvYlVkeDYwCmZGdTl2M1JLSFBVV2NKQmdNeWlaVnhmRlZRWGFXbkpteHMvdzc5bXpzeDMwZUZVL2ltT2JOd2k2cFRqV1lVZ3UKdGJINFJHTExmRVEwZHVmMmVrTlQ2UDJwK0lqd05IZHJHU252MmtyYmViRUtrTHZGZnBqdVgwRisvbW53Z2RzKwpHdlM3bFBEb2tvSmRLV2FDeGRKRTN4MVc0bGx2ZmI5RFN0UW1Jcnc1dDdHUVpJUmtIbzNraDh0eXN6cVJEZWxECnNCN3p5bGhSemVTN1N6Mm0zUzhiY2I5V3Y3a09IR0lnSDZSSHdRZnBBZ01CQUFHamJqQnNNQTRHQTFVZER3RUIKL3dRRUF3SUZvREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0RBWURWUjBUQVFILwpCQUl3QURBdEJnTlZIUkVFSmpBa2dpSnNhVzVyWlhKa0xYQnliM2g1TFdsdWFtVmpkRzl5TG14cGJtdGxjbVF1CmMzWmpNQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUUFEYjkxUEs3Tlc4UUM0QnhIVGlhTURkRy9IVmQvU1g2UXoKS0l2dTFPN1VlYWJvKzlSTFJKcWVrZmxMN3lNcHpRMTh4RlZacHNtZS9vZEpqVWxuOXNVeDhUTm4wY0s4Nk1jaAoxZDNCZEc1YU5nUjd5N0ZldFF2MUcyZ3VQTjRCVUlmZitCa29WNWtjVTBBMkhMQTRRNjYybWhoVkc5cFZTaFptClVJSEoxT0paaVFtTnF1UXBiOHFQVVJTRmpHSzRSTE12VmR6YzFzZzBWQ1JMcG9MdXlwU2JUeEhjejE2bnVwZDEKaXlNVXdCQW53Nkt2TWYxOFVsNFFyYTBLeEJKZlFYeWVReVFvem9laWhNbWpXKzRxWTBsdGplZWY5dnM4a2dLUwpZVjJRZHJVUmg0SXhkNERPNTNiZ1Z4dXRPdlN3MkYxbDJCa21HT1BUOXNmTHlnTTN2MTU0Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0=
+    failurePolicy: Ignore
+    admissionReviewVersions: [ "v1", "v1beta1" ]
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [ "" ]
+        apiVersions: [ "v1" ]
+        resources: [ "pods", "services" ]
+    sideEffects: None
+---
+###
+### Service Profile Validator RBAC
+###
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-sp-validator
+  labels:
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "list" ]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-linkerd-sp-validator
+  labels:
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-sp-validator
+    namespace: linkerd
+    apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: linkerd-linkerd-sp-validator
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: linkerd-sp-validator
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: linkerd-sp-validator-k8s-tls
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURURENDQWpTZ0F3SUJBZ0lRS3EwNFYzZkwxUTBpSzFCSHE5QXc5akFOQmdrcWhraUc5dzBCQVFzRkFEQXIKTVNrd0p3WURWUVFERXlCc2FXNXJaWEprTFhOd0xYWmhiR2xrWVhSdmNpNXNhVzVyWlhKa0xuTjJZekFlRncweQpNVEExTURneE5UTTJNekphRncweU1qQTFNRGd4TlRNMk16SmFNQ3N4S1RBbkJnTlZCQU1USUd4cGJtdGxjbVF0CmMzQXRkbUZzYVdSaGRHOXlMbXhwYm10bGNtUXVjM1pqTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEEKTUlJQkNnS0NBUUVBMU1XMTd2VzM2Tlp1YTczelFjdjhidWtnMThtWWFFUVR1NkN6ZmJWMzJtdk9ZN2hxdkVJRwpCeForeC8zelhncGdMZ1VSLy83dm1mUXlLRW5qdTdSRDZnYk5VSkxGZlZpTDlsTG1EUWlLUk5GazY3OWpidU1PCm5FU0tadG9JR3JjODdGTUQ3Wm9Dckd4T1psUFE4aCt5TXNQOXE5b1N3VjJWNTlJYURIQmlpZlFnUzRiVU95YjEKRVRKNkU1T0ZRcEkwYnE5RnRReDlIK2FVUnV2TkVwVXJ6Q3hUNDhGMml3dkwyeEc1Vit5cWZiSHJBbnZxUFhDbQpaSGU2dUw1UkNCeS9aNlBudVhWUnRsZWFSNUlrM0VKcTZaTmtmVUJieGdmVmEyTEU0K0p3MS9GQzR5UEVYUVFBCkorNjdnd2xvNUpPYXBFd2tkaVdQU1hjWUNkZ3o5RnpNendJREFRQUJvMnd3YWpBT0JnTlZIUThCQWY4RUJBTUMKQmFBd0hRWURWUjBsQkJZd0ZBWUlLd1lCQlFVSEF3RUdDQ3NHQVFVRkJ3TUNNQXdHQTFVZEV3RUIvd1FDTUFBdwpLd1lEVlIwUkJDUXdJb0lnYkdsdWEyVnlaQzF6Y0MxMllXeHBaR0YwYjNJdWJHbHVhMlZ5WkM1emRtTXdEUVlKCktvWklodmNOQVFFTEJRQURnZ0VCQUNCY3Btb3pRNW1RQTJKMUdIQ0VIN0xoYXpOb05UVWJHdnJVRUxmZFBhOUwKbC9rWWJQZEwwNHczdVFYWmM5cm8zVVlsQVBvV1dMYThkbyszOFMyWis2NHk5emZQby9zZlJYcXdFTE1CVVhDMQpBa0dCN3ZsS3locUVMa01iS0MyNnpxVDh3QTRiMHdPbmNMWk5tc1lTM1FFa3pUUHhVc0xRNXN3SWdqVWRUdnkyCnFyMk12cGVlcUc0UWpmOGR5cWcwK2xGMnpNQzE5RWlNS2p3clk4SFdxYjdlbHEzYURPOE1YeTNDQnkyaURHdnYKQUY3K2JsUDNlemhNcTNKNnJzQTY4bUdFUU85TU00Tk5PcXZmRGNhM3VMd1MweDdVcUxLOXlrZVhmbzNGVnNWUApGOStMOTRIWFRLRjBsSDFOemtEOUkyVmt4SDhtOVNEeXkwUVFKZGZReStrPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBMU1XMTd2VzM2Tlp1YTczelFjdjhidWtnMThtWWFFUVR1NkN6ZmJWMzJtdk9ZN2hxCnZFSUdCeForeC8zelhncGdMZ1VSLy83dm1mUXlLRW5qdTdSRDZnYk5VSkxGZlZpTDlsTG1EUWlLUk5GazY3OWoKYnVNT25FU0tadG9JR3JjODdGTUQ3Wm9Dckd4T1psUFE4aCt5TXNQOXE5b1N3VjJWNTlJYURIQmlpZlFnUzRiVQpPeWIxRVRKNkU1T0ZRcEkwYnE5RnRReDlIK2FVUnV2TkVwVXJ6Q3hUNDhGMml3dkwyeEc1Vit5cWZiSHJBbnZxClBYQ21aSGU2dUw1UkNCeS9aNlBudVhWUnRsZWFSNUlrM0VKcTZaTmtmVUJieGdmVmEyTEU0K0p3MS9GQzR5UEUKWFFRQUorNjdnd2xvNUpPYXBFd2tkaVdQU1hjWUNkZ3o5RnpNendJREFRQUJBb0lCQVFESlJxNndlcW1iRFI0dgp0ZVRrSFQrUys5NGh3NGIxTzFFZmNRbmFwVXZYeDV2YUlaNTJzRTViYmlCSXVDYjhrdndoREpMV2hDZk1qNERUCk0vTEdvZVNOQWhvL1dsaVFGcTl3T1VOK21OR1VBREZrQWd6aDNORDVhcTB5VnBiTUR3TUczQkVmTjAzSUpqeVQKK0QzMGpaOVkvcVo5WnpITzBlVDVBM3U0d0tlMnJ3dEtkMnp3NlY3T1ZXSWdqMEJmaVIxa2VUNVV1R1pFTTRFaAphL3pEODIvaWs5ZHFzdGZ6NzYyT05XVUw4MEpXd2MwTG5PSkdzNktuclhkMCtZYnkzM2Y2ZG5jdzF2d1Y0eVVCCllYejVxaEhFeWFIZ3YzWEZob2JyQ2R3Yk1rUERhRWRmcC9lanZtb1IvemROdFVaVG4rdzdzNzVJdXN0bXdQVXUKOXNkNWJMR0JBb0dCQU5xTzF4YVRQN0x6ZXRIQ0VZOStEWDlySTNzTXF1aUpxaE1zY1VaMW5iVGtRYW9EV2pjTwpLVWlSbkYxZXB6WURFSVQ5eDBmemhXK1VDcXV2cVA3VERCK2FYUzc5N3cvRzdFaklaZEluSHNYeVMydVBqWGVqCnRYblE5Q2dhN0U4U0lMZ0VoMWhEVERaa2tWYXBZYnVjM2IwV0pXMzUwQS96R0NxTXJGTURTb1Z4QW9HQkFQazUKSWVDSjduNTBZZUc5bTJTRlBDQnZaSGdZd0wxN0g5TXdxQloyTHZhQ2EyeGptMGhoRGd2RytoZ3l0NE5tK1hQVwpZaWZocTcvY004ZmFVYXplVnZXTkdNd0hDRFlGMGRoYmhNdkQvZnpQSVZ4Vjd1dTJIY2dobXdmY2t2ZU1RSVIrCmhFYnI1QWU3NU12cDU5QWdzQUNmY2QvWHdJK3pGSkZLVUtzK1VsWS9Bb0dCQUliQW9SN2JKT0FadkxVTmViUkcKSE41ZDJWOXB2UXBvcm9McDJPRi9iUC8xNkFLQjFLS3pTWUxqdkV2Wkt6RmpERkZqQXZaNno5K3VvREdndVlwNwo1ektwQXlFUkVjOWhiNWVrYnhyMlljUGNFdUk3ZlJheHloZFVYT1ZKVEQrb1JxSU9zTUFicGlhM05PRUF5REJiCmxGK2NBdkhlbjRqbDhoVng3R0cyV3NFUkFvR0FZaHlqd1ltTFlpemUrOGR4RFRtR1doNkFKdWRYdVVCblh2U2cKdDNiL05meFIzZkc0aDkzdGNhVjdmMXMzODNydWFUUFVvRzZ1OW5EeDBaT1k0NzBEN3RjRkZBMFFwblBVRUtDMgp2cUVCdEN5MnJXc0hDN1ErTlRORm5PcXcwTk5kOHNyN3VBL1ZUVllpMUVQWkJvNVh1MmNKcFYyQ2FRL080UU9vCmprR1NtSEVDZ1lCYm16L0QvSEttbk5GSWtvRDZRdERieThzQUdQMVdlMThmcWpLSDNuZThlS0Z4T3hRQUtDcFEKMGdaRnVUNW54Q0liRlNBVmQwUEpLZ3BWT2hWckZhTjRzemVjTUNQTzNPVUw3T1dieStJMDd2SnFzNXVxNEpVYwpWU2J5Y2MzOGozbmNpREx1SzJ6dHR1dHdMbEVRZ1BZM3ZLZWxJOUUrUGtPK0VSQ3V5bTc4WFE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQ==
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: linkerd-sp-validator-webhook-config
+  labels:
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+webhooks:
+  - name: linkerd-sp-validator.linkerd.io
+    namespaceSelector:
+      matchExpressions:
+        - key: config.linkerd.io/admission-webhooks
+          operator: NotIn
+          values:
+            - disabled
+    clientConfig:
+      service:
+        name: linkerd-sp-validator
+        namespace: linkerd
+        path: "/"
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURURENDQWpTZ0F3SUJBZ0lRS3EwNFYzZkwxUTBpSzFCSHE5QXc5akFOQmdrcWhraUc5dzBCQVFzRkFEQXIKTVNrd0p3WURWUVFERXlCc2FXNXJaWEprTFhOd0xYWmhiR2xrWVhSdmNpNXNhVzVyWlhKa0xuTjJZekFlRncweQpNVEExTURneE5UTTJNekphRncweU1qQTFNRGd4TlRNMk16SmFNQ3N4S1RBbkJnTlZCQU1USUd4cGJtdGxjbVF0CmMzQXRkbUZzYVdSaGRHOXlMbXhwYm10bGNtUXVjM1pqTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEEKTUlJQkNnS0NBUUVBMU1XMTd2VzM2Tlp1YTczelFjdjhidWtnMThtWWFFUVR1NkN6ZmJWMzJtdk9ZN2hxdkVJRwpCeForeC8zelhncGdMZ1VSLy83dm1mUXlLRW5qdTdSRDZnYk5VSkxGZlZpTDlsTG1EUWlLUk5GazY3OWpidU1PCm5FU0tadG9JR3JjODdGTUQ3Wm9Dckd4T1psUFE4aCt5TXNQOXE5b1N3VjJWNTlJYURIQmlpZlFnUzRiVU95YjEKRVRKNkU1T0ZRcEkwYnE5RnRReDlIK2FVUnV2TkVwVXJ6Q3hUNDhGMml3dkwyeEc1Vit5cWZiSHJBbnZxUFhDbQpaSGU2dUw1UkNCeS9aNlBudVhWUnRsZWFSNUlrM0VKcTZaTmtmVUJieGdmVmEyTEU0K0p3MS9GQzR5UEVYUVFBCkorNjdnd2xvNUpPYXBFd2tkaVdQU1hjWUNkZ3o5RnpNendJREFRQUJvMnd3YWpBT0JnTlZIUThCQWY4RUJBTUMKQmFBd0hRWURWUjBsQkJZd0ZBWUlLd1lCQlFVSEF3RUdDQ3NHQVFVRkJ3TUNNQXdHQTFVZEV3RUIvd1FDTUFBdwpLd1lEVlIwUkJDUXdJb0lnYkdsdWEyVnlaQzF6Y0MxMllXeHBaR0YwYjNJdWJHbHVhMlZ5WkM1emRtTXdEUVlKCktvWklodmNOQVFFTEJRQURnZ0VCQUNCY3Btb3pRNW1RQTJKMUdIQ0VIN0xoYXpOb05UVWJHdnJVRUxmZFBhOUwKbC9rWWJQZEwwNHczdVFYWmM5cm8zVVlsQVBvV1dMYThkbyszOFMyWis2NHk5emZQby9zZlJYcXdFTE1CVVhDMQpBa0dCN3ZsS3locUVMa01iS0MyNnpxVDh3QTRiMHdPbmNMWk5tc1lTM1FFa3pUUHhVc0xRNXN3SWdqVWRUdnkyCnFyMk12cGVlcUc0UWpmOGR5cWcwK2xGMnpNQzE5RWlNS2p3clk4SFdxYjdlbHEzYURPOE1YeTNDQnkyaURHdnYKQUY3K2JsUDNlemhNcTNKNnJzQTY4bUdFUU85TU00Tk5PcXZmRGNhM3VMd1MweDdVcUxLOXlrZVhmbzNGVnNWUApGOStMOTRIWFRLRjBsSDFOemtEOUkyVmt4SDhtOVNEeXkwUVFKZGZReStrPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+    failurePolicy: Ignore
+    admissionReviewVersions: [ "v1", "v1beta1" ]
+    rules:
+      - operations: [ "CREATE" , "UPDATE" ]
+        apiGroups: [ "linkerd.io" ]
+        apiVersions: [ "v1alpha1", "v1alpha2" ]
+        resources: [ "serviceprofiles" ]
+    sideEffects: None
+---
+###
+### Control Plane PSP
+###
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: linkerd-linkerd-control-plane
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+spec:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  allowedCapabilities:
+    - NET_ADMIN
+    - NET_RAW
+  requiredDropCapabilities:
+    - ALL
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  seLinux:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  volumes:
+    - configMap
+    - emptyDir
+    - secret
+    - projected
+    - downwardAPI
+    - persistentVolumeClaim
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: linkerd-psp
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+rules:
+  - apiGroups: [ 'policy', 'extensions' ]
+    resources: [ 'podsecuritypolicies' ]
+    verbs: [ 'use' ]
+    resourceNames:
+      - linkerd-linkerd-control-plane
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: linkerd-psp
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+roleRef:
+  kind: Role
+  name: linkerd-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: linkerd-controller
+    namespace: linkerd
+  - kind: ServiceAccount
+    name: linkerd-destination
+    namespace: linkerd
+  - kind: ServiceAccount
+    name: linkerd-heartbeat
+    namespace: linkerd
+  - kind: ServiceAccount
+    name: linkerd-identity
+    namespace: linkerd
+  - kind: ServiceAccount
+    name: linkerd-proxy-injector
+    namespace: linkerd
+  - kind: ServiceAccount
+    name: linkerd-sp-validator
+    namespace: linkerd
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: linkerd-config
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+data:
+  values: |
+    cliVersion: linkerd/cli stable-2.10.1
+    clusterDomain: cluster.local
+    clusterNetworks: 10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16
+    cniEnabled: false
+    controlPlaneTracing: false
+    controlPlaneTracingNamespace: linkerd-jaeger
+    controllerImage: cr.l5d.io/linkerd/controller
+    controllerImageVersion: stable-2.10.1
+    controllerLogFormat: plain
+    controllerLogLevel: info
+    controllerReplicas: 1
+    controllerUID: 2103
+    debugContainer:
+      image:
+        name: cr.l5d.io/linkerd/debug
+        pullPolicy: ""
+        version: stable-2.10.1
+    destinationProxyResources: null
+    destinationResources: null
+    disableHeartBeat: false
+    enableEndpointSlices: false
+    enableH2Upgrade: true
+    enablePodAntiAffinity: false
+    grafanaUrl: ""
+    heartbeatResources: null
+    heartbeatSchedule: ""
+    highAvailability: false
+    identity:
+      issuer:
+        clockSkewAllowance: 20s
+        crtExpiry: "2022-05-08T15:36:41Z"
+        issuanceLifetime: 24h0m0s
+        scheme: linkerd.io/tls
+        tls:
+          crtPEM: |
+            -----BEGIN CERTIFICATE-----
+            MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+            eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+            BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+            QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+            4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+            MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+            BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+            9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+            1MQT585MbDgYfR/d2A==
+            -----END CERTIFICATE-----
+    identityProxyResources: null
+    identityResources: null
+    identityTrustAnchorsPEM: |
+      -----BEGIN CERTIFICATE-----
+      MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+      eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+      BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+      QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+      4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+      MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+      BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+      9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+      1MQT585MbDgYfR/d2A==
+      -----END CERTIFICATE-----
+    identityTrustDomain: cluster.local
+    imagePullPolicy: IfNotPresent
+    imagePullSecrets: []
+    installNamespace: true
+    linkerdVersion: stable-2.10.1
+    namespace: linkerd
+    nodeSelector:
+      beta.kubernetes.io/os: linux
+    omitWebhookSideEffects: false
+    podAnnotations: {}
+    podLabels: {}
+    profileValidator:
+      caBundle: ""
+      crtPEM: ""
+      externalSecret: false
+      namespaceSelector:
+        matchExpressions:
+        - key: config.linkerd.io/admission-webhooks
+          operator: NotIn
+          values:
+          - disabled
+    prometheusUrl: ""
+    proxy:
+      capabilities: null
+      disableIdentity: false
+      enableExternalProfiles: false
+      image:
+        name: cr.l5d.io/linkerd/proxy
+        pullPolicy: ""
+        version: stable-2.10.1
+      inboundConnectTimeout: 100ms
+      isGateway: false
+      isIngress: false
+      logFormat: plain
+      logLevel: warn,linkerd=info
+      opaquePorts: 25,443,587,3306,5432,11211
+      outboundConnectTimeout: 1000ms
+      ports:
+        admin: 4191
+        control: 4190
+        inbound: 4143
+        outbound: 4140
+      requireIdentityOnInboundPorts: ""
+      resources:
+        cpu:
+          limit: ""
+          request: ""
+        memory:
+          limit: ""
+          request: ""
+      saMountPath: null
+      uid: 2102
+      waitBeforeExitSeconds: 0
+    proxyContainerName: linkerd-proxy
+    proxyInit:
+      capabilities: null
+      closeWaitTimeoutSecs: 0
+      ignoreInboundPorts: ""
+      ignoreOutboundPorts: ""
+      image:
+        name: cr.l5d.io/linkerd/proxy-init
+        pullPolicy: ""
+        version: v1.3.11
+      resources:
+        cpu:
+          limit: 100m
+          request: 10m
+        memory:
+          limit: 50Mi
+          request: 10Mi
+      saMountPath: null
+      xtMountPath:
+        mountPath: /run
+        name: linkerd-proxy-init-xtables-lock
+        readOnly: false
+    proxyInjector:
+      caBundle: ""
+      crtPEM: ""
+      externalSecret: false
+      namespaceSelector:
+        matchExpressions:
+        - key: config.linkerd.io/admission-webhooks
+          operator: NotIn
+          values:
+          - disabled
+    proxyInjectorProxyResources: null
+    proxyInjectorResources: null
+    publicAPIProxyResources: null
+    publicAPIResources: null
+    spValidatorProxyResources: null
+    spValidatorResources: null
+    tolerations: null
+    webhookFailurePolicy: Ignore
+---
+###
+### Identity Controller Service
+###
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: linkerd-identity-issuer
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+    linkerd.io/identity-issuer-expiry: 2022-05-08T15:36:41Z
+data:
+  crt.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJpVENDQVM2Z0F3SUJBZ0lCQVRBS0JnZ3Foa2pPUFFRREFqQWNNUm93R0FZRFZRUURFeEZwWkdWdWRHbDAKZVM1c2FXNXJaWEprTGpBZUZ3MHlNVEExTURneE5UTTJNakZhRncweU1qQTFNRGd4TlRNMk5ERmFNQnd4R2pBWQpCZ05WQkFNVEVXbGtaVzUwYVhSNUxteHBibXRsY21RdU1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEClFnQUVwT1puaHJ3WFNWZ3RmZ2wrUjVLWGZia1EzeWh0R1o4YS9kdjB4eXh6ZXZQRHhNS25Ea1A2b29pZEVJcEUKNHpFcnRoQU9DaUdOOFBYMzBnbkR3SVUzTUtOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdFR01CMEdBMVVkSlFRVwpNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXCkJCUmtEclZ2TnJKTHNVMzlibnFDNzh1VTJLdzFiREFLQmdncWhrak9QUVFEQWdOSkFEQkdBaUVBanFxYVpHbEgKOW1Vcjc2eS9xUkg0RkJnOVNkTHhQYzV0YklqUUJ6NWhJc29DSVFDd0F6N0kra2ZCY0tRZHRadWNtRi9BZnFydgoxTVFUNTg1TWJEZ1lmUi9kMkE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+  key.pem: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSVBXWVNWeTZQeTlkeSt1MVdHOTNFOVd4OUVHWFFIYWhvOVB2Z1ZReXZvYWVvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFcE9abmhyd1hTVmd0ZmdsK1I1S1hmYmtRM3lodEdaOGEvZHYweHl4emV2UER4TUtuRGtQNgpvb2lkRUlwRTR6RXJ0aEFPQ2lHTjhQWDMwZ25Ed0lVM01BPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQ==
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-identity
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  type: ClusterIP
+  selector:
+    linkerd.io/control-plane-component: identity
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-identity-headless
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  clusterIP: None
+  selector:
+    linkerd.io/control-plane-component: identity
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    app.kubernetes.io/name: identity
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: stable-2.10.1
+    linkerd.io/control-plane-component: identity
+    linkerd.io/control-plane-ns: linkerd
+  name: linkerd-identity
+  namespace: linkerd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: identity
+      linkerd.io/control-plane-ns: linkerd
+      linkerd.io/proxy-deployment: linkerd-identity
+  template:
+    metadata:
+      annotations:
+        linkerd.io/created-by: linkerd/cli stable-2.10.1
+        linkerd.io/identity-mode: default
+        linkerd.io/proxy-version: stable-2.10.1
+      labels:
+        linkerd.io/control-plane-component: identity
+        linkerd.io/control-plane-ns: linkerd
+        linkerd.io/workload-ns: linkerd
+        linkerd.io/proxy-deployment: linkerd-identity
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      containers:
+        - args:
+            - identity
+            - -log-level=info
+            - -log-format=plain
+            - -controller-namespace=linkerd
+            - -identity-trust-domain=cluster.local
+            - -identity-issuance-lifetime=24h0m0s
+            - -identity-clock-skew-allowance=20s
+            - -identity-scheme=linkerd.io/tls
+          env:
+            - name: LINKERD2_IDENTITY_TRUST_ANCHORS
+              value: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJpVENDQVM2Z0F3SUJBZ0lCQVRBS0JnZ3Foa2pPUFFRREFqQWNNUm93R0FZRFZRUURFeEZwWkdWdWRHbDAKZVM1c2FXNXJaWEprTGpBZUZ3MHlNVEExTURneE5UTTJNakZhRncweU1qQTFNRGd4TlRNMk5ERmFNQnd4R2pBWQpCZ05WQkFNVEVXbGtaVzUwYVhSNUxteHBibXRsY21RdU1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEClFnQUVwT1puaHJ3WFNWZ3RmZ2wrUjVLWGZia1EzeWh0R1o4YS9kdjB4eXh6ZXZQRHhNS25Ea1A2b29pZEVJcEUKNHpFcnRoQU9DaUdOOFBYMzBnbkR3SVUzTUtOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdFR01CMEdBMVVkSlFRVwpNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXCkJCUmtEclZ2TnJKTHNVMzlibnFDNzh1VTJLdzFiREFLQmdncWhrak9QUVFEQWdOSkFEQkdBaUVBanFxYVpHbEgKOW1Vcjc2eS9xUkg0RkJnOVNkTHhQYzV0YklqUUJ6NWhJc29DSVFDd0F6N0kra2ZCY0tRZHRadWNtRi9BZnFydgoxTVFUNTg1TWJEZ1lmUi9kMkE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+            - name: LINKERD_DISABLED
+              value: "linkerd-await cannot block the identity controller"
+          image: cr.l5d.io/linkerd/controller:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9990
+            initialDelaySeconds: 10
+          name: identity
+          ports:
+            - containerPort: 8080
+              name: grpc
+            - containerPort: 9990
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9990
+          securityContext:
+            runAsUser: 2103
+          volumeMounts:
+            - mountPath: /var/run/linkerd/identity/issuer
+              name: identity-issuer
+        - env:
+            - name: LINKERD2_PROXY_LOG
+              value: "warn,linkerd=info"
+            - name: LINKERD2_PROXY_LOG_FORMAT
+              value: "plain"
+            - name: LINKERD2_PROXY_DESTINATION_SVC_ADDR
+              value: linkerd-dst-headless.linkerd.svc.cluster.local.:8086
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_NETWORKS
+              value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
+            - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
+              value: "100ms"
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_TIMEOUT
+              value: "1000ms"
+            - name: LINKERD2_PROXY_CONTROL_LISTEN_ADDR
+              value: 0.0.0.0:4190
+            - name: LINKERD2_PROXY_ADMIN_LISTEN_ADDR
+              value: 0.0.0.0:4191
+            - name: LINKERD2_PROXY_OUTBOUND_LISTEN_ADDR
+              value: 127.0.0.1:4140
+            - name: LINKERD2_PROXY_INBOUND_LISTEN_ADDR
+              value: 0.0.0.0:4143
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_SUFFIXES
+              value: svc.cluster.local.
+            - name: LINKERD2_PROXY_INBOUND_ACCEPT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_INBOUND_PORTS_DISABLE_PROTOCOL_DETECTION
+              value: "25,443,587,3306,5432,11211"
+            - name: _pod_ns
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: _pod_nodeName
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LINKERD2_PROXY_DESTINATION_CONTEXT
+              value: |
+                {"ns":"$(_pod_ns)", "nodeName":"$(_pod_nodeName)"}
+            - name: LINKERD2_PROXY_IDENTITY_DIR
+              value: /var/run/linkerd/identity/end-entity
+            - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+              value: |
+                -----BEGIN CERTIFICATE-----
+                MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+                eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+                BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+                QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+                4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+                MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+                BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+                9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+                1MQT585MbDgYfR/d2A==
+                -----END CERTIFICATE-----
+            - name: LINKERD2_PROXY_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            - name: LINKERD2_PROXY_IDENTITY_SVC_ADDR
+              value: localhost.:8080
+            - name: _pod_sa
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: _l5d_ns
+              value: linkerd
+            - name: _l5d_trustdomain
+              value: cluster.local
+            - name: LINKERD2_PROXY_IDENTITY_LOCAL_NAME
+              value: $(_pod_sa).$(_pod_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_IDENTITY_SVC_NAME
+              value: linkerd-identity.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_DESTINATION_SVC_NAME
+              value: linkerd-destination.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+          image: cr.l5d.io/linkerd/proxy:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 4191
+            initialDelaySeconds: 10
+          name: linkerd-proxy
+          ports:
+            - containerPort: 4143
+              name: linkerd-proxy
+            - containerPort: 4191
+              name: linkerd-admin
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4191
+            initialDelaySeconds: 2
+          resources:
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 2102
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /var/run/linkerd/identity/end-entity
+              name: linkerd-identity-end-entity
+      initContainers:
+        - args:
+            - --incoming-proxy-port
+            - "4143"
+            - --outgoing-proxy-port
+            - "4140"
+            - --proxy-uid
+            - "2102"
+            - --inbound-ports-to-ignore
+            - "4190,4191"
+            - --outbound-ports-to-ignore
+            - "443"
+          image: cr.l5d.io/linkerd/proxy-init:v1.3.11
+          imagePullPolicy: IfNotPresent
+          name: linkerd-init
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "10m"
+              memory: "10Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /run
+              name: linkerd-proxy-init-xtables-lock
+      serviceAccountName: linkerd-identity
+      volumes:
+        - name: identity-issuer
+          secret:
+            secretName: linkerd-identity-issuer
+        - emptyDir: { }
+          name: linkerd-proxy-init-xtables-lock
+        - emptyDir:
+            medium: Memory
+          name: linkerd-identity-end-entity
+---
+###
+### Controller
+###
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-controller-api
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  type: ClusterIP
+  selector:
+    linkerd.io/control-plane-component: controller
+  ports:
+    - name: http
+      port: 8085
+      targetPort: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: stable-2.10.1
+    linkerd.io/control-plane-component: controller
+    linkerd.io/control-plane-ns: linkerd
+  name: linkerd-controller
+  namespace: linkerd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: controller
+      linkerd.io/control-plane-ns: linkerd
+      linkerd.io/proxy-deployment: linkerd-controller
+  template:
+    metadata:
+      annotations:
+        linkerd.io/created-by: linkerd/cli stable-2.10.1
+        linkerd.io/identity-mode: default
+        linkerd.io/proxy-version: stable-2.10.1
+      labels:
+        linkerd.io/control-plane-component: controller
+        linkerd.io/control-plane-ns: linkerd
+        linkerd.io/workload-ns: linkerd
+        linkerd.io/proxy-deployment: linkerd-controller
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      containers:
+        - args:
+            - public-api
+            - -destination-addr=linkerd-dst.linkerd.svc.cluster.local:8086
+            - -controller-namespace=linkerd
+            - -log-level=info
+            - -log-format=plain
+            - -cluster-domain=cluster.local
+          image: cr.l5d.io/linkerd/controller:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9995
+            initialDelaySeconds: 10
+          name: public-api
+          ports:
+            - containerPort: 8085
+              name: http
+            - containerPort: 9995
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9995
+          securityContext:
+            runAsUser: 2103
+        - env:
+            - name: LINKERD2_PROXY_LOG
+              value: "warn,linkerd=info"
+            - name: LINKERD2_PROXY_LOG_FORMAT
+              value: "plain"
+            - name: LINKERD2_PROXY_DESTINATION_SVC_ADDR
+              value: linkerd-dst-headless.linkerd.svc.cluster.local.:8086
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_NETWORKS
+              value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
+            - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
+              value: "100ms"
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_TIMEOUT
+              value: "1000ms"
+            - name: LINKERD2_PROXY_CONTROL_LISTEN_ADDR
+              value: 0.0.0.0:4190
+            - name: LINKERD2_PROXY_ADMIN_LISTEN_ADDR
+              value: 0.0.0.0:4191
+            - name: LINKERD2_PROXY_OUTBOUND_LISTEN_ADDR
+              value: 127.0.0.1:4140
+            - name: LINKERD2_PROXY_INBOUND_LISTEN_ADDR
+              value: 0.0.0.0:4143
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_SUFFIXES
+              value: svc.cluster.local.
+            - name: LINKERD2_PROXY_INBOUND_ACCEPT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_INBOUND_PORTS_DISABLE_PROTOCOL_DETECTION
+              value: "25,443,587,3306,5432,11211"
+            - name: _pod_ns
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: _pod_nodeName
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LINKERD2_PROXY_DESTINATION_CONTEXT
+              value: |
+                {"ns":"$(_pod_ns)", "nodeName":"$(_pod_nodeName)"}
+            - name: LINKERD2_PROXY_IDENTITY_DIR
+              value: /var/run/linkerd/identity/end-entity
+            - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+              value: |
+                -----BEGIN CERTIFICATE-----
+                MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+                eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+                BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+                QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+                4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+                MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+                BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+                9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+                1MQT585MbDgYfR/d2A==
+                -----END CERTIFICATE-----
+            - name: LINKERD2_PROXY_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            - name: LINKERD2_PROXY_IDENTITY_SVC_ADDR
+              value: linkerd-identity-headless.linkerd.svc.cluster.local.:8080
+            - name: _pod_sa
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: _l5d_ns
+              value: linkerd
+            - name: _l5d_trustdomain
+              value: cluster.local
+            - name: LINKERD2_PROXY_IDENTITY_LOCAL_NAME
+              value: $(_pod_sa).$(_pod_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_IDENTITY_SVC_NAME
+              value: linkerd-identity.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_DESTINATION_SVC_NAME
+              value: linkerd-destination.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+          image: cr.l5d.io/linkerd/proxy:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 4191
+            initialDelaySeconds: 10
+          name: linkerd-proxy
+          ports:
+            - containerPort: 4143
+              name: linkerd-proxy
+            - containerPort: 4191
+              name: linkerd-admin
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4191
+            initialDelaySeconds: 2
+          resources:
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 2102
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /var/run/linkerd/identity/end-entity
+              name: linkerd-identity-end-entity
+      initContainers:
+        - args:
+            - --incoming-proxy-port
+            - "4143"
+            - --outgoing-proxy-port
+            - "4140"
+            - --proxy-uid
+            - "2102"
+            - --inbound-ports-to-ignore
+            - "4190,4191"
+            - --outbound-ports-to-ignore
+            - "443"
+          image: cr.l5d.io/linkerd/proxy-init:v1.3.11
+          imagePullPolicy: IfNotPresent
+          name: linkerd-init
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "10m"
+              memory: "10Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /run
+              name: linkerd-proxy-init-xtables-lock
+      serviceAccountName: linkerd-controller
+      volumes:
+        - emptyDir: { }
+          name: linkerd-proxy-init-xtables-lock
+        - emptyDir:
+            medium: Memory
+          name: linkerd-identity-end-entity
+---
+###
+### Destination Controller Service
+###
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-dst
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: destination
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  type: ClusterIP
+  selector:
+    linkerd.io/control-plane-component: destination
+  ports:
+    - name: grpc
+      port: 8086
+      targetPort: 8086
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-dst-headless
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: destination
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  clusterIP: None
+  selector:
+    linkerd.io/control-plane-component: destination
+  ports:
+    - name: grpc
+      port: 8086
+      targetPort: 8086
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    app.kubernetes.io/name: destination
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: stable-2.10.1
+    linkerd.io/control-plane-component: destination
+    linkerd.io/control-plane-ns: linkerd
+  name: linkerd-destination
+  namespace: linkerd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: destination
+      linkerd.io/control-plane-ns: linkerd
+      linkerd.io/proxy-deployment: linkerd-destination
+  template:
+    metadata:
+      annotations:
+        linkerd.io/created-by: linkerd/cli stable-2.10.1
+        linkerd.io/identity-mode: default
+        linkerd.io/proxy-version: stable-2.10.1
+      labels:
+        linkerd.io/control-plane-component: destination
+        linkerd.io/control-plane-ns: linkerd
+        linkerd.io/workload-ns: linkerd
+        linkerd.io/proxy-deployment: linkerd-destination
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      containers:
+        - args:
+            - destination
+            - -addr=:8086
+            - -controller-namespace=linkerd
+            - -enable-h2-upgrade=true
+            - -log-level=info
+            - -log-format=plain
+            - -enable-endpoint-slices=false
+            - -cluster-domain=cluster.local
+            - -identity-trust-domain=cluster.local
+            - -default-opaque-ports=25,443,587,3306,5432,11211
+          image: cr.l5d.io/linkerd/controller:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9996
+            initialDelaySeconds: 10
+          name: destination
+          ports:
+            - containerPort: 8086
+              name: grpc
+            - containerPort: 9996
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9996
+          securityContext:
+            runAsUser: 2103
+        - env:
+            - name: LINKERD2_PROXY_LOG
+              value: "warn,linkerd=info"
+            - name: LINKERD2_PROXY_LOG_FORMAT
+              value: "plain"
+            - name: LINKERD2_PROXY_DESTINATION_SVC_ADDR
+              value: localhost.:8086
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_NETWORKS
+              value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
+            - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
+              value: "100ms"
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_TIMEOUT
+              value: "1000ms"
+            - name: LINKERD2_PROXY_CONTROL_LISTEN_ADDR
+              value: 0.0.0.0:4190
+            - name: LINKERD2_PROXY_ADMIN_LISTEN_ADDR
+              value: 0.0.0.0:4191
+            - name: LINKERD2_PROXY_OUTBOUND_LISTEN_ADDR
+              value: 127.0.0.1:4140
+            - name: LINKERD2_PROXY_INBOUND_LISTEN_ADDR
+              value: 0.0.0.0:4143
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_SUFFIXES
+              value: svc.cluster.local.
+            - name: LINKERD2_PROXY_INBOUND_ACCEPT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_INBOUND_PORTS_DISABLE_PROTOCOL_DETECTION
+              value: "25,443,587,3306,5432,11211"
+            - name: _pod_ns
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: _pod_nodeName
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LINKERD2_PROXY_DESTINATION_CONTEXT
+              value: |
+                {"ns":"$(_pod_ns)", "nodeName":"$(_pod_nodeName)"}
+            - name: LINKERD2_PROXY_IDENTITY_DIR
+              value: /var/run/linkerd/identity/end-entity
+            - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+              value: |
+                -----BEGIN CERTIFICATE-----
+                MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+                eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+                BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+                QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+                4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+                MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+                BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+                9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+                1MQT585MbDgYfR/d2A==
+                -----END CERTIFICATE-----
+            - name: LINKERD2_PROXY_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            - name: LINKERD2_PROXY_IDENTITY_SVC_ADDR
+              value: linkerd-identity-headless.linkerd.svc.cluster.local.:8080
+            - name: _pod_sa
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: _l5d_ns
+              value: linkerd
+            - name: _l5d_trustdomain
+              value: cluster.local
+            - name: LINKERD2_PROXY_IDENTITY_LOCAL_NAME
+              value: $(_pod_sa).$(_pod_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_IDENTITY_SVC_NAME
+              value: linkerd-identity.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_DESTINATION_SVC_NAME
+              value: linkerd-destination.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+          image: cr.l5d.io/linkerd/proxy:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 4191
+            initialDelaySeconds: 10
+          name: linkerd-proxy
+          ports:
+            - containerPort: 4143
+              name: linkerd-proxy
+            - containerPort: 4191
+              name: linkerd-admin
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4191
+            initialDelaySeconds: 2
+          resources:
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 2102
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /var/run/linkerd/identity/end-entity
+              name: linkerd-identity-end-entity
+      initContainers:
+        - args:
+            - --incoming-proxy-port
+            - "4143"
+            - --outgoing-proxy-port
+            - "4140"
+            - --proxy-uid
+            - "2102"
+            - --inbound-ports-to-ignore
+            - "4190,4191"
+            - --outbound-ports-to-ignore
+            - "443"
+          image: cr.l5d.io/linkerd/proxy-init:v1.3.11
+          imagePullPolicy: IfNotPresent
+          name: linkerd-init
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "10m"
+              memory: "10Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /run
+              name: linkerd-proxy-init-xtables-lock
+      serviceAccountName: linkerd-destination
+      volumes:
+        - emptyDir: { }
+          name: linkerd-proxy-init-xtables-lock
+        - emptyDir:
+            medium: Memory
+          name: linkerd-identity-end-entity
+---
+###
+### Heartbeat
+###
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: linkerd-heartbeat
+  namespace: linkerd
+  labels:
+    app.kubernetes.io/name: heartbeat
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: stable-2.10.1
+    linkerd.io/control-plane-component: heartbeat
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  concurrencyPolicy: Replace
+  schedule: "46 15 * * *"
+  successfulJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            linkerd.io/control-plane-component: heartbeat
+            linkerd.io/workload-ns: linkerd
+          annotations:
+            linkerd.io/created-by: linkerd/cli stable-2.10.1
+        spec:
+          nodeSelector:
+            beta.kubernetes.io/os: linux
+          serviceAccountName: linkerd-heartbeat
+          restartPolicy: Never
+          containers:
+            - name: heartbeat
+              image: cr.l5d.io/linkerd/controller:stable-2.10.1
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: LINKERD_DISABLED
+                  value: "the heartbeat controller does not use the proxy"
+              args:
+                - "heartbeat"
+                - "-controller-namespace=linkerd"
+                - "-log-level=info"
+                - "-log-format=plain"
+                - "-prometheus-url=http://prometheus.linkerd-viz.svc.cluster.local:9090"
+              securityContext:
+                runAsUser: 2103
+---
+###
+### Proxy Injector
+###
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    app.kubernetes.io/name: proxy-injector
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: stable-2.10.1
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+  name: linkerd-proxy-injector
+  namespace: linkerd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: proxy-injector
+  template:
+    metadata:
+      annotations:
+        checksum/config: db93326af1c8545ad8514d102961f67896eeb0a5551ac243873cf6acf8fc8100
+        linkerd.io/created-by: linkerd/cli stable-2.10.1
+        linkerd.io/identity-mode: default
+        linkerd.io/proxy-version: stable-2.10.1
+      labels:
+        linkerd.io/control-plane-component: proxy-injector
+        linkerd.io/control-plane-ns: linkerd
+        linkerd.io/workload-ns: linkerd
+        linkerd.io/proxy-deployment: linkerd-proxy-injector
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      containers:
+        - args:
+            - proxy-injector
+            - -log-level=info
+            - -log-format=plain
+          image: cr.l5d.io/linkerd/controller:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9995
+            initialDelaySeconds: 10
+          name: proxy-injector
+          ports:
+            - containerPort: 8443
+              name: proxy-injector
+            - containerPort: 9995
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9995
+          securityContext:
+            runAsUser: 2103
+          volumeMounts:
+            - mountPath: /var/run/linkerd/config
+              name: config
+            - mountPath: /var/run/linkerd/tls
+              name: tls
+              readOnly: true
+        - env:
+            - name: LINKERD2_PROXY_LOG
+              value: "warn,linkerd=info"
+            - name: LINKERD2_PROXY_LOG_FORMAT
+              value: "plain"
+            - name: LINKERD2_PROXY_DESTINATION_SVC_ADDR
+              value: linkerd-dst-headless.linkerd.svc.cluster.local.:8086
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_NETWORKS
+              value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
+            - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
+              value: "100ms"
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_TIMEOUT
+              value: "1000ms"
+            - name: LINKERD2_PROXY_CONTROL_LISTEN_ADDR
+              value: 0.0.0.0:4190
+            - name: LINKERD2_PROXY_ADMIN_LISTEN_ADDR
+              value: 0.0.0.0:4191
+            - name: LINKERD2_PROXY_OUTBOUND_LISTEN_ADDR
+              value: 127.0.0.1:4140
+            - name: LINKERD2_PROXY_INBOUND_LISTEN_ADDR
+              value: 0.0.0.0:4143
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_SUFFIXES
+              value: svc.cluster.local.
+            - name: LINKERD2_PROXY_INBOUND_ACCEPT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_INBOUND_PORTS_DISABLE_PROTOCOL_DETECTION
+              value: "25,443,587,3306,5432,11211"
+            - name: _pod_ns
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: _pod_nodeName
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LINKERD2_PROXY_DESTINATION_CONTEXT
+              value: |
+                {"ns":"$(_pod_ns)", "nodeName":"$(_pod_nodeName)"}
+            - name: LINKERD2_PROXY_IDENTITY_DIR
+              value: /var/run/linkerd/identity/end-entity
+            - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+              value: |
+                -----BEGIN CERTIFICATE-----
+                MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+                eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+                BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+                QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+                4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+                MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+                BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+                9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+                1MQT585MbDgYfR/d2A==
+                -----END CERTIFICATE-----
+            - name: LINKERD2_PROXY_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            - name: LINKERD2_PROXY_IDENTITY_SVC_ADDR
+              value: linkerd-identity-headless.linkerd.svc.cluster.local.:8080
+            - name: _pod_sa
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: _l5d_ns
+              value: linkerd
+            - name: _l5d_trustdomain
+              value: cluster.local
+            - name: LINKERD2_PROXY_IDENTITY_LOCAL_NAME
+              value: $(_pod_sa).$(_pod_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_IDENTITY_SVC_NAME
+              value: linkerd-identity.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_DESTINATION_SVC_NAME
+              value: linkerd-destination.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+          image: cr.l5d.io/linkerd/proxy:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 4191
+            initialDelaySeconds: 10
+          name: linkerd-proxy
+          ports:
+            - containerPort: 4143
+              name: linkerd-proxy
+            - containerPort: 4191
+              name: linkerd-admin
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4191
+            initialDelaySeconds: 2
+          resources:
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 2102
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /var/run/linkerd/identity/end-entity
+              name: linkerd-identity-end-entity
+      initContainers:
+        - args:
+            - --incoming-proxy-port
+            - "4143"
+            - --outgoing-proxy-port
+            - "4140"
+            - --proxy-uid
+            - "2102"
+            - --inbound-ports-to-ignore
+            - "4190,4191"
+            - --outbound-ports-to-ignore
+            - "443"
+          image: cr.l5d.io/linkerd/proxy-init:v1.3.11
+          imagePullPolicy: IfNotPresent
+          name: linkerd-init
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "10m"
+              memory: "10Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /run
+              name: linkerd-proxy-init-xtables-lock
+      serviceAccountName: linkerd-proxy-injector
+      volumes:
+        - configMap:
+            name: linkerd-config
+          name: config
+        - name: tls
+          secret:
+            secretName: linkerd-proxy-injector-k8s-tls
+        - emptyDir: { }
+          name: linkerd-proxy-init-xtables-lock
+        - emptyDir:
+            medium: Memory
+          name: linkerd-identity-end-entity
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-proxy-injector
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: proxy-injector
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  type: ClusterIP
+  selector:
+    linkerd.io/control-plane-component: proxy-injector
+  ports:
+    - name: proxy-injector
+      port: 443
+      targetPort: proxy-injector
+---
+###
+### Service Profile Validator
+###
+kind: Service
+apiVersion: v1
+metadata:
+  name: linkerd-sp-validator
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+spec:
+  type: ClusterIP
+  selector:
+    linkerd.io/control-plane-component: sp-validator
+  ports:
+    - name: sp-validator
+      port: 443
+      targetPort: sp-validator
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    linkerd.io/created-by: linkerd/cli stable-2.10.1
+  labels:
+    app.kubernetes.io/name: sp-validator
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: stable-2.10.1
+    linkerd.io/control-plane-component: sp-validator
+    linkerd.io/control-plane-ns: linkerd
+  name: linkerd-sp-validator
+  namespace: linkerd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: sp-validator
+  template:
+    metadata:
+      annotations:
+        checksum/config: e80adbe84125a26dbb97673d4d7969f6907ab20e812920a3b563ad58bd77481d
+        linkerd.io/created-by: linkerd/cli stable-2.10.1
+        linkerd.io/identity-mode: default
+        linkerd.io/proxy-version: stable-2.10.1
+      labels:
+        linkerd.io/control-plane-component: sp-validator
+        linkerd.io/control-plane-ns: linkerd
+        linkerd.io/workload-ns: linkerd
+        linkerd.io/proxy-deployment: linkerd-sp-validator
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      containers:
+        - args:
+            - sp-validator
+            - -log-level=info
+            - -log-format=plain
+          image: cr.l5d.io/linkerd/controller:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9997
+            initialDelaySeconds: 10
+          name: sp-validator
+          ports:
+            - containerPort: 8443
+              name: sp-validator
+            - containerPort: 9997
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9997
+          securityContext:
+            runAsUser: 2103
+          volumeMounts:
+            - mountPath: /var/run/linkerd/tls
+              name: tls
+              readOnly: true
+        - env:
+            - name: LINKERD2_PROXY_LOG
+              value: "warn,linkerd=info"
+            - name: LINKERD2_PROXY_LOG_FORMAT
+              value: "plain"
+            - name: LINKERD2_PROXY_DESTINATION_SVC_ADDR
+              value: linkerd-dst-headless.linkerd.svc.cluster.local.:8086
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_NETWORKS
+              value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
+            - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
+              value: "100ms"
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_TIMEOUT
+              value: "1000ms"
+            - name: LINKERD2_PROXY_CONTROL_LISTEN_ADDR
+              value: 0.0.0.0:4190
+            - name: LINKERD2_PROXY_ADMIN_LISTEN_ADDR
+              value: 0.0.0.0:4191
+            - name: LINKERD2_PROXY_OUTBOUND_LISTEN_ADDR
+              value: 127.0.0.1:4140
+            - name: LINKERD2_PROXY_INBOUND_LISTEN_ADDR
+              value: 0.0.0.0:4143
+            - name: LINKERD2_PROXY_DESTINATION_PROFILE_SUFFIXES
+              value: svc.cluster.local.
+            - name: LINKERD2_PROXY_INBOUND_ACCEPT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_OUTBOUND_CONNECT_KEEPALIVE
+              value: 10000ms
+            - name: LINKERD2_PROXY_INBOUND_PORTS_DISABLE_PROTOCOL_DETECTION
+              value: "25,443,587,3306,5432,11211"
+            - name: _pod_ns
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: _pod_nodeName
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LINKERD2_PROXY_DESTINATION_CONTEXT
+              value: |
+                {"ns":"$(_pod_ns)", "nodeName":"$(_pod_nodeName)"}
+            - name: LINKERD2_PROXY_IDENTITY_DIR
+              value: /var/run/linkerd/identity/end-entity
+            - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
+              value: |
+                -----BEGIN CERTIFICATE-----
+                MIIBiTCCAS6gAwIBAgIBATAKBggqhkjOPQQDAjAcMRowGAYDVQQDExFpZGVudGl0
+                eS5saW5rZXJkLjAeFw0yMTA1MDgxNTM2MjFaFw0yMjA1MDgxNTM2NDFaMBwxGjAY
+                BgNVBAMTEWlkZW50aXR5LmxpbmtlcmQuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+                QgAEpOZnhrwXSVgtfgl+R5KXfbkQ3yhtGZ8a/dv0xyxzevPDxMKnDkP6ooidEIpE
+                4zErthAOCiGN8PX30gnDwIU3MKNhMF8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdJQQW
+                MBQGCCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+                BBRkDrVvNrJLsU39bnqC78uU2Kw1bDAKBggqhkjOPQQDAgNJADBGAiEAjqqaZGlH
+                9mUr76y/qRH4FBg9SdLxPc5tbIjQBz5hIsoCIQCwAz7I+kfBcKQdtZucmF/Afqrv
+                1MQT585MbDgYfR/d2A==
+                -----END CERTIFICATE-----
+            - name: LINKERD2_PROXY_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            - name: LINKERD2_PROXY_IDENTITY_SVC_ADDR
+              value: linkerd-identity-headless.linkerd.svc.cluster.local.:8080
+            - name: _pod_sa
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: _l5d_ns
+              value: linkerd
+            - name: _l5d_trustdomain
+              value: cluster.local
+            - name: LINKERD2_PROXY_IDENTITY_LOCAL_NAME
+              value: $(_pod_sa).$(_pod_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_IDENTITY_SVC_NAME
+              value: linkerd-identity.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - name: LINKERD2_PROXY_DESTINATION_SVC_NAME
+              value: linkerd-destination.$(_l5d_ns).serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+          image: cr.l5d.io/linkerd/proxy:stable-2.10.1
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 4191
+            initialDelaySeconds: 10
+          name: linkerd-proxy
+          ports:
+            - containerPort: 4143
+              name: linkerd-proxy
+            - containerPort: 4191
+              name: linkerd-admin
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4191
+            initialDelaySeconds: 2
+          resources:
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 2102
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /var/run/linkerd/identity/end-entity
+              name: linkerd-identity-end-entity
+      initContainers:
+        - args:
+            - --incoming-proxy-port
+            - "4143"
+            - --outgoing-proxy-port
+            - "4140"
+            - --proxy-uid
+            - "2102"
+            - --inbound-ports-to-ignore
+            - "4190,4191"
+            - --outbound-ports-to-ignore
+            - "443"
+          image: cr.l5d.io/linkerd/proxy-init:v1.3.11
+          imagePullPolicy: IfNotPresent
+          name: linkerd-init
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "50Mi"
+            requests:
+              cpu: "10m"
+              memory: "10Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /run
+              name: linkerd-proxy-init-xtables-lock
+      serviceAccountName: linkerd-sp-validator
+      volumes:
+        - name: tls
+          secret:
+            secretName: linkerd-sp-validator-k8s-tls
+        - emptyDir: { }
+          name: linkerd-proxy-init-xtables-lock
+        - emptyDir:
+            medium: Memory
+          name: linkerd-identity-end-entity
+---
+apiVersion: v1
+data:
+  linkerd-config-overrides: aWRlbnRpdHk6CiAgaXNzdWVyOgogICAgY3J0RXhwaXJ5OiAiMjAyMi0wNS0wOFQxNTozNjo0MVoiCiAgICB0bHM6CiAgICAgIGNydFBFTTogfAogICAgICAgIC0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQogICAgICAgIE1JSUJpVENDQVM2Z0F3SUJBZ0lCQVRBS0JnZ3Foa2pPUFFRREFqQWNNUm93R0FZRFZRUURFeEZwWkdWdWRHbDAKICAgICAgICBlUzVzYVc1clpYSmtMakFlRncweU1UQTFNRGd4TlRNMk1qRmFGdzB5TWpBMU1EZ3hOVE0yTkRGYU1Cd3hHakFZCiAgICAgICAgQmdOVkJBTVRFV2xrWlc1MGFYUjVMbXhwYm10bGNtUXVNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRAogICAgICAgIFFnQUVwT1puaHJ3WFNWZ3RmZ2wrUjVLWGZia1EzeWh0R1o4YS9kdjB4eXh6ZXZQRHhNS25Ea1A2b29pZEVJcEUKICAgICAgICA0ekVydGhBT0NpR044UFgzMGduRHdJVTNNS05oTUY4d0RnWURWUjBQQVFIL0JBUURBZ0VHTUIwR0ExVWRKUVFXCiAgICAgICAgTUJRR0NDc0dBUVVGQndNQkJnZ3JCZ0VGQlFjREFqQVBCZ05WSFJNQkFmOEVCVEFEQVFIL01CMEdBMVVkRGdRVwogICAgICAgIEJCUmtEclZ2TnJKTHNVMzlibnFDNzh1VTJLdzFiREFLQmdncWhrak9QUVFEQWdOSkFEQkdBaUVBanFxYVpHbEgKICAgICAgICA5bVVyNzZ5L3FSSDRGQmc5U2RMeFBjNXRiSWpRQno1aElzb0NJUUN3QXo3SStrZkJjS1FkdFp1Y21GL0FmcXJ2CiAgICAgICAgMU1RVDU4NU1iRGdZZlIvZDJBPT0KICAgICAgICAtLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCiAgICAgIGtleVBFTTogfAogICAgICAgIC0tLS0tQkVHSU4gRUMgUFJJVkFURSBLRVktLS0tLQogICAgICAgIE1IY0NBUUVFSVBXWVNWeTZQeTlkeSt1MVdHOTNFOVd4OUVHWFFIYWhvOVB2Z1ZReXZvYWVvQW9HQ0NxR1NNNDkKICAgICAgICBBd0VIb1VRRFFnQUVwT1puaHJ3WFNWZ3RmZ2wrUjVLWGZia1EzeWh0R1o4YS9kdjB4eXh6ZXZQRHhNS25Ea1A2CiAgICAgICAgb29pZEVJcEU0ekVydGhBT0NpR044UFgzMGduRHdJVTNNQT09CiAgICAgICAgLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQppZGVudGl0eVRydXN0QW5jaG9yc1BFTTogfAogIC0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQogIE1JSUJpVENDQVM2Z0F3SUJBZ0lCQVRBS0JnZ3Foa2pPUFFRREFqQWNNUm93R0FZRFZRUURFeEZwWkdWdWRHbDAKICBlUzVzYVc1clpYSmtMakFlRncweU1UQTFNRGd4TlRNMk1qRmFGdzB5TWpBMU1EZ3hOVE0yTkRGYU1Cd3hHakFZCiAgQmdOVkJBTVRFV2xrWlc1MGFYUjVMbXhwYm10bGNtUXVNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRAogIFFnQUVwT1puaHJ3WFNWZ3RmZ2wrUjVLWGZia1EzeWh0R1o4YS9kdjB4eXh6ZXZQRHhNS25Ea1A2b29pZEVJcEUKICA0ekVydGhBT0NpR044UFgzMGduRHdJVTNNS05oTUY4d0RnWURWUjBQQVFIL0JBUURBZ0VHTUIwR0ExVWRKUVFXCiAgTUJRR0NDc0dBUVVGQndNQkJnZ3JCZ0VGQlFjREFqQVBCZ05WSFJNQkFmOEVCVEFEQVFIL01CMEdBMVVkRGdRVwogIEJCUmtEclZ2TnJKTHNVMzlibnFDNzh1VTJLdzFiREFLQmdncWhrak9QUVFEQWdOSkFEQkdBaUVBanFxYVpHbEgKICA5bVVyNzZ5L3FSSDRGQmc5U2RMeFBjNXRiSWpRQno1aElzb0NJUUN3QXo3SStrZkJjS1FkdFp1Y21GL0FmcXJ2CiAgMU1RVDU4NU1iRGdZZlIvZDJBPT0KICAtLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+kind: Secret
+metadata:
+  creationTimestamp: null
+  labels:
+    linkerd.io/control-plane-ns: linkerd
+  name: linkerd-config-overrides
+  namespace: linkerd
