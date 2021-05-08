@@ -96,7 +96,7 @@ func (wrk workerServices) workerWatcher() {
 					return
 				}
 				// 8087 is worker's health check port
-				client := http.Client{Timeout: 4 * time.Second}
+				client := http.Client{Timeout: 1 * time.Second}
 				resp, err := client.Get(fmt.Sprintf("http://%s:8087/live", w.IpAddress))
 				if err != nil {
 					log.Errorf("Failed to ping ip %s worker %s on attempt no %d, error: %s",
