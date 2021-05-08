@@ -77,22 +77,29 @@ func (wrk workerServices) workerWatcher() {
 			wg.Add(1)
 			go func(w *models.Worker) {
 				defer wg.Done()
+
+				if w.Status == models.WorkerStatusTerminated {
+					return
+				}
+
 				retry, _ := workerRetryAttempt.LoadOrStore(w.WorkerPodName, 0)
 
 				if retry.(int) > 5 {
 					// TODO [#19]: Also remove worker from db if retry failed > 5
+					log.Infof("Ping to to ip %s worker %s failed >5 times, setting worker to terminated...", w.IpAddress, w.WorkerPodName)
 					w.Status = models.WorkerStatusTerminated
 					w.WorkingOn = ""
 					if err := wrk.workerRepo.Upsert(w); err != nil {
 						log.Errorf("Failed to upsert worker %s, err: %s", w.WorkerPodName, err)
 					}
+
 					return
 				}
 				// 8087 is worker's health check port
 				resp, err := http.Get(fmt.Sprintf("http://%s:8087/live", w.IpAddress))
 				if err != nil {
-					log.Errorf("Failed to ping ip %s worker %s, error: %s",
-						w.IpAddress, w.WorkerPodName, err)
+					log.Errorf("Failed to ping ip %s worker %s on attempt no %d, error: %s",
+						w.IpAddress, w.WorkerPodName, retry, err)
 					workerRetryAttempt.Store(w.WorkerPodName, retry.(int)+1)
 				}
 
