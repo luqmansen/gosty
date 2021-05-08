@@ -1,11 +1,11 @@
-gcloud beta container \
+time gcloud beta container \
   --project "gosty-311908" \
   clusters create "gosty-k8s-cluster" \
    --zone "asia-southeast2-a" \
    --no-enable-basic-auth \
    --cluster-version "1.19.8-gke.1600" \
    --release-channel "regular" \
-   --machine-type "e2-medium" \
+   --machine-type "e2-highcpu-2" \
    --image-type "COS_CONTAINERD" \
    --disk-type "pd-standard" \
    --disk-size "32" \
@@ -13,7 +13,7 @@ gcloud beta container \
    --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" \
    --preemptible \
    --num-nodes "3" \
-   --no-enable-stackdriver-kubernetes \
+   --enable-stackdriver-kubernetes \
    --enable-ip-alias \
    --network "projects/gosty-311908/global/networks/default" \
    --subnetwork "projects/gosty-311908/regions/asia-southeast2/subnetworks/default" \

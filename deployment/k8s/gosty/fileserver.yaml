@@ -58,3 +58,11 @@ spec:
           volumeMounts:
             - name: pv-data
               mountPath: /app/storage
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "100Mi"
+            limits:
+              cpu: "128m"
+              memory: "256Mi"

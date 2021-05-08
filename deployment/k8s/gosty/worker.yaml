@@ -50,10 +50,9 @@ spec:
 
           resources:
             requests:
-              cpu: "256m"
-              memory: "256Mi"
-            limits:
               cpu: "1"
+              memory: "512Mi"
+            limits:
               memory: "1Gi"
           envFrom:
             - configMapRef:
