@@ -13,6 +13,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	mongo2 "go.mongodb.org/mongo-driver/mongo"
 	"io/ioutil"
 	"net/http"
 )
@@ -55,34 +56,28 @@ func main() {
 
 	// for development purposes
 	r := server.GetRouter()
-	dropEverythingRoute(r, cfg)
+	dropEverythingRoute(r, cfg, mongoClient, rabbitClient)
 
 	server.Serve()
 }
 
-func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration) {
+func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient *mongo2.Client, rabbitConn *amqp.Connection) {
 	router.Get("/drop", func(writer http.ResponseWriter, request *http.Request) {
-		c, _ := mongo.NewMongoClient(cfg.Database.GetDatabaseUri(), cfg.Database.Timeout)
+
+		//drop mongo collection
 		_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))
-		err := c.Database("gosty").Drop(context.Background())
+		err := mongoClient.Database("gosty").Drop(context.Background())
 		if err != nil {
 			_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
 		}
 
-		conn, err := amqp.Dial(cfg.MessageBroker.GetMessageBrokerUri())
-		if err != nil {
-			log.Fatalf("Failed to connect to rabbitmq: %s", err.Error())
-		}
-		if conn == nil {
-			_, _ = writer.Write([]byte("Failed drop, connection is nil"))
-			return
-		}
-		ch, err := conn.Channel()
+		//drop rabbitmq queue
+		ch, err := rabbitConn.Channel()
 		if err != nil {
 			log.Error()
 		}
 		if ch == nil {
-			_, _ = writer.Write([]byte("Failed drop, channel is nil"))
+			writer.Write([]byte("Failed drop, channel is nil"))
 			return
 		}
 
@@ -93,10 +88,15 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration) {
 			_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
 			_, err = ch.QueuePurge(q, true)
 			if err != nil {
-				_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
+				writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
 			}
 		}
+		err = ch.Close()
+		if err != nil {
+			writer.Write([]byte(fmt.Sprintf("Error close connection: %s", err)))
+		}
 
+		//drop all on fileserver
 		resp, err := http.Get(cfg.FileServer.GetFileServerUri() + "/drop")
 		if err != nil {
 			log.Fatalln(err)
@@ -111,5 +111,6 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration) {
 		writer.Write(body)
 
 		_, _ = writer.Write([]byte("DROP SUCCESS"))
+
 	})
 }
