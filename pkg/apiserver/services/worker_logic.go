@@ -105,7 +105,9 @@ func (wrk workerServices) workerWatcher() {
 				}
 
 				if resp != nil && resp.StatusCode == http.StatusOK {
-					w.Status = models.WorkerStatusReady
+					if w.WorkingOn == "" {
+						w.Status = models.WorkerStatusReady
+					}
 					//reset retry attempt
 					workerRetryAttempt.Store(w.WorkerPodName, 0)
 				}
