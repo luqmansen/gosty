@@ -1,5 +1,7 @@
+GOOS=linux
+GOARCH=386
 GOPATH:=$(shell go env GOPATH)
-TAG:=$(shell git rev-parse --short=5 HEAD)
+GIT_COMMIT := $(shell git rev-list -1 HEAD)
 
 .PHONY: dev
 api:
@@ -12,11 +14,14 @@ fs:
 	nodemon --exec go run cmd/fileserver/main.go --signal SIGTERM
 
 api-bin:
-	CGO_ENABLED=0 go build -o build/apiserver/apiserver cmd/apiserver/main.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
+		-o build/apiserver/apiserver cmd/apiserver/main.go
 worker-bin:
-	CGO_ENABLED=0 go build -o build/worker/worker cmd/worker/main.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
+ 		-o build/worker/worker cmd/worker/main.go
 fs-bin:
-	CGO_ENABLED=0 go build -o build/fileserver/fileserver cmd/fileserver/main.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
+ 		-o build/fileserver/fileserver cmd/fileserver/main.go
 
 all-bin: api-bin worker-bin fs-bin
 

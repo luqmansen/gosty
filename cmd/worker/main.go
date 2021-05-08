@@ -17,6 +17,8 @@ type svc struct {
 	worker.Services
 }
 
+var gitCommit string
+
 func main() {
 	cfg := config.LoadConfig(".")
 	forever := make(chan bool)
@@ -35,6 +37,7 @@ func main() {
 
 	//Registering worker to API Server
 	if w := workerSvc.GetWorkerInfo(); w != nil {
+		log.Infof("Starting worker version %s", gitCommit)
 		log.Infof("Worker %s started, Ip: %s", w.WorkerPodName, w.IpAddress)
 		if err := workerSvc.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
 			log.Error(err)
