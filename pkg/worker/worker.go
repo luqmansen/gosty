@@ -64,9 +64,8 @@ func (s *Svc) GetMessageBroker() repositories.Messenger {
 func (s *Svc) RegisterWorker() {
 	for {
 		if w := s.GetWorkerInfo(); w != nil {
-			log.Infof("Registering worker %s to apiserver, ip: %s", w.WorkerPodName, w.IpAddress)
 			if err := s.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
-				log.Error(err)
+				log.Errorf("Failed to registering worker %s to apiserver, ip: %s", w.WorkerPodName, w.IpAddress)
 			}
 		}
 		time.Sleep(30 * time.Second)
