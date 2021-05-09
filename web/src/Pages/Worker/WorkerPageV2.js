@@ -89,22 +89,23 @@ const WorkerPageV2 = () => {
                     <Column
                         label='Id'
                         dataKey='id'
-                        width={100}
+                        width={250}
                     />
                     <Column
                         label='Worker Name'
                         dataKey='worker_pod_name'
                         width={250}
+
                     />
                     <Column
                         label='IP Address'
                         dataKey='ip_address'
-                        width={250}
+                        width={130}
                     />
                     <Column
                         label='Status'
                         dataKey='status'
-                        width={180}
+                        width={130}
                     />
                     <Column
                         label='Working On'
