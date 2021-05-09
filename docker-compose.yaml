@@ -63,10 +63,8 @@ services:
   worker:
     image: localhost:5000/gosty-worker
     restart: always
-    ports:
-      - "8087:8087"
     expose:
-      - "8087"
+      - "8088"
     environment:
       RABBIT_RABBITMQ_SERVICE_HOST: rabbitmq
       RABBIT_RABBITMQ_SERVICE_PORT: 5672

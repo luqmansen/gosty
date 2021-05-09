@@ -107,7 +107,7 @@ func (wrk workerServices) workerWatcher() {
 					if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 						log.Error(err)
 					}
-
+					// Doesn't work with autoscaling docker-compose, only on k8s
 					if body["hostname"] == w.WorkerPodName {
 						if w.WorkingOn == "" {
 							w.Status = models.WorkerStatusReady
@@ -132,7 +132,7 @@ func (wrk workerServices) workerWatcher() {
 				}
 			}(worker)
 		}
-		time.Sleep(4 * time.Second)
+		time.Sleep(5 * time.Second)
 		wg.Wait()
 		wrk.publishWorkerEvent()
 	}
