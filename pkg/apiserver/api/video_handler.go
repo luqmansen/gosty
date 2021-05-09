@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
 	"github.com/h2non/filetype"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
@@ -12,7 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -81,7 +81,7 @@ func (h video) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if p.FormName() != "file" {
-		http.Error(w, "video field is expected", http.StatusBadRequest)
+		http.Error(w, "file field is expected", http.StatusBadRequest)
 		return
 	}
 
@@ -92,19 +92,6 @@ func (h video) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "video file expected", http.StatusBadRequest)
 		return
 	}
-
-	ext, err := mime.ExtensionsByType(p.Header.Get("Content-Type"))
-	if err != nil {
-		log.Println(err.Error())
-	}
-	if len(ext) == 0 {
-		contentType := http.DetectContentType(sniff)
-		ext, err = mime.ExtensionsByType(contentType)
-		if len(ext) == 0 {
-			log.Error("no content type detected, set to mp4")
-			ext = append(ext, ".mp4")
-		}
-	}
 	if _, err := os.Stat(apiserverTempDir); os.IsNotExist(err) {
 		err = os.Mkdir(apiserverTempDir, 0700)
 		if err != nil {
@@ -112,7 +99,8 @@ func (h video) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext[0])
+	ext := mimetype.Detect(sniff).Extension()
+	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext)
 	f, err := ioutil.TempFile(apiserverTempDir, fileName)
 	if err != nil {
 		log.Errorf("Error creating temp file %s", err)

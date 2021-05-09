@@ -102,7 +102,7 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 		//drop all on fileserver
 		resp, err := http.Get(cfg.FileServer.GetFileServerUri() + "/drop")
 		if err != nil {
-			log.Fatalln(err)
+			log.Error(err)
 		}
 		if resp.StatusCode != http.StatusNoContent {
 			writer.Write([]byte("failed to drop file server data\n"))
