@@ -8,7 +8,9 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	"github.com/luqmansen/gosty/pkg/worker"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
+	"net/http"
 	"os"
 	"time"
 )
@@ -52,6 +54,15 @@ func main() {
 	go w.processNewTask(newTaskData)
 
 	go worker.InitHealthCheck(cfg, rabbitClient)
+
+	go func() {
+		http.HandleFunc("/", getHostname())
+		err := http.ListenAndServe(":8088", nil)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
+
 	log.Printf("Worker running. To exit press CTRL+C")
 	<-forever
 
@@ -180,5 +191,13 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 
 	if err := wrk.GetMessageBroker().Publish(w, services.WorkerAssigned); err != nil {
 		log.Error(err)
+	}
+}
+
+func getHostname() func(w http.ResponseWriter, request *http.Request) {
+	return func(w http.ResponseWriter, request *http.Request) {
+		data, _ := json.Marshal(map[string]string{"hostname": viper.GetString("HOSTNAME")})
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
 	}
 }

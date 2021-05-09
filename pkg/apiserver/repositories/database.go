@@ -28,5 +28,5 @@ type WorkerRepository interface {
 	GetAll(limit int64) ([]*models.Worker, error)
 	Add(worker *models.Worker) error
 	Upsert(worker *models.Worker) error
-	Delete(workerId uint) error
+	Delete(podName string) error
 }

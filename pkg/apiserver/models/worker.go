@@ -11,6 +11,7 @@ const (
 	WorkerStatusReady WorkerStatus = iota
 	WorkerStatusWorking
 	WorkerStatusTerminated
+	WorkerStatusUnreachable
 )
 
 type Worker struct {

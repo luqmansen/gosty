@@ -85,19 +85,17 @@ func (wrk workerServices) workerWatcher() {
 				retry, _ := workerRetryAttempt.LoadOrStore(w.WorkerPodName, 0)
 
 				if retry.(int) > 5 {
-					// TODO [#19]: Also remove worker from db if retry failed > 5
-					log.Infof("Ping to to ip %s worker %s failed >5 times, setting worker to terminated...", w.IpAddress, w.WorkerPodName)
+					log.Infof("Ping to to ip %s worker %s failed >5 times, marking worker as terminated...", w.IpAddress, w.WorkerPodName)
 					w.Status = models.WorkerStatusTerminated
-					w.WorkingOn = ""
 					if err := wrk.workerRepo.Upsert(w); err != nil {
-						log.Errorf("Failed to upsert worker %s, err: %s", w.WorkerPodName, err)
+						log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
 					}
-
+					workerRetryAttempt.Delete(w.WorkerPodName)
 					return
 				}
-				// 8087 is worker's health check port
+
 				client := http.Client{Timeout: 1 * time.Second}
-				resp, err := client.Get(fmt.Sprintf("http://%s:8087/live", w.IpAddress))
+				resp, err := client.Get(fmt.Sprintf("http://%s:8088/", w.IpAddress))
 				if err != nil {
 					log.Errorf("Failed to ping ip %s worker %s on attempt no %d, error: %s",
 						w.IpAddress, w.WorkerPodName, retry, err)
@@ -105,12 +103,28 @@ func (wrk workerServices) workerWatcher() {
 				}
 
 				if resp != nil && resp.StatusCode == http.StatusOK {
-					if w.WorkingOn == "" {
-						w.Status = models.WorkerStatusReady
+					var body map[string]string
+					if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+						log.Error(err)
 					}
-					//reset retry attempt
-					workerRetryAttempt.Store(w.WorkerPodName, 0)
+
+					if body["hostname"] == w.WorkerPodName {
+						if w.WorkingOn == "" {
+							w.Status = models.WorkerStatusReady
+						}
+						//reset retry attempt
+						workerRetryAttempt.Store(w.WorkerPodName, 0)
+					} else {
+						log.Infof("Pod name not match, most likely ip address is recycled, got: %s removing...", body["hostname"])
+						if err := wrk.workerRepo.Delete(w.WorkerPodName); err != nil {
+							log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
+						}
+						return
+					}
+				} else {
+					w.Status = models.WorkerStatusUnreachable
 				}
+
 				w.UpdatedAt = time.Now()
 
 				if err := wrk.workerRepo.Upsert(w); err != nil {

@@ -97,6 +97,11 @@ const WorkerPageV2 = () => {
                         width={250}
                     />
                     <Column
+                        label='IP Address'
+                        dataKey='ip_address'
+                        width={250}
+                    />
+                    <Column
                         label='Status'
                         dataKey='status'
                         width={180}

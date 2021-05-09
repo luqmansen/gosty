@@ -107,6 +107,13 @@ func (w workerRepository) Add(worker *models.Worker) error {
 	return nil
 }
 
-func (w workerRepository) Delete(workerId uint) error {
-	panic("implement me")
+func (w workerRepository) Delete(podName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), w.db.timeout)
+	defer cancel()
+	c := w.db.client.Database(w.db.database).Collection(workerCollectionName)
+	filter := bson.M{"workerpodname": podName}
+	if _, e := c.DeleteOne(ctx, filter); e != nil {
+		return errors.Wrap(e, "repositories.Worker.Delete")
+	}
+	return nil
 }
