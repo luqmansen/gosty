@@ -39,8 +39,8 @@ func main() {
 
 	//Registering worker to API Server
 	if w := workerSvc.GetWorkerInfo(); w != nil {
-		log.Infof("Starting worker version %s", gitCommit)
-		log.Infof("Worker %s started, Ip: %s", w.WorkerPodName, w.IpAddress)
+		log.Infof("Worker version %s", gitCommit)
+		log.Infof("Registering worker %s to apiserver, ip: %s", w.WorkerPodName, w.IpAddress)
 		if err := workerSvc.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
 			log.Error(err)
 		}

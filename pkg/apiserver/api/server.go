@@ -31,7 +31,7 @@ func (server *Server) GetRouter() *chi.Mux {
 
 func (server *Server) Serve() {
 
-	log.Infof("apiserver running on pod %server, listening to %s:%s server",
+	log.Infof("apiserver running on pod %s, listening to %s:%s server",
 		os.Getenv("HOSTNAME"), server.host, server.port)
 
 	loggedRouter := handlers.LoggingHandler(os.Stdout, server.router)
