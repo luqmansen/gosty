@@ -4,6 +4,8 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
+	"github.com/luqmansen/gosty/pkg/apiserver/services"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
@@ -11,6 +13,8 @@ import (
 
 type Services interface {
 	GetWorkerInfo() *models.Worker
+	//RegisterWorker will register worker to API Server
+	RegisterWorker()
 	GetMessageBroker() repositories.Messenger
 	ProcessTaskDash(task *models.Task) error
 	ProcessTaskSplit(task *models.Task) error
@@ -51,4 +55,20 @@ func (s *Svc) GetWorkerInfo() *models.Worker {
 
 func (s *Svc) GetMessageBroker() repositories.Messenger {
 	return s.messageBroker
+}
+
+// RegisterWorker will execute every 30 second to regularly register.
+// This is current workaround to prevent worker from falsely marked as
+// terminated when actually there is a network partition during
+// api server check
+func (s *Svc) RegisterWorker() {
+	for {
+		if w := s.GetWorkerInfo(); w != nil {
+			log.Infof("Registering worker %s to apiserver, ip: %s", w.WorkerPodName, w.IpAddress)
+			if err := s.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
+				log.Error(err)
+			}
+		}
+		time.Sleep(30 * time.Second)
+	}
 }

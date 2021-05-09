@@ -29,7 +29,7 @@ func main() {
 	mb := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
 	workerSvc := worker.NewWorkerService(mb, cfg)
 
-	// TODO [#3]:  this initiation should be handled by storage service
+	// TODO [#3]:  Storage repository initiation should be handled by storage service
 	if _, err := os.Stat(worker.TmpPath); os.IsNotExist(err) {
 		err = os.Mkdir(worker.TmpPath, 0700)
 		if err != nil {
@@ -37,14 +37,8 @@ func main() {
 		}
 	}
 
-	//Registering worker to API Server
-	if w := workerSvc.GetWorkerInfo(); w != nil {
-		log.Infof("Worker version %s", gitCommit)
-		log.Infof("Registering worker %s to apiserver, ip: %s", w.WorkerPodName, w.IpAddress)
-		if err := workerSvc.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {
-			log.Error(err)
-		}
-	}
+	log.Infof("Worker version %s", gitCommit)
+	go workerSvc.RegisterWorker()
 
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
@@ -52,9 +46,10 @@ func main() {
 
 	w := svc{workerSvc}
 	go w.processNewTask(newTaskData)
-
 	go worker.InitHealthCheck(cfg, rabbitClient)
 
+	// This is endpoint is for api server to check availability
+	// of this worker and this worker pod name
 	go func() {
 		http.HandleFunc("/", getHostname())
 		err := http.ListenAndServe(":8088", nil)

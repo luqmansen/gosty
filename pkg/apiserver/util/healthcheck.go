@@ -17,7 +17,7 @@ import (
 func InitHealthCheck(cfg *config.Configuration, mongoClient *mongo.Client, rabbitClient *amqp.Connection) {
 	health := hc.NewHandler()
 	//too many goroutine might be a sign of a resource leak
-	health.AddLivenessCheck("goroutine-threshold", hc.GoroutineCountCheck(200000))
+	health.AddLivenessCheck("goroutine-threshold", hc.GoroutineCountCheck(20000))
 
 	health.AddReadinessCheck("database", MongoDBPingCheck(mongoClient, 10*time.Second))
 	health.AddReadinessCheck("rabbitmq", RabbitPingCheck(rabbitClient))

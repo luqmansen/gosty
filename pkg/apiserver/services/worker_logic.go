@@ -7,8 +7,10 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -68,6 +70,9 @@ func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action
 func (wrk workerServices) workerWatcher() {
 	var wg sync.WaitGroup
 	var workerRetryAttempt sync.Map
+	failureThreshold, _ := strconv.Atoi(viper.GetString("PING_WORKER_FAILURE_THRESHOLD"))
+	pingTimeout, _ := strconv.Atoi(viper.GetString("PING_WORKER_TIMEOUT"))
+	log.Infof("Starting worker watcher with timeout %d sec and threshold %d", pingTimeout, failureThreshold)
 	for {
 		// TODO [#18]: cache worker.GetAll() function
 		// Cache get all worker function and expire the cache
@@ -84,17 +89,18 @@ func (wrk workerServices) workerWatcher() {
 
 				retry, _ := workerRetryAttempt.LoadOrStore(w.WorkerPodName, 0)
 
-				if retry.(int) > 5 {
-					log.Infof("Ping to to ip %s worker %s failed >5 times, marking worker as terminated...", w.IpAddress, w.WorkerPodName)
+				if retry.(int) > failureThreshold {
+					log.Warnf("Ping to to ip %s worker %s failed >%d times, marking worker as terminated...",
+						w.IpAddress, w.WorkerPodName, failureThreshold)
 					w.Status = models.WorkerStatusTerminated
+					//ideally, at this point, api server should invoke new worker
 					if err := wrk.workerRepo.Upsert(w); err != nil {
 						log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
 					}
 					workerRetryAttempt.Delete(w.WorkerPodName)
 					return
 				}
-
-				client := http.Client{Timeout: 1 * time.Second}
+				client := http.Client{Timeout: time.Duration(pingTimeout) * time.Second}
 				resp, err := client.Get(fmt.Sprintf("http://%s:8088/", w.IpAddress))
 				if err != nil {
 					log.Errorf("Failed to ping ip %s worker %s on attempt no %d, error: %s",
@@ -107,7 +113,10 @@ func (wrk workerServices) workerWatcher() {
 					if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 						log.Error(err)
 					}
-					// Doesn't work with autoscaling docker-compose, only on k8s
+					// TODO: Get Worker IP from outbound interface
+					// Current implementation doesn't work with autoscaling
+					// on docker-compose, only on k8s. Use this
+					// https://stackoverflow.com/a/37382208/11914433
 					if body["hostname"] == w.WorkerPodName {
 						if w.WorkingOn == "" {
 							w.Status = models.WorkerStatusReady
@@ -115,7 +124,7 @@ func (wrk workerServices) workerWatcher() {
 						//reset retry attempt
 						workerRetryAttempt.Store(w.WorkerPodName, 0)
 					} else {
-						log.Infof("Pod name not match, most likely ip address is recycled, got: %s removing...", body["hostname"])
+						log.Warnf("Pod name not match, most likely ip address is recycled, got: %s removing...", body["hostname"])
 						if err := wrk.workerRepo.Delete(w.WorkerPodName); err != nil {
 							log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
 						}
