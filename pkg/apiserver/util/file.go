@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -54,7 +55,6 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
-	// Submit the request
 	var res *http.Response
 	post := func() (err error) {
 		client := http.Client{}
@@ -62,6 +62,10 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 		if err != nil {
 			logrus.Errorf("Uploading file error: %s, url: %s", err, url)
 			return
+		}
+		if res.StatusCode != http.StatusCreated {
+			logrus.Errorf("Uploading file error: %d, url: %s", res.StatusCode, url)
+			return errors.New(fmt.Sprintf("Failed to uploads to %s, status code : %d", url, res.StatusCode))
 		}
 		return
 	}
@@ -91,6 +95,10 @@ func Download(filepath string, url string) (err error) {
 		if err != nil {
 			logrus.Errorf("Downloading file error: %s, url: %s", err, url)
 			return err
+		}
+		if resp.StatusCode != http.StatusOK {
+			logrus.Errorf("Downloading file error: %d, url: %s", resp.StatusCode, url)
+			return errors.New(fmt.Sprintf("Failed to download from %s, status code : %d", url, resp.StatusCode))
 		}
 		return nil
 	}
