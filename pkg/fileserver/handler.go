@@ -2,6 +2,7 @@ package fileserver
 
 import (
 	"bufio"
+	"container/list"
 	"fmt"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
@@ -23,20 +24,45 @@ type Handler interface {
 	HandleUpload(writer http.ResponseWriter, request *http.Request)
 	HandleFileServer(writer http.ResponseWriter, request *http.Request)
 	DropAll(writer http.ResponseWriter, request *http.Request)
+	SyncHook(writer http.ResponseWriter, request *http.Request)
+	ExecuteSynchronization()
 }
 
 type fileServer struct {
 	pathToServe string
 	//This is dns of other statefulsets dns
+	selfHost           string
 	peerFileServerHost []string
-	dirList            *sync.Map
+	fileLists          *sync.Map
+	syncQueue          *list.List
 }
 
-func NewFileServerHandler(pathToServe string) Handler {
+func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) Handler {
+
+	if _, err := os.Stat(pathToServe); os.IsNotExist(err) {
+		log.Infof("folder %s doesn't exists, creating...", pathToServe)
+		err = os.Mkdir(pathToServe, 0700)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+
+	files, err := ioutil.ReadDir(pathToServe)
+	if err != nil {
+		log.Error(err)
+	}
+
+	var fileLists sync.Map
+	for _, file := range files {
+		fileLists.Store(file.Name(), file)
+	}
+
 	return &fileServer{
-		pathToServe: pathToServe,
-		//peerFileServerHost: peerFsHost,
-		//dirList:            dirList,
+		pathToServe:        pathToServe,
+		peerFileServerHost: peerFsHost,
+		selfHost:           host,
+		fileLists:          &fileLists,
+		syncQueue:          list.New(),
 	}
 }
 
@@ -45,14 +71,6 @@ func (h *fileServer) Index(writer http.ResponseWriter, request *http.Request) {
 }
 
 func (h *fileServer) HandleFileServer(writer http.ResponseWriter, request *http.Request) {
-
-	if _, err := os.Stat(h.pathToServe); os.IsNotExist(err) {
-		err = os.Mkdir(h.pathToServe, 0700)
-		if err != nil {
-			log.Error(err)
-		}
-	}
-
 	ctx := chi.RouteContext(request.Context())
 	pathPrefix := strings.TrimSuffix(ctx.RoutePattern(), "/*")
 	fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(h.pathToServe)))
@@ -82,7 +100,7 @@ func (h *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	params, _ := url.ParseQuery(r.URL.RawQuery)
 	fileName := params.Get("filename")
 
-	f, err := os.Create(StoragePath + fileName)
+	f, err := os.Create(h.pathToServe + "/" + fileName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -106,6 +124,8 @@ func (h *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 	}
+
+	h.triggerSync()
 }
 
 func (h *fileServer) DropAll(w http.ResponseWriter, r *http.Request) {
