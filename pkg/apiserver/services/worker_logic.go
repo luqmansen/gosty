@@ -113,7 +113,7 @@ func (wrk workerServices) workerWatcher() {
 					if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 						log.Error(err)
 					}
-					// TODO [$6099e5a45eb1e900082be6bf]: Get Worker IP from outbound interface
+					// TODO [#28]: Get Worker IP from outbound interface
 					// Current implementation doesn't work with autoscaling
 					// on docker-compose, only on k8s. Use this
 					// https://stackoverflow.com/a/37382208/11914433
