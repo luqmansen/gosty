@@ -4,31 +4,37 @@ import (
 	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/luqmansen/gosty/pkg/fileserver"
+	"github.com/spf13/viper"
 	"os"
+	"strings"
 )
 
 func main() {
-
 	workDir, _ := os.Getwd()
 	folder := util.GetEnv("STORAGE", "storage")
 	pathToServe := workDir + "/" + folder
 
 	port := util.GetEnv("PORT", "8001")
-	host := util.GetEnv("FS_HOST", "0.0.0.0")
-	peerHost := []string{"0.0.0.0:8001", "0.0.0.0:8002"}
-	selfHost := fmt.Sprintf("%s:%s", host, port)
+	host := util.GetEnv("POD_IP", "0.0.0.0")
+	peerHost := util.GetEnv("FILESERVER_PEER_HOST", "")
+	peer := strings.Split(peerHost, ",")
+	selfHost := viper.GetString("HOSTNAME")
 	var excludedSelfHost []string
-	for _, h := range peerHost {
-		if h != selfHost {
+	for _, h := range peer {
+		if h != selfHost && h != "" {
 			excludedSelfHost = append(excludedSelfHost, h)
 		}
 	}
 
-	fileServerHandler := fileserver.NewFileServerHandler(pathToServe, excludedSelfHost, selfHost)
+	fileServerHandler := fileserver.NewFileServerHandler(pathToServe,
+		excludedSelfHost, fmt.Sprintf("%s:%s", host, port))
 	router := fileserver.NewRouter(fileServerHandler)
 	server := fileserver.NewServer(selfHost, router)
-	fileServerHandler.InitialSync() // don't run this on goroutine, need to be finished first
+	go server.Serve()
+
+	go fileServerHandler.InitialSync() // don't run this on goroutine, need to be finished first
 	go fileServerHandler.ExecuteSynchronization()
 
-	server.Serve()
+	forever := make(chan bool)
+	<-forever
 }

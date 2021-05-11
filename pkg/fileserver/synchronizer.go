@@ -1,3 +1,4 @@
+// Fast and dirty implementation for synchronized file server across replica
 package fileserver
 
 import (
@@ -15,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -28,29 +30,85 @@ func (h *fileServer) InitialSync() {
 	if err != nil {
 		log.Error(err)
 	}
-	if len(files) > 0 {
-		errs, _ := errgroup.WithContext(context.Background())
-		// initial sync, broadcast to all peers every file
-		// todo: optimize to single network call
-		for _, f := range files {
-			f := f
-			h.syncMapFileLists.Store(f.Name(), f)
-			errs.Go(
-				func() error {
-					err := h.peerChecker()
-					if err != nil {
-						log.Error(err)
-						return err
-					} else {
-						// skip broadcast to dead peer
-						return h.broadcastToAllPeers(f)
-					}
-				})
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if len(files) > 0 {
+			errs, _ := errgroup.WithContext(context.Background())
+			// initial sync, broadcast to all peers every file
+			// todo: optimize to single network call
+			for _, f := range files {
+				f := f
+				h.syncMapFileLists.Store(f.Name(), f)
+				errs.Go(
+					func() error {
+						err := h.peerChecker()
+						if err != nil {
+							log.Errorf("Failed to checking peer, %s", err)
+							return err
+						} else {
+							return h.broadcastToAllPeers(f)
+						}
+
+					})
+			}
+			if err = errs.Wait(); err != nil {
+				log.Error(err)
+			}
 		}
-		if err = errs.Wait(); err != nil {
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := h.initialDownloadAllFromPeer(); err != nil {
 			log.Error(err)
 		}
+	}()
+	wg.Wait()
+}
+
+func (h *fileServer) initialDownloadAllFromPeer() error {
+	log.Debug("Downloading from peer")
+	errs, _ := errgroup.WithContext(context.Background())
+	for _, hosts := range h.peerFileServerHost {
+		hosts := hosts
+		errs.Go(
+			func() error {
+				resp, err := http.Get("http://" + hosts + "/all")
+				if err != nil {
+					return err
+				}
+				if resp.StatusCode != http.StatusOK {
+					return errors.New("status code != 200")
+				}
+				b, _ := ioutil.ReadAll(resp.Body)
+				var fileList []string
+				err = json.Unmarshal(b, &fileList)
+				if err != nil {
+					return err
+				}
+				for _, f := range fileList {
+					f := f
+					errs.Go(
+						func() error {
+							url := fmt.Sprintf("http://%s/files/%s", hosts, f)
+							path := h.pathToServe + "/" + f
+
+							//if _, err := os.Stat(path); os.IsNotExist(err) {
+							if err := util.Download(path, url); err != nil {
+								log.Errorf("Failed to download %s from %s, err: %s", f, hosts, err)
+								return err
+							} else {
+								h.syncMapFileLists.Store(f, "")
+							}
+							return nil
+						})
+				}
+				return errs.Wait()
+			})
 	}
+	return errs.Wait()
 }
 
 // Make sure all peer hosts alive
@@ -60,23 +118,25 @@ func (h *fileServer) peerChecker() error {
 	defer cancelFunc()
 
 	errs, _ := errgroup.WithContext(ctx)
-	for _, peer := range h.peerFileServerHost {
-		peer := peer
-		errs.Go(func() error {
-			err := backoff.Retry(
-				func() error {
-					resp, err := http.Get("http://" + peer)
-					if err != nil {
-						return err
-					}
-					if resp.StatusCode != http.StatusOK {
-						return errors.New("status code != 200")
-					}
-					return nil
-				}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
+	if len(h.peerFileServerHost) > 0 {
+		for _, peer := range h.peerFileServerHost {
+			peer := peer
+			errs.Go(func() error {
+				err := backoff.Retry(
+					func() error {
+						resp, err := http.Get("http://" + peer)
+						if err != nil {
+							return err
+						}
+						if resp.StatusCode != http.StatusOK {
+							return errors.New("status code != 200")
+						}
+						return nil
+					}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 
-			return err
-		})
+				return err
+			})
+		}
 	}
 	return errs.Wait()
 }
@@ -85,19 +145,22 @@ func (h *fileServer) ExecuteSynchronization() {
 	for {
 		for h.syncQueue.Len() > 0 {
 			e := h.syncQueue.Front()
-			file := e.Value.(fileInfo)
+			var file fileInfo
+			if e != nil && e.Value != nil {
+				file = e.Value.(fileInfo)
+			}
 			url := fmt.Sprintf("http://%s/files/%s", file.Origin, file.FileName)
 			path := h.pathToServe + "/" + file.FileName
 
-			if _, err := os.Stat(path); os.IsNotExist(err) {
-				if err := util.Download(path, url); err != nil {
-					log.Errorf("Failed to download %s from %s", file.FileName, file.Origin)
-					h.syncQueue.PushBack(e) //re-queue
-				} else {
-					h.syncMapFileLists.Store(file.FileName, file)
-					h.syncQueue.Remove(e) // dequeue
-				}
+			//if _, err := os.Stat(path); os.IsNotExist(err) {
+			if err := util.Download(path, url); err != nil {
+				log.Errorf("Failed to download %s from %s", file.FileName, file.Origin)
+				h.syncQueue.PushBack(e.Value) //re-queue
+			} else {
+				h.syncMapFileLists.Store(file.FileName, file)
+				h.syncQueue.Remove(e) // dequeue
 			}
+			//}
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -109,7 +172,11 @@ func (h *fileServer) SyncHook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 	}
-	h.syncQueue.PushBack(file)
+	if file.Origin != "" && file.FileName != "" {
+		h.syncQueue.PushBack(file)
+	} else {
+		log.Errorf("empty file origin or filename, %s", file)
+	}
 }
 
 func (h *fileServer) triggerSync() {

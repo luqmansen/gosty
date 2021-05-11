@@ -28,8 +28,6 @@ func (s Svc) ProcessTaskDash(task *models.Task) error {
 		go func(vidName string) {
 			defer wg.Done()
 
-			log.Debug(os.Getwd())
-
 			inputPath := fmt.Sprintf("%s/%s", workdir, vidName)
 			url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), vidName)
 			log.Debug(inputPath)
@@ -92,6 +90,7 @@ func (s Svc) ProcessTaskDash(task *models.Task) error {
 		log.Debug(f.Name())
 	}
 
+	// TODO: Use errs.Go from x/sync/errorgroup
 	for _, file := range dashResult {
 		wg.Add(1)
 		go func(fileName string) {

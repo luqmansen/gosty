@@ -3,6 +3,7 @@ package fileserver
 import (
 	"bufio"
 	"container/list"
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
@@ -24,6 +25,7 @@ type Handler interface {
 	HandleUpload(writer http.ResponseWriter, request *http.Request)
 	HandleFileServer(writer http.ResponseWriter, request *http.Request)
 	DropAll(writer http.ResponseWriter, request *http.Request)
+	GetAll(writer http.ResponseWriter, request *http.Request)
 
 	// Sync related
 	InitialSync()
@@ -61,6 +63,26 @@ func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) 
 
 func (h *fileServer) Index(writer http.ResponseWriter, request *http.Request) {
 	writer.Write([]byte("OK"))
+}
+
+func (h *fileServer) GetAll(writer http.ResponseWriter, request *http.Request) {
+	files, err := ioutil.ReadDir(h.pathToServe)
+	if err != nil {
+		log.Error(err)
+	}
+	var payload []string
+	for _, f := range files {
+		payload = append(payload, f.Name())
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		log.Error(err)
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(err.Error()))
+	}
+	writer.WriteHeader(http.StatusOK)
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(b)
 }
 
 func (h *fileServer) HandleFileServer(writer http.ResponseWriter, request *http.Request) {
