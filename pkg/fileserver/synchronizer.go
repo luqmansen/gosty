@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"io"
@@ -13,11 +15,70 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 )
 
 type fileInfo struct {
 	Origin   string
 	FileName string
+}
+
+func (h *fileServer) InitialSync() {
+	files, err := ioutil.ReadDir(h.pathToServe)
+	if err != nil {
+		log.Error(err)
+	}
+	if len(files) > 0 {
+		errs, _ := errgroup.WithContext(context.Background())
+		// initial sync, broadcast to all peers every file
+		// todo: optimize to single network call
+		for _, f := range files {
+			f := f
+			h.syncMapFileLists.Store(f.Name(), f)
+			errs.Go(
+				func() error {
+					err := h.peerChecker()
+					if err != nil {
+						log.Error(err)
+						return err
+					} else {
+						// skip broadcast to dead peer
+						return h.broadcastToAllPeers(f)
+					}
+				})
+		}
+		if err = errs.Wait(); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+// Make sure all peer hosts alive
+func (h *fileServer) peerChecker() error {
+	ctx, cancelFunc := context.WithTimeout(
+		context.Background(), 10*time.Second)
+	defer cancelFunc()
+
+	errs, _ := errgroup.WithContext(ctx)
+	for _, peer := range h.peerFileServerHost {
+		peer := peer
+		errs.Go(func() error {
+			err := backoff.Retry(
+				func() error {
+					resp, err := http.Get("http://" + peer)
+					if err != nil {
+						return err
+					}
+					if resp.StatusCode != http.StatusOK {
+						return errors.New("status code != 200")
+					}
+					return nil
+				}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
+
+			return err
+		})
+	}
+	return errs.Wait()
 }
 
 func (h *fileServer) ExecuteSynchronization() {
@@ -27,14 +88,18 @@ func (h *fileServer) ExecuteSynchronization() {
 			file := e.Value.(fileInfo)
 			url := fmt.Sprintf("http://%s/files/%s", file.Origin, file.FileName)
 			path := h.pathToServe + "/" + file.FileName
-			if err := util.Download(path, url); err != nil {
-				log.Errorf("Failed to download %s from %s", file.FileName, file.Origin)
-				h.syncQueue.PushBack(e) //re-queue
-			} else {
-				h.fileLists.Store(file.FileName, file)
-				h.syncQueue.Remove(e) // dequeue
+
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				if err := util.Download(path, url); err != nil {
+					log.Errorf("Failed to download %s from %s", file.FileName, file.Origin)
+					h.syncQueue.PushBack(e) //re-queue
+				} else {
+					h.syncMapFileLists.Store(file.FileName, file)
+					h.syncQueue.Remove(e) // dequeue
+				}
 			}
 		}
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -55,9 +120,9 @@ func (h *fileServer) triggerSync() {
 	errs, _ := errgroup.WithContext(context.Background())
 	for _, f := range files {
 		f := f
-		_, exists := h.fileLists.Load(f.Name())
+		_, exists := h.syncMapFileLists.Load(f.Name())
 		if !exists {
-			h.fileLists.Store(f.Name(), f)
+			h.syncMapFileLists.Store(f.Name(), f)
 			//not exists on map, so it must be the new file
 			//inform to other file server
 			errs.Go(
@@ -87,16 +152,19 @@ func (h *fileServer) broadcastToAllPeers(file fs.FileInfo) error {
 					log.Error(err)
 					return err
 				}
-				fmt.Println(string(b))
 				url := fmt.Sprintf("http://%s/sync", hosts)
-				resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
-				if err != nil {
-					log.Error(err)
-				}
-				if resp.StatusCode != 200 {
-					log.Errorf("resp status code %d", resp.StatusCode)
-				}
-				return err
+				return backoff.Retry(
+					func() error {
+						resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+						if err != nil {
+							log.Error(err)
+						}
+
+						if resp.StatusCode != 200 {
+							log.Errorf("resp status code %d", resp.StatusCode)
+						}
+						return err
+					}, backoff.NewExponentialBackOff())
 			},
 		)
 	}

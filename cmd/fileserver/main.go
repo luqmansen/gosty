@@ -27,6 +27,7 @@ func main() {
 	fileServerHandler := fileserver.NewFileServerHandler(pathToServe, excludedSelfHost, selfHost)
 	router := fileserver.NewRouter(fileServerHandler)
 	server := fileserver.NewServer(selfHost, router)
+	fileServerHandler.InitialSync() // don't run this on goroutine, need to be finished first
 	go fileServerHandler.ExecuteSynchronization()
 
 	server.Serve()

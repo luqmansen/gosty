@@ -24,6 +24,9 @@ type Handler interface {
 	HandleUpload(writer http.ResponseWriter, request *http.Request)
 	HandleFileServer(writer http.ResponseWriter, request *http.Request)
 	DropAll(writer http.ResponseWriter, request *http.Request)
+
+	// Sync related
+	InitialSync()
 	SyncHook(writer http.ResponseWriter, request *http.Request)
 	ExecuteSynchronization()
 }
@@ -33,7 +36,7 @@ type fileServer struct {
 	//This is dns of other statefulsets dns
 	selfHost           string
 	peerFileServerHost []string
-	fileLists          *sync.Map
+	syncMapFileLists   *sync.Map
 	syncQueue          *list.List
 }
 
@@ -47,21 +50,11 @@ func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) 
 		}
 	}
 
-	files, err := ioutil.ReadDir(pathToServe)
-	if err != nil {
-		log.Error(err)
-	}
-
-	var fileLists sync.Map
-	for _, file := range files {
-		fileLists.Store(file.Name(), file)
-	}
-
 	return &fileServer{
 		pathToServe:        pathToServe,
 		peerFileServerHost: peerFsHost,
 		selfHost:           host,
-		fileLists:          &fileLists,
+		syncMapFileLists:   &sync.Map{},
 		syncQueue:          list.New(),
 	}
 }
