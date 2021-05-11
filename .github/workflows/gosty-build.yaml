@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.2
+
       - name: Build worker
         run: |
           make cleanup
@@ -29,9 +34,13 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.2
+
       - name: Build fileserver
         run: |
-          go mod vendor
           make cleanup
           make fs-bin
 
@@ -47,6 +56,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.2
+
       - name: Test Api Server
         run: |
           go clean -testcache
