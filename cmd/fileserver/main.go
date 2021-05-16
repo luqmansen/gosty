@@ -17,12 +17,12 @@ func main() {
 	port := util.GetEnv("PORT", "8001")
 	host := util.GetEnv("POD_IP", "0.0.0.0")
 	peerHost := util.GetEnv("FILESERVER_PEER_HOST", "")
-	peer := strings.Split(peerHost, ",")
+	peers := strings.Split(peerHost, ",")
 	selfHost := viper.GetString("HOSTNAME")
 	var excludedSelfHost []string
-	for _, h := range peer {
-		if h != selfHost && h != "" {
-			excludedSelfHost = append(excludedSelfHost, h)
+	for _, peer := range peers {
+		if !strings.Contains(peer, selfHost) && peer != "" {
+			excludedSelfHost = append(excludedSelfHost, peer)
 		}
 	}
 
