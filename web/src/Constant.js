@@ -1,7 +1,7 @@
-//export const APISERVER_HOST = "api"
-export const APISERVER_HOST = "http://localhost:8000/api"
-//export const FILESERVER_HOST = "files"
-export const FILESERVER_HOST = "http://localhost:8001/files"
+export const APISERVER_HOST = "api"
+//export const APISERVER_HOST = "http://localhost:8000/api"
+export const FILESERVER_HOST = "files"
+//export const FILESERVER_HOST = "http://localhost:8001/files"
 
 export const EVENTSTREAM_ENDPOINT = "/events"
 export const WORKER_STREAM_NAME = "worker"

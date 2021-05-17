@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gosty-worker
+  namespace: gosty
+
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: gosty-worker
+          resources:
+            requests:
+              cpu: "1"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+

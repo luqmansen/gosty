@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../gosty/
+
+patches:
+  #APISERVER
+  - target:
+      kind: Deployment
+      name: gosty-apiserver
+    path: apiserver-deployment.yaml
+
+  #WEB
+  - target:
+      kind: Deployment
+      name: gosty-web
+    path: web-deployment.yaml
+
+  #FILESERVER
+  - target:
+      kind: StatefulSet
+      name: gosty-fileserver
+    path: fileserver-deployment.yaml
+
+  #WORKER
+  - target:
+      kind: Deployment
+      name: gosty-worker
+    path: worker-deployment.yaml

@@ -18,6 +18,7 @@
 .idea
 
 .docker
+.env
 
 *.mp4
 *.mkv

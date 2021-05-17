@@ -21,7 +21,8 @@ func InitHealthCheck(cfg *config.Configuration, mongoClient *mongo.Client, rabbi
 
 	health.AddReadinessCheck("database", MongoDBPingCheck(mongoClient, 10*time.Second))
 	health.AddReadinessCheck("rabbitmq", RabbitPingCheck(rabbitClient))
-	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 30*time.Second))
+	health.AddReadinessCheck("file-server", hc.HTTPGetCheck(cfg.FileServer.GetFileServerUri(), 10*time.Second))
+	health.AddReadinessCheck("file-server-dns", hc.DNSResolveCheck("gosty-fileserver-headless.gosty.svc.cluster.local", 10*time.Second))
 
 	port := "8086"
 	log.Infof("healthcheck running on pod %s, listening to %s", os.Getenv("HOSTNAME"), port)
@@ -47,6 +48,11 @@ func RabbitPingCheck(connection *amqp.Connection) hc.Check {
 	return func() error {
 		// TODO [#12]:  try to reuse the channel instead of opening new channel everytime this endpoint got hit
 		ch, err := connection.Channel()
+		defer func() {
+			if ch != nil {
+				ch.Close()
+			}
+		}()
 		if err != nil {
 			log.Errorf("failed to get rabbitmq channel: %s", err)
 			return fmt.Errorf("failed to open rabbitmq channel: %s", err)
@@ -63,6 +69,11 @@ func RabbitPingCheck(connection *amqp.Connection) hc.Check {
 		}
 
 		ch2, err := connection.Channel()
+		defer func() {
+			if ch2 != nil {
+				ch2.Close()
+			}
+		}()
 		if ch2 == nil {
 			return fmt.Errorf("failed to open rabbitmq channel2: %s", err)
 		}

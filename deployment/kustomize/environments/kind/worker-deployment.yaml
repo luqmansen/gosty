@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gosty-worker
+  namespace: gosty
+spec:
+  replicas: 0
+  template:
+    spec:
+      containers:
+        - name: gosty-worker
+          image: localhost:5000/gosty-worker:latest

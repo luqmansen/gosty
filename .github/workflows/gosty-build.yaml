@@ -18,7 +18,6 @@ jobs:
 
       - name: Build worker
         run: |
-          make cleanup
           make worker-bin
 
       - name: Publish to Dockerhub
@@ -41,7 +40,6 @@ jobs:
 
       - name: Build fileserver
         run: |
-          make cleanup
           make fs-bin
 
       - name: Publish to Dockerhub
@@ -69,7 +67,6 @@ jobs:
 
       - name: Build apiserver
         run: |
-          make cleanup
           make api-bin
 
       - name: Publish to Dockerhub

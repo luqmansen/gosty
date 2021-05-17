@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gosty-web
+  namespace: gosty
+spec:
+  template:
+    spec:
+      containers:
+        - name: gosty-web
+          image: localhost:5000/gosty-web-dev:latest

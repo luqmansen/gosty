@@ -13,50 +13,60 @@ fs:
 	nodemon --exec go run cmd/fileserver/main.go --signal SIGTERM
 
 api-bin:
+	rm -rf build/apiserver
 	GOOS=$(GOOS) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
 		-o build/apiserver/apiserver cmd/apiserver/main.go
 worker-bin:
+	rm -rf build/worker
 	GOOS=$(GOOS) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
  		-o build/worker/worker cmd/worker/main.go
 fs-bin:
+	rm -rf build/fileserver
 	GOOS=$(GOOS) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
  		-o build/fileserver/fileserver cmd/fileserver/main.go
 
 all-bin: api-bin worker-bin fs-bin
 
-cleanup:
-	rm -rf build/*
-
-docker-base-worker: cleanup
+docker-base-worker:
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
-docker-web-dev:
+docker-web:
+	DOCKER_BUILDKIT=1 docker build -t luqmansen/gosty-web -f docker/web.Dockerfile .
+	docker push luqmansen/gosty-web
+
+
+docker-web-local:
 	yarn --cwd ./web/ build
 	docker build -t localhost:5000/gosty-web-dev -f docker/web.dev.Dockerfile .
 	docker push localhost:5000/gosty-web-dev
 
-docker-web:
-	DOCKER_BUILDKIT=1 docker build -t luqmansen/gosty-web -f docker/web.Dockerfile .
+docker-worker: worker-bin
+	docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .
+	docker push luqmansen/gosty-worker
 
-docker-worker: cleanup worker-bin
-	#docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .
+docker-worker-local: worker-bin
 	docker build -t localhost:5000/gosty-worker -f docker/worker.Dockerfile .
 	docker push localhost:5000/gosty-worker
 
-docker-fs: cleanup fs-bin
-	#docker build -t luqmansen/gosty-fileserver -f docker/fileserver.Dockerfile .
+docker-fs:  fs-bin
+	docker build -t luqmansen/gosty-fileserver -f docker/fileserver.Dockerfile .
+	docker push luqmansen/gosty-fileserver
+
+docker-fs-local:  fs-bin
 	docker build -t localhost:5000/gosty-fileserver -f docker/fileserver.Dockerfile .
 	docker push localhost:5000/gosty-fileserver
 
-docker-api: cleanup api-bin
-	#docker build -t luqmansen/gosty-apiserver:$(TAG) -f docker/apiserver.Dockerfile .
-	#docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
 
-	#for using docker local registry
+docker-api:  api-bin
+	docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
+	docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
+
+docker-api-local:  api-bin
 	docker build -t localhost:5000/gosty-apiserver -f docker/apiserver.Dockerfile .
 	docker push localhost:5000/gosty-apiserver
 
 push-all: docker-api docker-fs docker-worker docker-web
+push-all-local: docker-api-local docker-fs-local docker-worker-local docker-web-local
 
 rollout-restart:
 	# sometimes rabbitmq randomly wont start

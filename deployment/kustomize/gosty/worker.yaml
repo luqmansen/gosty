@@ -47,14 +47,7 @@ spec:
               port: 8087
             initialDelaySeconds: 5
             periodSeconds: 3
-
-          resources:
-            requests:
-              cpu: "1"
-              memory: "512Mi"
-            limits:
-              memory: "1Gi"
+          #
           envFrom:
             - configMapRef:
                 name: gosty-config
----

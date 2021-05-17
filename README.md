@@ -1,5 +1,7 @@
 # gosty
 
+**\*readme needs a lot of update**
+
 Kubernetes's compliance scalable cloud transcoding service
 
 ## Architecture diagram
@@ -45,7 +47,7 @@ Set your mongodb & rabbitmq secret on configmap (change to secret if you want, m
 Then apply linkerd & gosty component
 
 ```bash
-bash ./deployment/deploy.sh
+kubectl apply -k deployment/kustomize/environtment/gke
 ```
 
 #### Deploy RabbitMQ and MongoDB inside Cluster
@@ -233,7 +235,24 @@ curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash
 ### Run curl pod for debugging
 
 ```shell
-kubectl run curl-test --image=radial/busyboxplus:curl -i --tty --rm            
+# omit --rm to keep instance after exit
+kubectl run curl-test --image=radial/busyboxplus:curl -i --tty --rm             
+```
+
+Testing to post a file
+
+```bash
+
+```
+
+Post data via curl
+
+```
+curl \
+  -X POST \
+  -H "Content-Type: multipart/form-data; boundary=----------------------------4ebf00fbcf09" \
+  --data-binary @output1080p.mp4 \
+  http://10.104.11.21/api/video/upload
 ```
 
 ## Issues

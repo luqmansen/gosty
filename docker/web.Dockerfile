@@ -9,7 +9,7 @@ RUN npm install
 # Build react on CI runner so we improve built speed
 # by using github actions runner caching support
 COPY web/ .
-RUN npm run build
+RUN yarn run build
 
 FROM nginx:1.19.6-alpine
 

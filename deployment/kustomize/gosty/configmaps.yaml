@@ -15,4 +15,9 @@ data:
   FILE_MIN_SIZE_MB: "50"
   PING_WORKER_FAILURE_THRESHOLD: "10"
 
-  FILESERVER_PEER_HOST: "gosty-fileserver-0,gosty-fileserver-1,gosty-fileserver-2"
+  RABBITMQ_URI: ""
+  MONGODB_URI: ""
+
+  GOSTY_FILESERVER_SERVICE_HOST: "gosty-fileserver-headless"
+  GOSTY_FILESERVER_SERVICE_PORT: "8001"
+  FILESERVER_PEER_HOST: "gosty-fileserver-0.gosty-fileserver-headless,gosty-fileserver-1.gosty-fileserver-headless,gosty-fileserver-2.gosty-fileserver-headless"

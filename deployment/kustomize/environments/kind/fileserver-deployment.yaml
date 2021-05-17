@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gosty-fileserver
+  namespace: gosty
+
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: pv-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+
+  template:
+    spec:
+      containers:
+        - image: localhost:5000/gosty-fileserver:latest
+          name: gosty-fileserver
+
+
