@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -48,7 +49,7 @@ func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) 
 		log.Infof("folder %s doesn't exists, creating...", pathToServe)
 		err = os.Mkdir(pathToServe, 0700)
 		if err != nil {
-			log.Error(err)
+			log.Error(errors.Wrap(err, "Error initiating file server handler"))
 		}
 	}
 
@@ -68,7 +69,7 @@ func (h *fileServer) Index(writer http.ResponseWriter, request *http.Request) {
 func (h *fileServer) GetAll(writer http.ResponseWriter, request *http.Request) {
 	files, err := ioutil.ReadDir(h.pathToServe)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error ioutil.ReadDir"))
 	}
 	var payload []string
 	for _, f := range files {
@@ -76,7 +77,7 @@ func (h *fileServer) GetAll(writer http.ResponseWriter, request *http.Request) {
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error json.Marshal"))
 		writer.WriteHeader(http.StatusInternalServerError)
 		writer.Write([]byte(err.Error()))
 	}
@@ -95,7 +96,7 @@ func (h *fileServer) HandleFileServer(writer http.ResponseWriter, request *http.
 func (h *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	reader, err := r.MultipartReader()
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(errors.Wrap(err, "Error MultipartReader"))
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

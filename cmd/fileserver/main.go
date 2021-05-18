@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/luqmansen/gosty/pkg/fileserver"
-	"github.com/spf13/viper"
+	log "github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"strings"
 )
+
+var gitCommit string
 
 func main() {
 	workDir, _ := os.Getwd()
@@ -16,25 +20,33 @@ func main() {
 
 	port := util.GetEnv("PORT", "8001")
 	host := util.GetEnv("POD_IP", "0.0.0.0")
+	address := fmt.Sprintf("%s:%s", host, port)
 	peerHost := util.GetEnv("FILESERVER_PEER_HOST", "")
 	peers := strings.Split(peerHost, ",")
-	selfHost := viper.GetString("HOSTNAME")
-	var excludedSelfHost []string
+	selfHost := os.Getenv("HOSTNAME")
+	var peerLists []string
 	for _, peer := range peers {
-		if !strings.Contains(peer, selfHost) && peer != "" {
-			excludedSelfHost = append(excludedSelfHost, peer)
+		if peer != "" && !strings.Contains(peer, selfHost) {
+			peerLists = append(peerLists, fmt.Sprintf("%s:%s", peer, port))
 		}
 	}
-
-	fileServerHandler := fileserver.NewFileServerHandler(pathToServe,
-		excludedSelfHost, fmt.Sprintf("%s:%s", host, port))
+	log.Infof("Peer list: %s", peerLists)
+	fileServerHandler := fileserver.NewFileServerHandler(pathToServe, peerLists, address)
 	router := fileserver.NewRouter(fileServerHandler)
-	server := fileserver.NewServer(selfHost, router)
+	server := fileserver.NewServer(address, router)
+	getVersion(router)
+
 	go server.Serve()
 
-	go fileServerHandler.InitialSync() // don't run this on goroutine, need to be finished first
+	go fileServerHandler.InitialSync()
 	go fileServerHandler.ExecuteSynchronization()
 
 	forever := make(chan bool)
 	<-forever
+}
+
+func getVersion(router *chi.Mux) {
+	router.Get("/version", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Write([]byte(gitCommit))
+	})
 }

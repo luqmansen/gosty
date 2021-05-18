@@ -28,7 +28,7 @@ type fileInfo struct {
 func (h *fileServer) InitialSync() {
 	files, err := ioutil.ReadDir(h.pathToServe)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error ioutil.ReadDir"))
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -54,7 +54,7 @@ func (h *fileServer) InitialSync() {
 					})
 			}
 			if err = errs.Wait(); err != nil {
-				log.Error(err)
+				log.Error(errors.Wrap(err, "Error InitialSync"))
 			}
 		}
 	}()
@@ -62,7 +62,7 @@ func (h *fileServer) InitialSync() {
 	go func() {
 		defer wg.Done()
 		if err := h.initialDownloadAllFromPeer(); err != nil {
-			log.Error(err)
+			log.Error(errors.Wrap(err, "Error initialDownloadAllFromPeer"))
 		}
 	}()
 	wg.Wait()
@@ -142,6 +142,7 @@ func (h *fileServer) peerChecker() error {
 }
 
 func (h *fileServer) ExecuteSynchronization() {
+	log.Infof("Running sync exec")
 	for {
 		for h.syncQueue.Len() > 0 {
 			e := h.syncQueue.Front()
@@ -170,7 +171,7 @@ func (h *fileServer) SyncHook(w http.ResponseWriter, r *http.Request) {
 	var file fileInfo
 	err := json.NewDecoder(r.Body).Decode(&file)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error SyncHook"))
 	}
 	if file.Origin != "" && file.FileName != "" {
 		h.syncQueue.PushBack(file)
@@ -182,7 +183,7 @@ func (h *fileServer) SyncHook(w http.ResponseWriter, r *http.Request) {
 func (h *fileServer) triggerSync() {
 	files, err := ioutil.ReadDir(h.pathToServe)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error triggerSync"))
 	}
 	errs, _ := errgroup.WithContext(context.Background())
 	for _, f := range files {
@@ -200,7 +201,7 @@ func (h *fileServer) triggerSync() {
 		}
 	}
 	if err = errs.Wait(); err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error triggerSync"))
 	}
 }
 
@@ -224,11 +225,11 @@ func (h *fileServer) broadcastToAllPeers(file fs.FileInfo) error {
 					func() error {
 						resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 						if err != nil {
-							log.Error(err)
+							log.Error(errors.Wrap(err, "Error http.Post"))
 						}
 
 						if resp.StatusCode != 200 {
-							log.Errorf("resp status code %d", resp.StatusCode)
+							log.Error(errors.Wrap(err, fmt.Sprintf("resp status code %d", resp.StatusCode)))
 						}
 						return err
 					}, backoff.NewExponentialBackOff())
@@ -254,7 +255,7 @@ func (h *fileServer) uploadToAllPeers(filename string) error {
 				url := fmt.Sprintf("http://%s/upload?filename=%s", hosts, filename)
 				err := util.Upload(url, values)
 				if err != nil {
-					return err
+					return errors.Wrap(err, fmt.Sprintf("uploadToAllPeers %s", hosts))
 				}
 				return nil
 			})
