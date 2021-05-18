@@ -77,6 +77,48 @@ func NewRabbitMQConn(connectionUri string) (conn *amqp.Connection) {
 	return conn
 }
 
+// RabbitMqWatcher will be endpoint of all resource
+// that need to be watched related to rabbitmq
+func (r *rabbitRepo) ResourcesWatcher() {
+	log.Infof("Starting rabbitmq resource watcher")
+	go r.channelWatcher(r.queueDeclareChan)
+	go r.channelWatcher(r.publisherChan)
+
+	go r.connectionWatcher()
+
+	forever := make(chan bool)
+	<-forever
+}
+
+func (r *rabbitRepo) connectionWatcher() {
+	c := make(chan *amqp.Error)
+	go r.conn.NotifyClose(c)
+	select {
+	case err := <-c:
+		log.Errorf("trying to reconnect: %s", err.Error())
+		r.conn = NewRabbitMQConn(r.uri)
+		r.conn.NotifyClose(c)
+	}
+}
+
+func (r *rabbitRepo) channelWatcher(channel *amqp.Channel) {
+	c := make(chan *amqp.Error)
+	go channel.NotifyClose(c)
+
+	select {
+	case err := <-c:
+		log.Errorf("trying to reconnect: %s", err.Error())
+		ch, channelErr := r.conn.Channel()
+		if channelErr != nil {
+			log.Errorf("Error to reopen channel, %s", channelErr)
+		} else {
+			channel = ch
+			channel.NotifyClose(c)
+		}
+	}
+
+}
+
 func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 
 	q, err := r.queueDeclareChan.QueueDeclare(
@@ -125,15 +167,25 @@ func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 		nil,       // arguments
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("Failed to declare queue: %s", err)
+	}
+	//Consumer need to use same channel where prefetch count is set,
+	//so that consumer will follow that prefetch rule.
+	ch, err := r.conn.Channel()
+	if ch != nil {
+		err = ch.Qos(1, 0, true)
+		defer func() {
+			if err := ch.Close(); err != nil {
+				log.Errorf("Failed to close channel on publish message: %s", err)
+			}
+		}()
 	}
 
-	err = r.setQosChan.Qos(1, 0, true)
 	if err != nil {
 		log.Errorf("Failed to set QoS for the channel: %s", err)
 	}
 
-	msg, err := r.consumerChan.Consume(
+	msg, err := ch.Consume(
 		q.Name,
 		"",
 		false,

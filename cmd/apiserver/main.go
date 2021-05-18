@@ -35,6 +35,7 @@ func main() {
 
 	rabbitClient := rabbitmq.NewRabbitMQConn(cfg.MessageBroker.GetMessageBrokerUri())
 	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
+	go rabbit.ResourcesWatcher()
 	sseServer := sse.New()
 	sseServer.CreateStream(services.WorkerHTTPEventStream)
 	sseServer.CreateStream(services.TaskHTTPEventStream)
@@ -45,7 +46,7 @@ func main() {
 
 	go schedulerSvc.ReadMessages()
 	go workerSvc.ReadMessage()
-	go util.InitHealthCheck(cfg, mongoClient, rabbitClient)
+	go util.InitHealthCheck(cfg, mongoClient, rabbitClient, cfg.MessageBroker.GetMessageBrokerUri())
 
 	videoRestHandler := api.NewVideoHandler(cfg, videoSvc)
 	workerRestHandler := api.NewWorkerHandler(workerSvc)

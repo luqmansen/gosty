@@ -46,7 +46,7 @@ func main() {
 
 	w := svc{workerSvc}
 	go w.processNewTask(newTaskData)
-	go worker.InitHealthCheck(cfg, rabbitClient)
+	go worker.InitHealthCheck(cfg, rabbitClient, cfg.MessageBroker.GetMessageBrokerUri())
 
 	// This is endpoint is for api server to check availability
 	// of this worker and this worker pod name
