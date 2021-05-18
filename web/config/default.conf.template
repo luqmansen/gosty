@@ -1,5 +1,7 @@
 upstream fileserver{
-     server ${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
+     server gosty-fileserver-0.${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
+     server gosty-fileserver-1.${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
+     server gosty-fileserver-2.${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
 }
 
 upstream apiserver{
@@ -23,6 +25,12 @@ server {
    }
 
     location /files {
+        # current workaround to disable cache, frontend doesn't properly load m4s segment
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires -1;
+        etag off;
+
         proxy_pass http://fileserver;
     }
 
