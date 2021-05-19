@@ -10,31 +10,31 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockMessageBrokerRepository is a mock of MessageBrokerRepository interface.
-type MockMessageBrokerRepository struct {
+// MockMessenger is a mock of Messenger interface.
+type MockMessenger struct {
 	ctrl     *gomock.Controller
-	recorder *MockMessageBrokerRepositoryMockRecorder
+	recorder *MockMessengerMockRecorder
 }
 
-// MockMessageBrokerRepositoryMockRecorder is the mock recorder for MockMessageBrokerRepository.
-type MockMessageBrokerRepositoryMockRecorder struct {
-	mock *MockMessageBrokerRepository
+// MockMessengerMockRecorder is the mock recorder for MockMessenger.
+type MockMessengerMockRecorder struct {
+	mock *MockMessenger
 }
 
-// NewMockMessageBrokerRepository creates a new mock instance.
-func NewMockMessageBrokerRepository(ctrl *gomock.Controller) *MockMessageBrokerRepository {
-	mock := &MockMessageBrokerRepository{ctrl: ctrl}
-	mock.recorder = &MockMessageBrokerRepositoryMockRecorder{mock}
+// NewMockMessenger creates a new mock instance.
+func NewMockMessenger(ctrl *gomock.Controller) *MockMessenger {
+	mock := &MockMessenger{ctrl: ctrl}
+	mock.recorder = &MockMessengerMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockMessageBrokerRepository) EXPECT() *MockMessageBrokerRepositoryMockRecorder {
+func (m *MockMessenger) EXPECT() *MockMessengerMockRecorder {
 	return m.recorder
 }
 
 // Publish mocks base method.
-func (m *MockMessageBrokerRepository) Publish(data interface{}, queueName string) error {
+func (m *MockMessenger) Publish(data interface{}, queueName string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Publish", data, queueName)
 	ret0, _ := ret[0].(error)
@@ -42,19 +42,31 @@ func (m *MockMessageBrokerRepository) Publish(data interface{}, queueName string
 }
 
 // Publish indicates an expected call of Publish.
-func (mr *MockMessageBrokerRepositoryMockRecorder) Publish(data, queueName interface{}) *gomock.Call {
+func (mr *MockMessengerMockRecorder) Publish(data, queueName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockMessageBrokerRepository)(nil).Publish), data, queueName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockMessenger)(nil).Publish), data, queueName)
 }
 
 // ReadMessage mocks base method.
-func (m *MockMessageBrokerRepository) ReadMessage(res chan<- interface{}, queueName string) {
+func (m *MockMessenger) ReadMessage(res chan<- interface{}, queueName string) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReadMessage", res, queueName)
 }
 
 // ReadMessage indicates an expected call of ReadMessage.
-func (mr *MockMessageBrokerRepositoryMockRecorder) ReadMessage(res, queueName interface{}) *gomock.Call {
+func (mr *MockMessengerMockRecorder) ReadMessage(res, queueName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadMessage", reflect.TypeOf((*MockMessageBrokerRepository)(nil).ReadMessage), res, queueName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadMessage", reflect.TypeOf((*MockMessenger)(nil).ReadMessage), res, queueName)
+}
+
+// ResourcesWatcher mocks base method.
+func (m *MockMessenger) ResourcesWatcher() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ResourcesWatcher")
+}
+
+// ResourcesWatcher indicates an expected call of ResourcesWatcher.
+func (mr *MockMessengerMockRecorder) ResourcesWatcher() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResourcesWatcher", reflect.TypeOf((*MockMessenger)(nil).ResourcesWatcher))
 }

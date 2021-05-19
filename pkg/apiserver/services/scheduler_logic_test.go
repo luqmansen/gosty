@@ -45,7 +45,7 @@ func Test_schedulerServices_CreateSplitTask(t *testing.T) {
 	type fields struct {
 		taskRepo  *mock_mongo.MockTaskRepository
 		videoRepo repositories.VideoRepository
-		messenger *mock_rabbitmq.MockMessageBrokerRepository
+		messenger *mock_rabbitmq.MockMessenger
 		sse       *sse.Server
 		scheduler *mock_scheduler.MockScheduler
 	}
@@ -62,7 +62,7 @@ func Test_schedulerServices_CreateSplitTask(t *testing.T) {
 			name: "success create split task with size more than minimum size, expect error nil",
 			prepare: func(f *fields) {
 				_ = os.Setenv("FILE_MIN_SIZE_MB", "50")
-				minSize := int64(50 * 1e+6)
+				minSize := int64(50)
 				video := &models.Video{Size: 10240 << 15}
 				task := models.Task{
 					OriginVideo: video,
@@ -145,7 +145,7 @@ func Test_schedulerServices_CreateSplitTask(t *testing.T) {
 			defer controller.Finish()
 			f := fields{
 				taskRepo:  mock_mongo.NewMockTaskRepository(controller),
-				messenger: mock_rabbitmq.NewMockMessageBrokerRepository(controller),
+				messenger: mock_rabbitmq.NewMockMessenger(controller),
 				scheduler: mock_scheduler.NewMockScheduler(controller),
 			}
 			if tt.prepare != nil {
@@ -167,7 +167,7 @@ func Test_schedulerServices_createTranscodeTaskFromSplitTask(t *testing.T) {
 	type fields struct {
 		taskRepo  *mock_mongo.MockTaskRepository
 		videoRepo repositories.VideoRepository
-		messenger *mock_rabbitmq.MockMessageBrokerRepository
+		messenger *mock_rabbitmq.MockMessenger
 		sse       *sse.Server
 		scheduler *mock_scheduler.MockScheduler
 	}
