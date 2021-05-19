@@ -93,10 +93,12 @@ func (wrk workerServices) workerWatcher() {
 					log.Warnf("Ping to to ip %s worker %s failed >%d times, marking worker as terminated...",
 						w.IpAddress, w.WorkerPodName, failureThreshold)
 					w.Status = models.WorkerStatusTerminated
-					//ideally, at this point, api server should invoke new worker
-					if err := wrk.workerRepo.Upsert(w); err != nil {
+					//ideally, at this point, api server should invoke new worker, but we can't
+					//do it for now, leave this to kubernetes
+					if err := wrk.workerRepo.Delete(w.WorkerPodName); err != nil {
 						log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
 					}
+					log.Infof("Worker %s deleted", w.WorkerPodName)
 					workerRetryAttempt.Delete(w.WorkerPodName)
 					return
 				}
@@ -106,6 +108,7 @@ func (wrk workerServices) workerWatcher() {
 					log.Errorf("Failed to ping ip %s worker %s on attempt no %d, error: %s",
 						w.IpAddress, w.WorkerPodName, retry, err)
 					workerRetryAttempt.Store(w.WorkerPodName, retry.(int)+1)
+					w.Status = models.WorkerStatusUnreachable
 				}
 
 				if resp != nil && resp.StatusCode == http.StatusOK {
@@ -130,8 +133,6 @@ func (wrk workerServices) workerWatcher() {
 						}
 						return
 					}
-				} else {
-					w.Status = models.WorkerStatusUnreachable
 				}
 
 				w.UpdatedAt = time.Now()
