@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/google/uuid"
 	"github.com/h2non/filetype"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
@@ -100,7 +99,7 @@ func (h video) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ext := mimetype.Detect(sniff).Extension()
-	fileName := fmt.Sprintf("%s-*%s", uuid.NewString(), ext)
+	fileName := fmt.Sprintf("%s-*%s", util.GenerateID(), ext)
 	f, err := ioutil.TempFile(apiserverTempDir, fileName)
 	if err != nil {
 		log.Errorf("Error creating temp file %s", err)
