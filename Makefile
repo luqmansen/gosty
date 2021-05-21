@@ -1,5 +1,6 @@
 GOOS=linux
 GOPATH:=$(shell go env GOPATH)
+CPUCOUNT:=$(shell grep -c ^processor /proc/cpuinfo)
 GIT_COMMIT := $(shell git rev-list -1 HEAD)
 
 .PHONY: dev
@@ -11,6 +12,10 @@ wrk:
 
 fs:
 	nodemon --exec go run cmd/fileserver/main.go --signal SIGTERM
+
+test:
+	go clean -testcache
+	go test ./pkg/apiserver/... -v --parallel $(CPUCOUNT)
 
 web-dev:
 	yarn --cwd ./web/ start

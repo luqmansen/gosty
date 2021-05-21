@@ -8,11 +8,13 @@ import (
 	"github.com/luqmansen/gosty/mock/pkg/apiserver/service"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
+	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/pkg/errors"
 	"github.com/r3labs/sse/v2"
 	"math"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -61,8 +63,9 @@ func Test_schedulerServices_CreateSplitTask(t *testing.T) {
 		{
 			name: "success create split task with size more than minimum size, expect error nil",
 			prepare: func(f *fields) {
-				_ = os.Setenv("FILE_MIN_SIZE_MB", "50")
-				minSize := int64(50)
+				_ = os.Setenv("FILE_MIN_SIZE_MB", "10")
+				fileSize, _ := strconv.Atoi(util.GetEnv("FILE_MIN_SIZE_MB", "10")) // Default 10 MB (Skip this until merge task is done)
+				minSize := int64(fileSize * 1e+6)
 				video := &models.Video{Size: 10240 << 15}
 				task := models.Task{
 					OriginVideo: video,
