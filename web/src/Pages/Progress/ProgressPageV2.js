@@ -104,7 +104,7 @@ const tableData = (v) => {
             rowClassName='table-row'
             headerHeight={40}
             width={1500}
-            height={v.task_list.length * 40}
+            height={v.task_list.length * 50}
             rowHeight={40}
             rowCount={v.task_list.length}
             rowGetter={({index}) => v.task_list[index]}

@@ -27,7 +27,7 @@ const WorkerPageV2 = () => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
             let d = JSON.parse(event.data)
-            if (d.length > 0){
+            if ((d) && (d.length > 0)){
                 d.sort(
                     (a, b) => {
                         if (a.status < b.status) {
