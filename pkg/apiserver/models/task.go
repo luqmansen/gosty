@@ -24,6 +24,14 @@ const (
 	TaskDash
 )
 
+var TASK_NAME_ENUM = map[TaskKind]string{
+	TaskNew:       "TASK_NEW",
+	TaskSplit:     "TASK_SPLIT",
+	TaskMerge:     "TASK_MERGE",
+	TaskTranscode: "TASK_TRANSCODE",
+	TaskDash:      "TASK_DASH",
+}
+
 type TaskTranscodeType int
 
 const (
@@ -62,6 +70,8 @@ type (
 
 	MergeTask struct {
 		// List of actual video that ready to be merged
+		// TODO: refactor this list video data model
+		// Worker just need the filename
 		ListVideo []*Video `json:"list_video"`
 		Result    *Video   `json:"result"`
 	}

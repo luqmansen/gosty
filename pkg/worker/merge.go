@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,8 @@ func (s Svc) ProcessTaskMerge(task *models.Task) error {
 	start := time.Now()
 	wd, _ := os.Getwd()
 	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
+
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
 
 	errCh := make(chan error)
 	var wg sync.WaitGroup
@@ -37,7 +40,7 @@ func (s Svc) ProcessTaskMerge(task *models.Task) error {
 			}
 		}(video.FileName)
 	}
-	wg.Wait() //need to make sure all files downloaded
+	wg.Wait() //need to make sure all files are downloaded
 
 	//list all file with absolute path
 	var fileList []string
@@ -48,15 +51,23 @@ func (s Svc) ProcessTaskMerge(task *models.Task) error {
 		return errors.New("no file to merge")
 	}
 
+	sort.Strings(fileList)
+	for _, asu := range fileList {
+		fmt.Println(asu)
+	}
+
 	//create FIFOs for every video with format: absolute/path/filename_00X_WxH
 	var namedPipeList []string
 	for _, f := range fileList {
 		namedPipeList = append(namedPipeList, strings.Split(f, ".")[0])
 	}
 
-	//output name will be absolute/path/original_file_name_WxH.mp4
-	splitName := strings.Split(fileList[0], "_")
-	outputFilePath := fmt.Sprintf("%s_%s", splitName[0], splitName[2])
+	//What below code does is, split filename from
+	// "/path/to/tmpworker/filename-alsofilename-5_256x144.mp4"
+	// to  path/to/tmpworker/filename-alsofilename_256x144.mp4"
+	splitName := strings.Split(fileList[0], "-")
+	ext := strings.Split(strings.Split(splitName[2], "-")[0], "_")
+	outputFilePath := fmt.Sprintf("%s_%s", splitName[0], ext[1])
 
 	//merging using concat protocol + named pipe
 	//since currently we only support mp4
@@ -125,7 +136,7 @@ func (s Svc) ProcessTaskMerge(task *models.Task) error {
 
 		fileReader, err := os.Open(outputFilePath)
 		if err != nil {
-			log.Errorf("error opening output: %s", err)
+			log.Error(errors.Wrap(err, "error opening output"))
 			errCh <- err
 			return
 		}

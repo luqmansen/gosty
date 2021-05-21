@@ -46,7 +46,8 @@ func (s Svc) ProcessTaskDash(task *models.Task) error {
 		fileList = append(fileList, fmt.Sprintf("%s/%s", workdir, v.FileName))
 	}
 
-	log.Debugf("Processing dash task id: %s", task.Id.Hex())
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
+
 	origFileName := strings.Split(strings.Split(task.TaskDash.ListVideo[0].FileName, ".")[0], "_")[0]
 
 	cmd := exec.Command("bash", "script/dash.sh",

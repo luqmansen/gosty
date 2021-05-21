@@ -6,5 +6,5 @@ volume/
 .git/
 playground/
 storage/
-tmp-worker/
+tmpworker/
 web/node_modules/

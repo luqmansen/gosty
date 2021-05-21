@@ -32,7 +32,7 @@
 /tmp/
 /build/
 /storage/
-/tmp-worker/
+/tmpworker/
 /web/node_modules/
 /web/build/
 /deployment/k8s/playground/

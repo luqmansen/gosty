@@ -127,7 +127,7 @@ func (wrk workerServices) workerWatcher() {
 						//reset retry attempt
 						workerRetryAttempt.Store(w.WorkerPodName, 0)
 					} else {
-						log.Warnf("Pod name not match, most likely ip address is recycled, got: %s removing...", body["hostname"])
+						log.Warnf("Pod name not match, most likely ip address is recycled, expected %s, got: %s, removing...", w.WorkerPodName, body["hostname"])
 						if err := wrk.workerRepo.Delete(w.WorkerPodName); err != nil {
 							log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
 						}

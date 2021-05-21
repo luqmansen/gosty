@@ -34,7 +34,8 @@ func (s Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 		return err
 	}
 
-	log.Debugf("Processing task id: %s", task.Id.Hex())
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
+
 	outBuff := &bytes.Buffer{}
 	cmd := fluentffmpeg.NewCommand("").
 		InputPath(inputPath).
@@ -160,7 +161,8 @@ func (s Svc) ProcessTaskTranscodeAudio(task *models.Task) error {
 		return err
 	}
 
-	log.Debugf("Processing task id: %s", task.Id.Hex())
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
+
 	outBuff := &bytes.Buffer{}
 	cmd := fluentffmpeg.NewCommand("").
 		InputPath(inputPath).

@@ -41,6 +41,7 @@ func LoadConfig(path string) *Configuration {
 	if err != nil {
 		log.Error(fmt.Errorf("Fatal error failed to decode to struct: %s \n", err))
 	}
+	log.Debugf("Split task minimum file: %s", viper.GetString("FILE_MIN_SIZE_MB"))
 	return conf
 }
 

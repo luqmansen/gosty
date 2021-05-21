@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,6 +24,7 @@ func (s Svc) ProcessTaskSplit(task *models.Task) error {
 	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	filePath := fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName)
+	log.Debug(filePath)
 	url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), task.TaskSplit.Video.FileName)
 	err := util.Download(filePath, url)
 	if err != nil {
@@ -30,17 +32,18 @@ func (s Svc) ProcessTaskSplit(task *models.Task) error {
 		return err
 	}
 
-	log.Debugf("Processing task id: %s", task.Id.Hex())
-	//dockerVol := fmt.Sprintf("%s:/work/", workdir)
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
+
 	cmd := exec.Command(
-		"MP4Box", "-splits", strconv.Itoa(int(task.TaskSplit.SizePerVid)/1024), // Split size in KB
-		task.TaskSplit.Video.FileName)
+		"bash", wd+"/script/split.sh", fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName),
+		strconv.FormatInt(task.TaskSplit.SizePerVid, 10), "-c copy")
+	log.Debug(cmd.String())
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	cmd.Dir = workdir
+	cmd.Dir = wd
 
 	err = cmd.Run()
 	if err != nil {
@@ -58,8 +61,11 @@ func (s Svc) ProcessTaskSplit(task *models.Task) error {
 
 	var tempFiles []string
 	for _, f := range files {
-		name := strings.Split(strings.Split(f.Name(), ".")[0], "_")[0]
-		if name == strings.Split(task.TaskSplit.Video.FileName, ".")[0] {
+		//only append related files of current task to be sent to fileserver,
+		//prevent possibility of undeleted files from previous task
+		splitFileName := strings.Join(strings.Split(strings.Split(f.Name(), ".")[0], "-")[:2], "-")
+		originalFileName := strings.Split(task.TaskSplit.Video.FileName, ".")[0]
+		if splitFileName == originalFileName {
 			tempFiles = append(tempFiles, f.Name())
 		}
 
@@ -68,11 +74,20 @@ func (s Svc) ProcessTaskSplit(task *models.Task) error {
 		return errors.New("worker.ProcessTaskSplit: no files found, something wrong")
 	}
 
+	// I prefer sorted slice, easier to check every video segment order
+	sort.Strings(tempFiles)
+
 	errCh := make(chan error, 1)
 	var wg sync.WaitGroup
-	for _, file := range tempFiles[1:] { // skip original file
+	for _, file := range tempFiles {
+		if file == task.TaskSplit.Video.FileName {
+			continue
+		} // skip original file
+
 		wg.Add(1)
-		go func(fileName string, w *sync.WaitGroup) {
+		go func(fileName string) {
+			defer wg.Done()
+
 			filePath := fmt.Sprintf("%s/%s", workdir, fileName)
 			fileReader, err := os.Open(filePath)
 			if err != nil {
@@ -93,8 +108,7 @@ func (s Svc) ProcessTaskSplit(task *models.Task) error {
 				errCh <- err
 				return
 			}
-			w.Done()
-		}(file, &wg)
+		}(file)
 	}
 
 	wg.Add(1)
@@ -109,9 +123,16 @@ func (s Svc) ProcessTaskSplit(task *models.Task) error {
 	}(&wg)
 
 	var videoList []*models.Video
-	for _, file := range tempFiles[1:] {
+	for _, fileName := range tempFiles {
+		if fileName == task.TaskSplit.Video.FileName {
+			continue
+		} // skip original file
+
+		// TODO: refactor splited video result data structure
+		// this part is super redundant, as every single property
+		// is same as parent video (except duration maybe)
 		videoList = append(videoList, &models.Video{
-			FileName: file,
+			FileName: fileName,
 			Size:     task.OriginVideo.Size,
 			Bitrate:  task.OriginVideo.Bitrate,
 			Duration: task.OriginVideo.Duration,

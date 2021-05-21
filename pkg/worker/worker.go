@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"os"
 	"time"
 )
 
@@ -24,7 +25,7 @@ type Services interface {
 }
 
 const (
-	TmpPath = "tmp-worker"
+	TmpPath = "tmpworker"
 )
 
 type Svc struct {
@@ -36,12 +37,14 @@ type Svc struct {
 }
 
 func NewWorkerService(mb repositories.Messenger, conf *config.Configuration) Services {
+	containerHostname, _ := os.Hostname()
+
 	return &Svc{
 		messageBroker: mb,
 		worker: &models.Worker{
 			Id:            primitive.NewObjectID(),
 			WorkerPodName: viper.GetString("HOSTNAME"),
-			IpAddress:     viper.GetString("POD_IP"),
+			IpAddress:     containerHostname,
 			Status:        models.WorkerStatusReady,
 			UpdatedAt:     time.Now(),
 		},
@@ -62,6 +65,8 @@ func (s *Svc) GetMessageBroker() repositories.Messenger {
 // terminated when actually there is a network partition during
 // api server check
 func (s *Svc) RegisterWorker() {
+	// TODO: worker status will stale on working if worker interrupted when working
+	// need to add flag to worker to check whether worker is still working or not
 	for {
 		if w := s.GetWorkerInfo(); w != nil {
 			if err := s.GetMessageBroker().Publish(w, services.WorkerNew); err != nil {

@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
@@ -111,13 +110,88 @@ func (s *schedulerServices) CreateSplitTask(video *models.Video) error {
 	return s.createSplitTask(video, s)
 }
 
+func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Scheduler) error {
+	//split by size in Byte
+	var sizePerVid int64
+	var sizeLeft int64
+
+	// TODO [#7]:  make the chunk file size is dynamic base on number of worker, worker failure rate, etc
+	// since lots of smaller task with same number of worker will just add overhead
+	// in processing. The pros is, in case of pod failure in the middle of a processing,
+	// the task that need to be re-processed is in smaller chunk. Currently I'll set this dynamically
+	// via env var.
+	fileSize, err := strconv.Atoi(util.GetEnv("FILE_MIN_SIZE_MB", "10")) // Default 10 MB (Skip this until merge task is done)
+	if err != nil {
+		log.Error(errors.Wrap(err, "Failed to convert size to mb"))
+	}
+
+	minSize := int64(fileSize * 1e+6) // convert Megabyte to Byte
+	// if video size less than min file size, forward to transcode task
+	if video.Size < minSize {
+		// TODO [#8]:  make this task definition not redundant.
+		// Task is re-defined on CreateTranscodeTask, but
+		// this is a current workaround for preserve origin
+		// video field, later please redesign the data models
+		task := &models.Task{
+			OriginVideo:   video,
+			TaskTranscode: &models.TranscodeTask{Video: video},
+		}
+		err := scheduler.CreateTranscodeTask(task)
+		if err != nil {
+			return err
+		}
+
+		//if err := s.createTranscodeAudioTask(video); err != nil {
+		//	log.Error(err)
+		//	return err
+		//}
+		return nil
+	} else {
+		//split per 10 MB files
+		sizePerVid = minSize
+		sizeLeft = video.Size % minSize
+	}
+
+	//if err := s.createTranscodeAudioTask(video); err != nil {
+	//	log.Error(err)
+	//	return err
+	//}
+
+	task := models.Task{
+		OriginVideo: video,
+		Kind:        models.TaskSplit,
+		TaskSplit: &models.SplitTask{
+			Video:       video,
+			TargetChunk: int(math.Ceil(float64(video.Size) / float64(minSize))),
+			SizePerVid:  sizePerVid,
+			SizeLeft:    sizeLeft,
+		},
+		PrevTask:      models.TaskNew,
+		Status:        models.TaskQueued,
+		TaskSubmitted: time.Now(),
+	}
+
+	err = s.taskRepo.Add(&task)
+	if err != nil {
+		log.Errorf("service.createSplitTask, err: %s", err)
+		return err
+	}
+	err = s.messenger.Publish(&task, MessageBrokerQueueTaskNew)
+	if err != nil {
+		log.Errorf("service.createSplitTask, err: %s", err)
+		return err
+	}
+	return nil
+}
+
 // Transcode video input to all representation, each of video represent as task
 // this function might be transcoding a part video (video with _00X name)
 func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	// check if previously from task split
 	// file name on task split contain random-name_001
 	videoToTranscode := task.TaskTranscode.Video
-	fileName := strings.Split(videoToTranscode.FileName, "_")
+	// TODO: add this file separator as constant
+	fileName := strings.Split(videoToTranscode.FileName, "-")
 	var prevTask models.TaskKind
 	if len(fileName) == 1 {
 		prevTask = models.TaskNew
@@ -234,7 +308,7 @@ func (s schedulerServices) CreateMergeTask(task *models.Task) error {
 	}
 	// check if all all chunk of video is already transcoded
 	if len(taskTranscodeList) != len(splitTask.TaskSplit.SplitedVideo) {
-		log.Debugf("all transcode task for resolution %s haven't finished, need %d, get %d",
+		log.Debugf("all transcode task for resolution %s haven't finished, get %d, need %d",
 			targetRes, len(taskTranscodeList), len(splitTask.TaskSplit.SplitedVideo))
 		return nil
 	}
@@ -299,8 +373,11 @@ func (s schedulerServices) CreateDashTask(task *models.Task) error {
 		reprCount = task.TaskTranscode.TargetReprCount
 		prevTask = models.TaskTranscode
 	} else {
-		// must be previously from task merge
-		prevTask = models.TaskMerge
+		// tbh I forgot why i put it here, seems nobody use this
+		// inform that previous from task was a task merge
+		prevTask = models.TaskMerge // <- this part
+		// but I don't want to break anything
+
 		t, err := s.taskRepo.GetOneByVideoNameAndKind(task.OriginVideo.FileName, models.TaskTranscode)
 		if err != nil {
 			log.Errorf("scheduler.CreateDashTask: %s", err)
@@ -349,87 +426,15 @@ func (s schedulerServices) DeleteTask(taskId string) error {
 	panic("implement me")
 }
 
-func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Scheduler) error {
-	//split by size in Byte
-	var sizePerVid int64
-	var sizeLeft int64
-
-	// TODO [#7]:  make the chunk file size is dynamic base on number of worker, worker failure rate, etc
-	// since lots of smaller task with same number of worker will just add overhead
-	// in processing. The pros is, in case of pod failure in the middle of a processing,
-	// the task that need to be re-processed is in smaller chunk. Currently I'll set this dynamically
-	// via env var.
-	fileSize, err := strconv.Atoi(util.GetEnv("FILE_MIN_SIZE_MB", "10")) // Default 10 MB (Skip this until merge task is done)
-	if err != nil {
-		log.Error(errors.Wrap(err, "Failed to convert size to mb"))
-	}
-
-	minSize := int64(fileSize * 1e+6) // convert Megabyte to Byte
-	// if video size less than min file size, forward to transcode task
-	if video.Size < minSize {
-		// TODO [#8]:  make this task definition not redundant.
-		// Task is re-defined on CreateTranscodeTask, but
-		// this is a current workaround for preserve origin
-		// video field, later please redesign the data models
-		task := &models.Task{
-			OriginVideo:   video,
-			TaskTranscode: &models.TranscodeTask{Video: video},
-		}
-		err := scheduler.CreateTranscodeTask(task)
-		if err != nil {
-			return err
-		}
-
-		//if err := s.createTranscodeAudioTask(video); err != nil {
-		//	log.Error(err)
-		//	return err
-		//}
-		return nil
-	} else {
-		//split per 10 MB files
-		sizePerVid = minSize
-		sizeLeft = video.Size % minSize
-	}
-
-	//if err := s.createTranscodeAudioTask(video); err != nil {
-	//	log.Error(err)
-	//	return err
-	//}
-
-	task := models.Task{
-		OriginVideo: video,
-		Kind:        models.TaskSplit,
-		TaskSplit: &models.SplitTask{
-			Video:       video,
-			TargetChunk: int(math.Ceil(float64(video.Size) / float64(minSize))),
-			SizePerVid:  sizePerVid,
-			SizeLeft:    sizeLeft,
-		},
-		PrevTask:      models.TaskNew,
-		Status:        models.TaskQueued,
-		TaskSubmitted: time.Now(),
-	}
-
-	err = s.taskRepo.Add(&task)
-	if err != nil {
-		log.Errorf("service.createSplitTask, err: %s", err)
-		return err
-	}
-	err = s.messenger.Publish(&task, MessageBrokerQueueTaskNew)
-	if err != nil {
-		log.Errorf("service.createSplitTask, err: %s", err)
-		return err
-	}
-	return nil
-}
-
 func (_ *schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task, scheduler Scheduler) error {
 	errs, _ := errgroup.WithContext(context.Background())
 	for _, vid := range task.TaskSplit.SplitedVideo {
+		vid := vid
 		errs.Go(
 			func() error {
 				task := &models.Task{
 					OriginVideo:   task.OriginVideo,
+					PrevTask:      models.TaskSplit,
 					TaskTranscode: &models.TranscodeTask{Video: vid},
 				}
 
@@ -473,9 +478,8 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 			log.Error(err)
 		}
 
-		log.Debugf("Updating finished task %s", task.Id.String())
+		log.Debugf("Updating task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
 		log.Debugf("Updating filename %s", task.OriginVideo.FileName)
-		log.Debugf("Updating task kind %d", task.Kind)
 
 		err = s.taskRepo.Update(&task)
 		if err != nil {
@@ -486,7 +490,9 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 		case models.TaskSplit:
 			//save each splitted video into its own record
 			if err := s.videoRepo.AddMany(task.TaskSplit.SplitedVideo); err != nil {
-				log.Error(err)
+				// Changed to fatal error because if this part is failed,
+				// the error will propagate to next task
+				log.Fatal(err)
 				break
 			}
 
@@ -519,24 +525,27 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 				break
 			}
 
-			//	check if previously is split task, then merge
+			//	check if two previous operation is split task, then merge
 			if task.PrevTask == models.TaskSplit {
 				if err = s.CreateMergeTask(&task); err != nil {
 					log.Error(errors.Wrap(err, "failed to create merge task"))
 					break
 				}
-			} else {
-				// must be a video with small size (prevTask == MessageBrokerQueueTaskNew)
+			} else if task.PrevTask == models.TaskNew {
+				// must be a video with small size (videoSize < minFileSize)
 				if err = s.CreateDashTask(&task); err != nil {
 					log.Error(errors.Wrap(err, "failed to create dash task"))
 					break
 				}
+			} else {
+				log.Errorf("Previous task is neither TaskNew or TaskSplit, got %s", models.TASK_NAME_ENUM[task.PrevTask])
 			}
 
 			if err = msg.Ack(false); err != nil {
 				log.Error(err)
 				break
 			}
+
 		case models.TaskMerge:
 			//update video with result of merged video that has been merged
 			//and of course also transcoded
@@ -562,19 +571,25 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 			}
 
 		case models.TaskDash:
-			file := strings.Split(task.TaskDash.ListVideo[0].FileName, "_")
-			toUpdate, err := s.videoRepo.GetOneByName(fmt.Sprintf("%s.mp4", file[0]))
+			file := task.OriginVideo.FileName
+			toUpdate, err := s.videoRepo.GetOneByName(file)
 			if err != nil {
 				log.Error(err)
 			}
+			if toUpdate != nil {
+				toUpdate.DashFile = task.TaskDash.ResultDash
+				if err = s.videoRepo.Update(toUpdate); err != nil {
+					log.Error(err)
+				}
 
-			toUpdate.DashFile = task.TaskDash.ResultDash
-			if err = s.videoRepo.Update(toUpdate); err != nil {
-				log.Error(err)
-			}
+				if err = msg.Ack(false); err != nil {
+					log.Error(err)
+				}
+				log.Infof("Video %s successfully processed", file)
+				s.publishTaskEvent()
 
-			if err = msg.Ack(false); err != nil {
-				log.Error(err)
+			} else {
+				log.Error("video to update is nil")
 			}
 
 		}
