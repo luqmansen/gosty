@@ -2,19 +2,19 @@ version: '3.7'
 
 services:
   #this nginx is only for testing reverse proxy from web to other service
-  nginx:
-    image: nginx:1.19.6-alpine
-    volumes:
-      - ./web/config/default.conf.template:/etc/nginx/templates/default.conf.template
-      - ./web/config/nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - "6969:80"
-    environment:
-      GOSTY_APISERVER_SERVICE_HOST: apiserver
-      GOSTY_APISERVER_SERVICE_PORT: 8000
-
-      GOSTY_FILESERVER_SERVICE_HOST: fileserver
-      GOSTY_FILESERVER_SERVICE_PORT: 8001
+  #  nginx:
+  #    image: nginx:1.19.6-alpine
+  #    volumes:
+  #      - ./web/config/default.conf.template:/etc/nginx/templates/default.conf.template
+  #      - ./web/config/nginx.conf:/etc/nginx/nginx.conf
+  #    ports:
+  #      - "6969:80"
+  #    environment:
+  #      GOSTY_APISERVER_SERVICE_HOST: apiserver
+  #      GOSTY_APISERVER_SERVICE_PORT: 8000
+  #
+  #      GOSTY_FILESERVER_SERVICE_HOST: fileserver
+  #      GOSTY_FILESERVER_SERVICE_PORT: 8001
 
   web:
     image: localhost:5000/gosty-web-dev
@@ -58,7 +58,9 @@ services:
       GOSTY_FILESERVER_SERVICE_HOST: fileserver
       GOSTY_FILESERVER_SERVICE_PORT: 8001
 
-      FILE_MIN_SIZE_MB: 50
+      FILE_MIN_SIZE_MB: 5
+    volumes:
+      - ./config.env:/app/config.env
 
   worker:
     image: localhost:5000/gosty-worker
@@ -76,17 +78,22 @@ services:
 
       POD_IP: worker
 
+    volumes:
+      - ./config.env:/app/config.env
+
   fileserver:
     image: localhost:5000/gosty-fileserver
     restart: always
     volumes:
       - ./storage:/app/storage/
+      - ./config.env:/app/config.env
     ports:
       - "8001:8001"
     expose:
       - 8001
     environment:
       PORT: "8001"
+      PEER_HOST: "0.0.0.0:8002"
 
   mongo:
     image: mongo:4.4.4-bionic
