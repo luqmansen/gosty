@@ -42,7 +42,9 @@ func (r taskRepository) GetAll(limit int64) (result []*models.Task, err error) {
 	defer cancel()
 
 	findOptions := options.Find()
-	findOptions.SetLimit(limit)
+	if limit != -1 {
+		findOptions.SetLimit(limit)
+	}
 
 	coll := r.db.client.Database(r.db.database).Collection(taskCollectionName)
 	cur, err := coll.Find(ctx, bson.M{}, findOptions)

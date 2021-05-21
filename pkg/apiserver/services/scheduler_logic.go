@@ -42,7 +42,7 @@ func NewSchedulerService(
 
 func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressResponse) {
 	//for every task from db, group them if they are from the same video
-	allTask, err := s.taskRepo.GetAll(100)
+	allTask, err := s.taskRepo.GetAll(-1)
 	if err != nil {
 		log.Error(err)
 	}

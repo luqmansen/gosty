@@ -75,6 +75,11 @@ const ProgressPageV2 = () => {
                 t.task_duration = msToTime(t.task_duration / 1e+6)
             })
         })
+        blocks.map(w => {
+            w.task_list.map((t, idx) => {
+                t.no = idx + 1
+            })
+        })
         setData(blocks.reverse())
     }
 
@@ -109,6 +114,11 @@ const tableData = (v) => {
             rowCount={v.task_list.length}
             rowGetter={({index}) => v.task_list[index]}
         >
+            <Column
+                label='No'
+                dataKey='no'
+                width={40}
+            />
             <Column
                 label='Task Kind'
                 dataKey='kind'
