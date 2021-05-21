@@ -85,8 +85,14 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 			return
 		}
 
-		queue := []string{services.MessageBrokerQueueTaskUpdateStatus, services.MessageBrokerQueueTaskFinished,
-			services.MessageBrokerQueueTaskNew, services.WorkerStatus, services.WorkerAssigned, services.WorkerNew}
+		queue := []string{
+			services.MessageBrokerQueueTaskUpdateStatus,
+			services.MessageBrokerQueueTaskFinished,
+			services.MessageBrokerQueueTaskNew,
+			//services.WorkerStatus,
+			services.WorkerAssigned,
+			services.WorkerNew,
+		}
 
 		for _, q := range queue {
 			_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
@@ -105,14 +111,16 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 		if err != nil {
 			log.Error(err)
 		}
-		if resp.StatusCode != http.StatusNoContent {
-			writer.Write([]byte("failed to drop file server data\n"))
+		if resp != nil {
+			if resp.StatusCode != http.StatusNoContent {
+				writer.Write([]byte("failed to drop file server data\n"))
+			}
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			writer.Write(body)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		writer.Write(body)
 
 		_, _ = writer.Write([]byte("DROP SUCCESS"))
 
