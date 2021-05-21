@@ -21,24 +21,34 @@ func (s Svc) ProcessTaskDash(task *models.Task) error {
 	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	errCh := make(chan error)
-	var wg sync.WaitGroup
+	waitCh := make(chan struct{})
+	wg := sync.WaitGroup{}
 
-	for _, video := range task.TaskDash.ListVideo {
-		wg.Add(1)
-		go func(vidName string) {
-			defer wg.Done()
+	go func() {
+		for _, video := range task.TaskDash.ListVideo {
+			wg.Add(1)
+			go func(vidName string) {
+				defer wg.Done()
 
-			inputPath := fmt.Sprintf("%s/%s", workdir, vidName)
-			url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), vidName)
-			log.Debug(inputPath)
-			err := util.Download(inputPath, url)
-			if err != nil {
-				log.Errorf("worker.processTaskDash: %s", err)
-				errCh <- err
-			}
-		}(video.FileName)
+				inputPath := fmt.Sprintf("%s/%s", workdir, vidName)
+				url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), vidName)
+				log.Debug(inputPath)
+				err := util.Download(inputPath, url)
+				if err != nil {
+					log.Errorf("worker.processTaskDash, url: %s, inputpath: %s, err: %s", url, inputPath, err)
+					errCh <- err
+				}
+			}(video.FileName)
+		}
+		wg.Wait() //need to make sure all files downloaded
+		close(waitCh)
+	}()
+	select {
+	case err := <-errCh:
+		return err
+	case <-waitCh:
+		log.Debug("Downloading all files done, processing...")
 	}
-	wg.Wait() //need to make sure all files downloaded
 
 	//list absolute path of all files
 	var fileList []string
@@ -74,6 +84,9 @@ func (s Svc) ProcessTaskDash(task *models.Task) error {
 		go func(f string) {
 			defer wg.Done()
 			if err = os.Remove(f); err != nil {
+				// *Currently* I didn't really care if removing failed
+				// This might result source file being sent again to fileserver
+				// I'll handle this later
 				log.Errorf("Error removing source file %s: %s", f, err)
 			}
 		}(file)
@@ -86,43 +99,54 @@ func (s Svc) ProcessTaskDash(task *models.Task) error {
 		log.Fatal(err)
 		return err
 	}
+
 	for _, f := range files {
-		dashResult = append(dashResult, f.Name())
-		log.Debug(f.Name())
+		if strings.Contains(f.Name(), "dash") || strings.Contains(f.Name(), "mpd") {
+			// all dash result will have *_dashXX filename format or .mpd extension
+			dashResult = append(dashResult, f.Name())
+		}
 	}
+	waitCh = make(chan struct{})
+	go func() {
+		defer close(waitCh)
+		defer wg.Wait()
 
-	// TODO: Use errs.Go from x/sync/errorgroup
-	for _, file := range dashResult {
-		wg.Add(1)
-		go func(fileName string) {
-			defer wg.Done()
-			filePath := fmt.Sprintf("%s/%s", workdir, fileName)
-			fileReader, err := os.Open(filePath)
-			if err != nil {
-				log.Errorf("error opening dash result: %s", err)
-				errCh <- err
-				return
-			}
+		for _, file := range dashResult {
+			wg.Add(1)
+			go func(fileName string) {
+				defer wg.Done()
 
-			values := map[string]io.Reader{"file": fileReader}
-			url := fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), fileName)
-			if err = util.Upload(url, values); err != nil {
-				log.Errorf("Error uploading file %s: %s", fileName, err)
-				errCh <- err
-				return
-			}
-			if err = os.Remove(filePath); err != nil {
-				log.Errorf("Error removing dash result file after uploading %s: %s", fileName, err)
-				errCh <- err
-				return
-			}
-		}(file)
-	}
+				filePath := fmt.Sprintf("%s/%s", workdir, fileName)
+				fileReader, err := os.Open(filePath)
+				if err != nil {
+					log.Errorf("error opening dash result: %s", err)
+					errCh <- err
+					return
+				}
+
+				values := map[string]io.Reader{"file": fileReader}
+				url := fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), fileName)
+				if err = util.Upload(url, values); err != nil {
+					log.Errorf("Error uploading file %s: %s", fileName, err)
+					errCh <- err
+					return
+				}
+				if err = os.Remove(filePath); err != nil {
+					log.Errorf("Error removing dash result file after uploading %s: %s", fileName, err)
+					// TODO: handle cleanup file to remove afterward if error happen
+					// Currently I don't care if error happen, this shouldn't affect the
+					// current task processing
+					// errCh <- err
+					return
+				}
+			}(file)
+		}
+	}()
 
 	select {
 	case err = <-errCh:
 		return err
-	default:
+	case <-waitCh:
 		task.TaskDuration = time.Since(start)
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
