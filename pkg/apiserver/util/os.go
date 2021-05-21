@@ -1,10 +1,12 @@
 package util
 
-import "os"
+import (
+	"github.com/spf13/viper"
+)
 
 func GetEnv(key, fallback string) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
+	value := viper.GetString(key)
+	if value == "" {
 		value = fallback
 	}
 	return value
