@@ -117,7 +117,7 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 			}
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				log.Fatalln(err)
+				log.Error(err)
 			}
 			writer.Write(body)
 		}
