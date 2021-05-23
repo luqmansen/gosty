@@ -498,7 +498,7 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 			//save each splitted video into its own record
 			if err := s.videoRepo.AddMany(task.TaskSplit.SplitedVideo); err != nil {
 				// Changed to fatal error because if this part is failed,
-				// the error will propagate to next task
+				// because the error will propagate to the next entire process
 				log.Fatal(err)
 				break
 			}
