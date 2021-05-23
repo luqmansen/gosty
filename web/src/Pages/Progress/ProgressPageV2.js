@@ -101,6 +101,19 @@ const ProgressPageV2 = () => {
     )
 }
 
+const calculateElapsedTime = (data) => {
+    let second;
+    let first = new Date(data.task_list[0].task_submitted)
+    let last = data.task_list[data.task_list.length-1];
+    if (last.task_completed !== "0001-01-01T00:00:00Z"){
+        second = new Date(last.task_completed)
+    } else {
+        second = new Date(); // now
+    }
+    let et = Math.abs(second-first)
+    return msToTime(et)
+}
+
 
 const tableData = (v) => {
     let data = ""
@@ -161,7 +174,8 @@ const tableData = (v) => {
     return (
         <div>
             <p><b>File : {v.origin_video.file_name}</b></p>
-            <p>Elapsed time: {msToTime(v.total_duration / 1e+6)}</p>
+            <p>Elapsed Time: {calculateElapsedTime(v)}</p>
+            <p>Accumulated Worker Time: {msToTime(v.total_duration / 1e+6)}</p>
             {data}
         </div>
     )
