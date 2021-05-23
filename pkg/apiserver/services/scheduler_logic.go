@@ -10,6 +10,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/sync/errgroup"
 	"math"
 	"sort"
@@ -133,6 +134,7 @@ func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Sched
 		// this is a current workaround for preserve origin
 		// video field, later please redesign the data models
 		task := &models.Task{
+			Id:            primitive.NewObjectID(),
 			OriginVideo:   video,
 			TaskTranscode: &models.TranscodeTask{Video: video},
 		}
@@ -158,6 +160,7 @@ func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Sched
 	//}
 
 	task := models.Task{
+		Id:          primitive.NewObjectID(),
 		OriginVideo: video,
 		Kind:        models.TaskSplit,
 		TaskSplit: &models.SplitTask{
@@ -229,6 +232,7 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	var taskList []*models.Task
 	for _, t := range target {
 		taskList = append(taskList, &models.Task{
+			Id:          primitive.NewObjectID(),
 			OriginVideo: task.OriginVideo,
 			Kind:        models.TaskTranscode,
 			TaskTranscode: &models.TranscodeTask{
@@ -322,6 +326,7 @@ func (s schedulerServices) CreateMergeTask(task *models.Task) error {
 	}
 
 	mergeTask := &models.Task{
+		Id:            primitive.NewObjectID(),
 		OriginVideo:   task.OriginVideo,
 		Kind:          models.TaskMerge,
 		TaskMerge:     &models.MergeTask{ListVideo: toMerge},
@@ -333,7 +338,7 @@ func (s schedulerServices) CreateMergeTask(task *models.Task) error {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		err := s.taskRepo.Add(mergeTask)
+		err = s.taskRepo.Add(mergeTask)
 		if err != nil {
 			log.Error(err)
 			return
@@ -396,6 +401,7 @@ func (s schedulerServices) CreateDashTask(task *models.Task) error {
 	}
 
 	taskDash := &models.Task{
+		Id:          primitive.NewObjectID(),
 		OriginVideo: task.OriginVideo,
 		Kind:        models.TaskDash,
 		TaskDash: &models.DashTask{
@@ -433,6 +439,7 @@ func (_ *schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task, 
 		errs.Go(
 			func() error {
 				task := &models.Task{
+					Id:            primitive.NewObjectID(),
 					OriginVideo:   task.OriginVideo,
 					PrevTask:      models.TaskSplit,
 					TaskTranscode: &models.TranscodeTask{Video: vid},
@@ -483,7 +490,7 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 
 		err = s.taskRepo.Update(&task)
 		if err != nil {
-			log.Error(err)
+			log.Error("Failed to update task %s : %s", task.Id, err)
 		}
 
 		switch taskKind := task.Kind; taskKind {
@@ -613,6 +620,7 @@ func (s *schedulerServices) publishTaskEvent() {
 //see note on task_transcode line ~60
 func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 	task := models.Task{
+		Id:   primitive.NewObjectID(),
 		Kind: models.TaskTranscode,
 		TaskTranscode: &models.TranscodeTask{
 			TranscodeType: models.TranscodeAudio,
