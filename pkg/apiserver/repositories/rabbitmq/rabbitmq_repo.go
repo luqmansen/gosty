@@ -91,29 +91,34 @@ func (r *rabbitRepo) ResourcesWatcher() {
 }
 
 func (r *rabbitRepo) connectionWatcher() {
+	log.Info("Starting rabbitmq connection watcher")
 	c := make(chan *amqp.Error)
 	go r.conn.NotifyClose(c)
-	select {
-	case err := <-c:
-		log.Errorf("trying to reconnect: %s", err.Error())
-		r.conn = NewRabbitMQConn(r.uri)
-		r.conn.NotifyClose(c)
+	for {
+		select {
+		case err := <-c:
+			log.Errorf("trying to reconnect: %s", err.Error())
+			r.conn = NewRabbitMQConn(r.uri)
+			r.conn.NotifyClose(c)
+		}
 	}
 }
 
 func (r *rabbitRepo) channelWatcher(channel *amqp.Channel) {
+	log.Info("Starting rabbitmq channel watcher")
 	c := make(chan *amqp.Error)
 	go channel.NotifyClose(c)
-
-	select {
-	case err := <-c:
-		log.Errorf("trying to reconnect: %s", err.Error())
-		ch, channelErr := r.conn.Channel()
-		if channelErr != nil {
-			log.Errorf("Error to reopen channel, %s", channelErr)
-		} else {
-			channel = ch
-			channel.NotifyClose(c)
+	for {
+		select {
+		case err := <-c:
+			log.Errorf("trying to reconnect: %s", err)
+			ch, channelErr := r.conn.Channel()
+			if channelErr != nil {
+				log.Errorf("Error to reopen channel, %s", channelErr)
+			} else {
+				channel = ch
+				channel.NotifyClose(c)
+			}
 		}
 	}
 
