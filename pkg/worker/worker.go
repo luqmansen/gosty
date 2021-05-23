@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
@@ -28,6 +29,11 @@ const (
 	TmpPath = "tmpworker"
 )
 
+var (
+	wd      string
+	workdir string
+)
+
 type Svc struct {
 	messageBroker repositories.Messenger
 	// TODO [#14]:  implement this storage repository
@@ -38,6 +44,8 @@ type Svc struct {
 
 func NewWorkerService(mb repositories.Messenger, conf *config.Configuration) Services {
 	containerHostname, _ := os.Hostname()
+	wd, _ = os.Getwd()
+	workdir = fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	return &Svc{
 		messageBroker: mb,

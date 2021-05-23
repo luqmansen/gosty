@@ -18,10 +18,8 @@ import (
 	"time"
 )
 
-func (s Svc) ProcessTaskSplit(task *models.Task) error {
+func (s *Svc) ProcessTaskSplit(task *models.Task) error {
 	start := time.Now()
-	wd, _ := os.Getwd()
-	workdir := fmt.Sprintf("%s/%s", wd, TmpPath)
 
 	filePath := fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName)
 	log.Debug(filePath)
