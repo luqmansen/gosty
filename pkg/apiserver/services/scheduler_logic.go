@@ -490,7 +490,7 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 
 		err = s.taskRepo.Update(&task)
 		if err != nil {
-			log.Error("Failed to update task %s : %s", task.Id, err)
+			log.Errorf("Failed to update task %s : %s", task.Id, err)
 		}
 
 		switch taskKind := task.Kind; taskKind {

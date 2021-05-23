@@ -11,6 +11,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/pkg/errors"
 	"github.com/r3labs/sse/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
 	"os"
 	"reflect"
@@ -28,6 +29,10 @@ func (e *taskMatcher) Matches(x interface{}) bool {
 	if !ok {
 		return false
 	}
+
+	objectId := primitive.NewObjectID()
+	e.x.Id = objectId
+	task2.Id = objectId
 
 	e.x.TaskSubmitted = time.Time{}
 	task2.TaskSubmitted = time.Time{}
@@ -99,7 +104,7 @@ func Test_schedulerServices_CreateSplitTask(t *testing.T) {
 					OriginVideo:   video,
 					TaskTranscode: &models.TranscodeTask{Video: video},
 				}
-				f.scheduler.EXPECT().CreateTranscodeTask(task).Return(nil)
+				f.scheduler.EXPECT().CreateTranscodeTask(EqTask(task)).Return(nil)
 			},
 			args: args{
 				video: &models.Video{Size: 1},
