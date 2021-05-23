@@ -78,6 +78,9 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 			err = wrk.ProcessTaskSplit(&task)
 			if err != nil {
 				log.Error(err)
+				if err := msg.Nack(false, true); err != nil {
+					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+				}
 			}
 			if err == nil {
 				if err = msg.Ack(false); err != nil {
@@ -95,6 +98,9 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				err = wrk.ProcessTaskTranscodeVideo(&task)
 				if err != nil {
 					log.Error(err)
+					if err := msg.Nack(false, true); err != nil {
+						log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+					}
 				}
 				if err == nil {
 					if err = msg.Ack(false); err != nil {
@@ -110,6 +116,9 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				err = wrk.ProcessTaskTranscodeAudio(&task)
 				if err != nil {
 					log.Error(err)
+					if err := msg.Nack(false, true); err != nil {
+						log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+					}
 				}
 				if err == nil {
 					if err = msg.Ack(false); err != nil {
@@ -122,10 +131,13 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				}
 
 			}
-		case models.TaskDash:
-			err = wrk.ProcessTaskDash(&task)
+		case models.TaskMerge:
+			err = wrk.ProcessTaskMerge(&task)
 			if err != nil {
 				log.Error(err)
+				if err := msg.Nack(false, true); err != nil {
+					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+				}
 			}
 			if err == nil {
 				if err = msg.Ack(false); err != nil {
@@ -137,10 +149,13 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 				wrk.notifyApiServer(nil)
 			}
 
-		case models.TaskMerge:
-			err = wrk.ProcessTaskMerge(&task)
+		case models.TaskDash:
+			err = wrk.ProcessTaskDash(&task)
 			if err != nil {
 				log.Error(err)
+				if err := msg.Nack(false, true); err != nil {
+					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+				}
 			}
 			if err == nil {
 				if err = msg.Ack(false); err != nil {
