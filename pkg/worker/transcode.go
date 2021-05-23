@@ -19,24 +19,23 @@ import (
 func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	start := time.Now()
 
-	inputPath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
+	originalFilePath := fmt.Sprintf("%s/%s", workdir, task.TaskTranscode.Video.FileName)
+	origFileName := strings.Split(task.TaskTranscode.Video.FileName, ".") // remove filename full path
+	transcodedFileName := fmt.Sprintf("%s_%s.%s", origFileName[0], task.TaskTranscode.TargetRes, origFileName[1])
+	outputPath := fmt.Sprintf("%s/%s", workdir, transcodedFileName) // full path for transcoded file
 
-	origFileName := strings.Split(task.TaskTranscode.Video.FileName, ".") // split the file name and the extension
-	newFileName := fmt.Sprintf("%s_%s.%s", origFileName[0], task.TaskTranscode.TargetRes, origFileName[1])
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
 
-	outputPath := fmt.Sprintf("%s/%s", workdir, newFileName)
 	url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), task.TaskTranscode.Video.FileName)
-	err := util.Download(inputPath, url)
+	err := util.Download(originalFilePath, url)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
-	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
-
 	outBuff := &bytes.Buffer{}
 	cmd := fluentffmpeg.NewCommand("").
-		InputPath(inputPath).
+		InputPath(originalFilePath).
 		OutputFormat("mp4").
 		Resolution(task.TaskTranscode.TargetRes). // the default is only set aspect ration, not scaling :(
 		VideoBitRate(task.TaskTranscode.TargetBitrate).
@@ -74,69 +73,79 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 		return err
 	}
 
-	file, _ := os.Open(outputPath)
-	values := map[string]io.Reader{"file": file}
-	url = fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), newFileName)
-	if err = util.Upload(url, values); err != nil {
-		log.Error(err)
-		return err
-	}
+	errCh := make(chan error, 1)
+	waitCh := make(chan struct{}, 1)
+	doneChan := make(chan bool, 2)
 
-	vidRes := strings.Split(task.TaskTranscode.TargetRes, "x")
-	width, _ := strconv.Atoi(vidRes[0])
-	height, _ := strconv.Atoi(vidRes[1])
-
-	probeResult, err := fluentffmpeg.Probe(outputPath)
-
-	format := probeResult["format"].(map[string]interface{})
-	duration, err := strconv.ParseFloat(format["duration"].(string), 32)
-	if err != nil {
-		log.Error(err)
-	}
-	size, err := strconv.ParseInt(format["size"].(string), 10, 32)
-	if err != nil {
-		log.Error(err)
-	}
-
-	var wg sync.WaitGroup
-	errCh := make(chan error)
-
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
+		file, _ := os.Open(outputPath)
+		values := map[string]io.Reader{"file": file}
+		url = fmt.Sprintf("%s/upload?filename=%s", s.config.FileServer.GetFileServerUri(), transcodedFileName)
+		if err = util.Upload(url, values); err != nil {
+			log.Errorf("Failed to upload %s: %s", transcodedFileName, err)
+			errCh <- err
+		}
+		doneChan <- true
+	}()
+
+	var transcodedVideoResult *models.Video
+	go func() {
+		probeResult, err := fluentffmpeg.Probe(outputPath)
+		format := probeResult["format"].(map[string]interface{})
+		duration, err := strconv.ParseFloat(format["duration"].(string), 32)
+		if err != nil {
+			log.Error(err)
+		}
+		size, err := strconv.ParseInt(format["size"].(string), 10, 32)
+		if err != nil {
+			log.Error(err)
+		}
+
+		vidRes := strings.Split(task.TaskTranscode.TargetRes, "x")
+		width, _ := strconv.Atoi(vidRes[0])
+		height, _ := strconv.Atoi(vidRes[1])
+
+		transcodedVideoResult = &models.Video{
+			FileName: transcodedFileName,
+			Size:     size,
+			Bitrate:  task.TaskTranscode.TargetBitrate,
+			Duration: float32(duration),
+			Width:    width,
+			Height:   height,
+		}
+
+		doneChan <- true
+	}()
+
+	go func() {
+		// this will block until two previous function done
+		<-doneChan
+		<-doneChan
+		log.Debugf("removing output file %s", output)
 		if err = os.Remove(outputPath); err != nil {
-			log.Error(err)
-			errCh <- err
+			log.Error(err) // Currently don't care about the error
 		}
+		close(waitCh)
 	}()
 
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-
-		if err = os.Remove(inputPath); err != nil {
-			log.Error(err)
-			errCh <- err
+		// didn't have guarantee that this function will be
+		// executed before parent function exit, but most likely will
+		log.Debugf("removing original file %s", originalFilePath)
+		if err = os.Remove(originalFilePath); err != nil {
+			log.Error(err) // Currently don't care about the error
 		}
 	}()
-
-	result := &models.Video{
-		FileName: newFileName,
-		Size:     size,
-		Bitrate:  task.TaskTranscode.TargetBitrate,
-		Duration: float32(duration),
-		Width:    width,
-		Height:   height,
-	}
 
 	select {
-	case err = <-errCh:
+	case err := <-errCh:
+		task.Status = models.TaskStatusFailed
 		return err
-	default:
+	case <-waitCh:
 		task.TaskDuration = time.Since(start)
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
-		task.TaskTranscode.ResultVideo = result
+		task.TaskTranscode.ResultVideo = transcodedVideoResult
 		return nil
 	}
 }
