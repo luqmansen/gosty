@@ -16,6 +16,7 @@ import (
 )
 
 func (s *Svc) ProcessTaskDash(task *models.Task) error {
+	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
 	start := time.Now()
 
 	errCh := make(chan error)
@@ -54,10 +55,7 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 		fileList = append(fileList, fmt.Sprintf("%s/%s", workdir, v.FileName))
 	}
 
-	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
-
 	origFileName := strings.Split(strings.Split(task.TaskDash.ListVideo[0].FileName, ".")[0], "_")[0]
-
 	cmd := exec.Command("bash", "script/dash.sh",
 		fmt.Sprintf("%s.mpd", fmt.Sprintf("%s/%s", workdir, origFileName)),
 		strings.Join(fileList, " "),
@@ -89,15 +87,14 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 			}
 		}(file)
 	}
-	wg.Wait()
 
-	var dashResult []string
 	files, err := ioutil.ReadDir(workdir)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 
+	var dashResult []string
 	for _, f := range files {
 		if strings.Contains(f.Name(), "dash") || strings.Contains(f.Name(), "mpd") {
 			// all dash result will have *_dashXX filename format or .mpd extension
@@ -149,6 +146,7 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone
 		task.TaskDash.ResultDash = dashResult
-		return nil
 	}
+	wg.Wait() // this only wait for remove source file which most likely already done
+	return nil
 }
