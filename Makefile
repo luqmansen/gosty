@@ -35,6 +35,9 @@ fs-bin:
 
 all-bin: api-bin worker-bin fs-bin
 
+run:
+	docker-compose up
+
 docker-base-worker:
 	docker build -t luqmansen/alpine-ffmpeg-mp4box -f docker/Dockerfile-alpine-ffmpeg-mp4box .
 
