@@ -160,6 +160,7 @@ func (h *fileServer) DropAll(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Errorf("error removing %s: %s", filename, err)
 				w.Write([]byte(fmt.Sprintf("error removing %s: %s\n", filename, err)))
+				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}(f.Name())
 	}
