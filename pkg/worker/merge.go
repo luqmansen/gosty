@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,7 +34,18 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 	if len(fileList) == 0 {
 		return errors.New("no file to merge")
 	}
-	sort.Strings(fileList)
+
+	sort.Slice(fileList, func(i, j int) bool {
+		// Below function is to extract the number from string like this
+		// /app/tmpworker/9cbcd3f38f0f4f339b551f2c38c9bad6-767812846-10_854x480
+		// to just get the "10"
+		a := strings.Split(strings.Split(strings.Split(fileList[i], "/")[3], "-")[2], "_")[0]
+		b := strings.Split(strings.Split(strings.Split(fileList[j], "/")[3], "-")[2], "_")[0]
+		n, _ := strconv.Atoi(a)
+		m, _ := strconv.Atoi(b)
+
+		return n < m
+	})
 
 	//create FIFOs for every video with format: absolute/path/filename_00X_WxH
 	var namedPipeList []string
