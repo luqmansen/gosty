@@ -1,7 +1,7 @@
 upstream fileserver{
-     server gosty-fileserver-0.${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
-     server gosty-fileserver-1.${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
-     server gosty-fileserver-2.${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
+     server  gosty-fileserver-0.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
+     server  gosty-fileserver-1.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
+     server  gosty-fileserver-2.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
 }
 
 upstream apiserver{
