@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"net"
 	"os"
 	"time"
 )
@@ -51,8 +52,8 @@ func NewWorkerService(mb repositories.Messenger, conf *config.Configuration) Ser
 		messageBroker: mb,
 		worker: &models.Worker{
 			Id:            primitive.NewObjectID(),
-			WorkerPodName: viper.GetString("HOSTNAME"),
-			IpAddress:     containerHostname,
+			WorkerPodName: containerHostname,
+			IpAddress:     getWorkerHost(),
 			Status:        models.WorkerStatusReady,
 			UpdatedAt:     time.Now(),
 		},
@@ -83,4 +84,25 @@ func (s *Svc) RegisterWorker() {
 		}
 		time.Sleep(30 * time.Second)
 	}
+}
+
+func getWorkerHost() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Error("failed to dial to outbound, falling back to use env")
+		_, found := os.LookupEnv("KUBERNETES_SERVICE_HOST")
+		if found {
+			// this means we're on k8s env
+			return viper.GetString("POD_IP")
+		} else {
+			// could be inside docker container
+			return viper.GetString("HOSTNAME")
+		}
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.String()
+
 }

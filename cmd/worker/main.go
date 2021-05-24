@@ -8,7 +8,6 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	"github.com/luqmansen/gosty/pkg/worker"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"net/http"
 	"os"
@@ -206,8 +205,9 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 }
 
 func getHostname() func(w http.ResponseWriter, request *http.Request) {
+	containerHostname, _ := os.Hostname()
 	return func(w http.ResponseWriter, request *http.Request) {
-		data, _ := json.Marshal(map[string]string{"hostname": viper.GetString("HOSTNAME")})
+		data, _ := json.Marshal(map[string]string{"hostname": containerHostname})
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(data)
 	}
