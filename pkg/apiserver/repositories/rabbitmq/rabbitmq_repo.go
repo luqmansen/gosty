@@ -160,7 +160,12 @@ func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 	return err
 }
 
-func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
+/*
+ReadMessage parameter setQos need to be set to true for all read message on apiserver,
+since it behaves differently from worker that need to read message 1-by-1, apiserver
+can just consume all message then directly process them
+*/
+func (r *rabbitRepo) ReadMessage(result chan<- interface{}, queueName string, setQos bool) {
 
 	//declare queue name, in  case the queue haven't created
 	q, err := r.queueDeclareChan.QueueDeclare(
@@ -178,12 +183,14 @@ func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 	//so that consumer will follow that prefetch rule.
 	ch, err := r.conn.Channel()
 	if ch != nil {
-		err = ch.Qos(1, 0, true)
-		defer func() {
-			if err := ch.Close(); err != nil {
-				log.Errorf("Failed to close channel on publish message: %s", err)
-			}
-		}()
+		if setQos {
+			err = ch.Qos(1, 0, true)
+			defer func() {
+				if err := ch.Close(); err != nil {
+					log.Errorf("Failed to close channel on read message: %s", err)
+				}
+			}()
+		}
 	}
 
 	if err != nil {
@@ -204,13 +211,11 @@ func (r *rabbitRepo) ReadMessage(res chan<- interface{}, queueName string) {
 		log.Errorf("Failed to register a consumer: %s", err)
 	}
 
-	forever := make(chan bool)
-
 	go func() {
 		for d := range msg {
-			res <- d
+			result <- d
 		}
 	}()
 
-	<-forever
+	select {}
 }

@@ -97,11 +97,11 @@ func (s schedulerServices) ReadMessages() {
 	forever := make(chan bool, 1)
 
 	finishedTask := make(chan interface{})
-	go s.messenger.ReadMessage(finishedTask, MessageBrokerQueueTaskFinished)
+	go s.messenger.ReadMessage(finishedTask, MessageBrokerQueueTaskFinished, false)
 	go s.scheduleTaskFromQueue(finishedTask)
 
 	updateTaskStatusQueue := make(chan interface{})
-	go s.messenger.ReadMessage(updateTaskStatusQueue, MessageBrokerQueueTaskUpdateStatus)
+	go s.messenger.ReadMessage(updateTaskStatusQueue, MessageBrokerQueueTaskUpdateStatus, false)
 	go s.updateTaskStatus(updateTaskStatusQueue)
 
 	<-forever

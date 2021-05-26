@@ -29,19 +29,18 @@ func NewWorkerService(
 
 func (wrk workerServices) ReadMessage() {
 	log.Debug("Starting read message from queue")
-	forever := make(chan bool, 1)
 
 	newWorker := make(chan interface{})
-	go wrk.mb.ReadMessage(newWorker, WorkerNew)
+	go wrk.mb.ReadMessage(newWorker, WorkerNew, false)
 	go wrk.workerStateUpdate(newWorker, "added")
 
 	workerAssigned := make(chan interface{})
-	go wrk.mb.ReadMessage(workerAssigned, WorkerAssigned)
+	go wrk.mb.ReadMessage(workerAssigned, WorkerAssigned, false)
 	go wrk.workerStateUpdate(workerAssigned, "assigned")
 
 	go wrk.workerWatcher()
 
-	<-forever
+	select {}
 }
 
 func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action string) {

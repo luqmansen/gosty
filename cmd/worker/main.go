@@ -42,7 +42,7 @@ func main() {
 
 	newTaskData := make(chan interface{})
 	defer close(newTaskData)
-	go mb.ReadMessage(newTaskData, services.MessageBrokerQueueTaskNew)
+	go mb.ReadMessage(newTaskData, services.MessageBrokerQueueTaskNew, true)
 
 	w := svc{workerSvc}
 	go w.processNewTask(newTaskData)
