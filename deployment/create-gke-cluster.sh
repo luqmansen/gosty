@@ -3,8 +3,8 @@ time gcloud beta container \
   clusters create "gosty-k8s-cluster" \
    --zone "asia-southeast2-a" \
    --no-enable-basic-auth \
-   --cluster-version "1.19.8-gke.1600" \
-   --release-channel "regular" \
+   --cluster-version "1.19.9-gke.1400" \
+   --release-channel "None" \
    --machine-type "e2-highcpu-2" \
    --image-type "COS_CONTAINERD" \
    --disk-type "pd-standard" \
