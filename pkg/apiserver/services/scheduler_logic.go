@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
@@ -482,6 +483,7 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 		var task models.Task
 		err := json.Unmarshal(msg.Body, &task)
 		if err != nil {
+			// less likely to happen
 			log.Error(err)
 		}
 
@@ -490,6 +492,8 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 
 		err = s.taskRepo.Update(&task)
 		if err != nil {
+			// Worst case happen here is task info not updated on dashboard
+			// but the next task is still will be created, so its find I guess
 			log.Errorf("Failed to update task %s : %s", task.Id, err)
 		}
 
@@ -504,12 +508,15 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 			}
 
 			if err := s.createTranscodeTaskFromSplitTask(&task, &s); err != nil {
-				log.Error(err)
+				log.Errorf("Failed to createTranscodeTaskFromSplitTask: %s", err)
+				if err := msg.Nack(false, true); err != nil {
+					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+				}
 				break
 			}
 
 			if err = msg.Ack(false); err != nil {
-				log.Error(err)
+				log.Errorf("Failed to ack message from task split, taskId %s", task.Id.String())
 				break
 			}
 
@@ -640,4 +647,48 @@ func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 		return err
 	}
 	return nil
+}
+
+// Not yet tested, will implement this later
+// postSchedulingEvent will either ack or nack based on error received from the channel
+func postSchedulingEvent(postActionChan chan<- models.TaskPostAction) {
+	for d := range postActionChan {
+		d := d
+		go func() {
+			var task models.Task
+			err := json.Unmarshal(d.Message.Body, &task)
+			if err != nil {
+				// worst case is if ack or nack is error, the task logger will be nil
+				log.Error("scheduler.postSchedulingEvent: failed to unmarshal json %s", err)
+			}
+
+			if d.Err != nil {
+				// happen error, either when updating task to database or when creating task
+				// or anything in between
+				nack := func() (err error) {
+					if err = d.Message.Nack(false, true); err != nil {
+						log.Errorf("failed to nack message %s error: %s", task, err)
+						return
+					}
+					return
+				}
+				if err := backoff.Retry(nack, backoff.NewExponentialBackOff()); err != nil {
+					log.Errorf("failed to nack message %s after using backoff: %s", task, err)
+				}
+
+			} else { // error is nil
+				ack := func() (err error) {
+					if err = d.Message.Ack(false); err != nil {
+						log.Errorf("failed to nack message %s error: %s", task, err)
+						return
+					}
+					return
+				}
+
+				if err := backoff.Retry(ack, backoff.NewExponentialBackOff()); err != nil {
+					log.Errorf("failed to ack message %s after using backoff: %s", task.Id, err)
+				}
+			}
+		}()
+	}
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
@@ -98,6 +99,13 @@ type (
 		Bitrate  int
 	}
 )
+
+// TaskPostAction is struct for handling post action after task is either
+// scheduled or rejected based on the error
+type TaskPostAction struct {
+	Message amqp.Delivery
+	Err     error
+}
 
 func (t *Task) TableName() string {
 	return "task"
