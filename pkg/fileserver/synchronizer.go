@@ -40,6 +40,10 @@ func (h *fileServer) InitialSync() {
 			// todo: optimize to single network call
 			for _, f := range files {
 				f := f
+				if f.Name() == "lost+found" {
+					continue
+				}
+
 				h.syncMapFileLists.Store(f.Name(), f)
 				errs.Go(
 					func() error {
@@ -90,6 +94,10 @@ func (h *fileServer) initialDownloadAllFromPeer() error {
 				}
 				for _, f := range fileList {
 					f := f
+					if f == "lost+found" {
+						continue
+					}
+
 					errs.Go(
 						func() error {
 							url := fmt.Sprintf("http://%s/files/%s", hosts, f)
