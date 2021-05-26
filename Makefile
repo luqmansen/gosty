@@ -91,6 +91,9 @@ docker-api-local:  api-bin
 push-all: docker-api docker-fs docker-worker docker-web
 push-all-local: docker-api-local docker-fs-local docker-worker-local docker-web-local
 
+generate-mock:
+	mockgen --destination=mock/pkg/apiserver/repositories/rabbitmq/mock_rabbit.go --package mock_rabbitmq --source=pkg/apiserver/repositories/messaging.go
+
 rollout-restart:
 	# sometimes rabbitmq randomly wont start
 	kubectl rollout restart statefulset -n gosty rabbit-rabbitmq
