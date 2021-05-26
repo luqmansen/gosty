@@ -493,7 +493,7 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 		err = s.taskRepo.Update(&task)
 		if err != nil {
 			// Worst case happen here is task info not updated on dashboard
-			// but the next task is still will be created, so its find I guess
+			// but the next task is still will be created, so its fine I guess
 			log.Errorf("Failed to update task %s : %s", task.Id, err)
 		}
 
@@ -651,7 +651,7 @@ func (s schedulerServices) createTranscodeAudioTask(video *models.Video) error {
 
 // Not yet tested, will implement this later
 // postSchedulingEvent will either ack or nack based on error received from the channel
-func postSchedulingEvent(postActionChan chan<- models.TaskPostAction) {
+func postSchedulingEvent(postActionChan chan models.TaskPostAction) {
 	for d := range postActionChan {
 		d := d
 		go func() {
@@ -659,7 +659,7 @@ func postSchedulingEvent(postActionChan chan<- models.TaskPostAction) {
 			err := json.Unmarshal(d.Message.Body, &task)
 			if err != nil {
 				// worst case is if ack or nack is error, the task logger will be nil
-				log.Error("scheduler.postSchedulingEvent: failed to unmarshal json %s", err)
+				log.Errorf("scheduler.postSchedulingEvent: failed to unmarshal json %s", err)
 			}
 
 			if d.Err != nil {
@@ -667,19 +667,19 @@ func postSchedulingEvent(postActionChan chan<- models.TaskPostAction) {
 				// or anything in between
 				nack := func() (err error) {
 					if err = d.Message.Nack(false, true); err != nil {
-						log.Errorf("failed to nack message %s error: %s", task, err)
+						log.Errorf("failed to nack message %v error: %s", task, err)
 						return
 					}
 					return
 				}
 				if err := backoff.Retry(nack, backoff.NewExponentialBackOff()); err != nil {
-					log.Errorf("failed to nack message %s after using backoff: %s", task, err)
+					log.Errorf("failed to nack message %v after using backoff: %s", task, err)
 				}
 
 			} else { // error is nil
 				ack := func() (err error) {
 					if err = d.Message.Ack(false); err != nil {
-						log.Errorf("failed to nack message %s error: %s", task, err)
+						log.Errorf("failed to nack message %v error: %s", task, err)
 						return
 					}
 					return
