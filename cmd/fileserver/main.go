@@ -19,8 +19,8 @@ func main() {
 	pathToServe := workDir + "/" + folder
 
 	port := util.GetEnv("PORT", "8001")
-	host := util.GetEnv("POD_IP", "0.0.0.0")
-	address := fmt.Sprintf("%s:%s", host, port)
+	address := fmt.Sprintf("%s:%s", "0.0.0.0", port)
+
 	peerHost := util.GetEnv("FILESERVER_PEER_HOST", "")
 	peers := strings.Split(peerHost, ",")
 	selfHost := os.Getenv("HOSTNAME")
@@ -30,6 +30,7 @@ func main() {
 			peerLists = append(peerLists, fmt.Sprintf("%s:%s", peer, port))
 		}
 	}
+
 	log.Infof("Peer list: %s", peerLists)
 	fileServerHandler := fileserver.NewFileServerHandler(pathToServe, peerLists, address)
 	router := fileserver.NewRouter(fileServerHandler)
@@ -37,12 +38,10 @@ func main() {
 	getVersion(router)
 
 	go server.Serve()
-
 	go fileServerHandler.InitialSync()
 	go fileServerHandler.ExecuteSynchronization()
 
-	forever := make(chan bool)
-	<-forever
+	select {}
 }
 
 func getVersion(router *chi.Mux) {

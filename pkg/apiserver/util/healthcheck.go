@@ -38,6 +38,7 @@ func MongoDBPingCheck(mongoClient *mongo.Client, timeout time.Duration) hc.Check
 		defer cancel()
 
 		if err := mongoClient.Ping(ctx, nil); err != nil {
+			log.Error(fmt.Sprintf("failed to ping db: %s", err))
 			return fmt.Errorf("failed to ping db: %s", err)
 		}
 
