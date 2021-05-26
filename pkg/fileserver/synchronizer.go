@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -24,6 +25,8 @@ type fileInfo struct {
 	Origin   string
 	FileName string
 }
+
+const unwantedFile = "lost+found"
 
 func (h *fileServer) InitialSync() {
 	files, err := ioutil.ReadDir(h.pathToServe)
@@ -40,7 +43,7 @@ func (h *fileServer) InitialSync() {
 			// todo: optimize to single network call
 			for _, f := range files {
 				f := f
-				if f.Name() == "lost+found" {
+				if isUnwantedFile(f) {
 					continue
 				}
 
@@ -94,7 +97,7 @@ func (h *fileServer) initialDownloadAllFromPeer() error {
 				}
 				for _, f := range fileList {
 					f := f
-					if f == "lost+found" {
+					if isUnwantedFile(f) {
 						continue
 					}
 
@@ -136,10 +139,10 @@ func (h *fileServer) peerChecker() error {
 						if err != nil {
 							return err
 						}
-						if resp.StatusCode != http.StatusOK {
-							return errors.New("status code != 200")
+						if resp != nil && resp.StatusCode != http.StatusOK {
+							return errors.New("synchronizer.peerChecker. status code != 200")
 						}
-						return nil
+						return err
 					}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 
 				return err
@@ -158,6 +161,10 @@ func (h *fileServer) ExecuteSynchronization() {
 			if e != nil && e.Value != nil {
 				file = e.Value.(fileInfo)
 			}
+			if isUnwantedFile(file) {
+				continue
+			}
+
 			url := fmt.Sprintf("http://%s/files/%s", file.Origin, file.FileName)
 			path := h.pathToServe + "/" + file.FileName
 
@@ -191,11 +198,15 @@ func (h *fileServer) SyncHook(w http.ResponseWriter, r *http.Request) {
 func (h *fileServer) triggerSync() {
 	files, err := ioutil.ReadDir(h.pathToServe)
 	if err != nil {
-		log.Error(errors.Wrap(err, "Error triggerSync"))
+		log.Error(errors.Wrap(err, "synchronizer.triggerSync"))
 	}
 	errs, _ := errgroup.WithContext(context.Background())
 	for _, f := range files {
 		f := f
+		if isUnwantedFile(f) {
+			continue
+		}
+
 		_, exists := h.syncMapFileLists.Load(f.Name())
 		if !exists {
 			h.syncMapFileLists.Store(f.Name(), f)
@@ -233,11 +244,10 @@ func (h *fileServer) broadcastToAllPeers(file fs.FileInfo) error {
 					func() error {
 						resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 						if err != nil {
-							log.Error(errors.Wrap(err, "Error http.Post"))
+							log.Error(errors.Wrap(err, "synchronizer.broadcastToAllPeers. Error http.Post"))
 						}
-
-						if resp.StatusCode != 200 {
-							log.Error(errors.Wrap(err, fmt.Sprintf("resp status code %d", resp.StatusCode)))
+						if resp != nil && resp.StatusCode != 200 {
+							log.Error(errors.Wrap(err, fmt.Sprintf("synchronizer.broadcastToAllPeers.  resp status code %d", resp.StatusCode)))
 						}
 						return err
 					}, backoff.NewExponentialBackOff())
@@ -270,4 +280,18 @@ func (h *fileServer) uploadToAllPeers(filename string) error {
 
 	}
 	return errs.Wait()
+}
+
+func isUnwantedFile(file interface{}) bool {
+	switch f := file.(type) {
+	case string:
+		return strings.Contains(f, unwantedFile)
+	case fileInfo:
+		return strings.Contains(f.FileName, unwantedFile)
+	case fs.FileInfo:
+		return strings.Contains(f.Name(), unwantedFile)
+	default:
+		log.Error("synchronizer.isUnwantedFile: Unknown file type")
+		return true
+	}
 }
