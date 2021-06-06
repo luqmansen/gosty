@@ -2,6 +2,7 @@ package fileserver
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
@@ -87,21 +88,23 @@ func (fs *fileServer) HandleFileServer(writer http.ResponseWriter, request *http
 }
 
 func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
+	r = r.Clone(context.Background())
 	reader, err := r.MultipartReader()
 	if err != nil {
-		log.Println(errors.Wrap(err, "Error MultipartReader"))
+		log.Error(errors.Wrap(err, "Error MultipartReader"))
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	p, err := reader.NextPart()
 	if err != nil {
+		log.Error(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if p.FormName() != "file" {
-		log.Println("file field is expected")
+		log.Error("file field is expected")
 		http.Error(w, "file field is expected", http.StatusBadRequest)
 		return
 	}
@@ -128,6 +131,7 @@ func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	if err := f.Close(); err != nil {
 		log.Println(err.Error())
 	}
+
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte("Upload file successful"))
 	if err != nil {
