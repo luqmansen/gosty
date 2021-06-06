@@ -15,6 +15,7 @@ var gitCommit string
 
 func main() {
 	workDir, _ := os.Getwd()
+
 	folder := util.GetEnv("STORAGE", "storage")
 	pathToServe := workDir + "/" + folder
 
@@ -38,8 +39,9 @@ func main() {
 	getVersion(router)
 
 	go server.Serve()
-	go fileServerHandler.InitialSync()
-	go fileServerHandler.ExecuteSynchronization()
+	// TODO: fix peer discovery
+	//go fileServerHandler.PeerDiscovery()
+	go fileServerHandler.StartSync()
 
 	select {}
 }

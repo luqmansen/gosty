@@ -33,6 +33,11 @@ fs-bin:
 	GOOS=$(GOOS) CGO_ENABLED=0 go build -ldflags "-X main.gitCommit=$(GIT_COMMIT)" \
  		-o build/fileserver/fileserver cmd/fileserver/main.go
 
+fs-sync: fs-bin
+	docker build -t luqmansen/gosty-fileserver -f docker/fileserver.Dockerfile .
+	docker container rm fileserver-0 fileserver-1 fileserver-2 --force
+	docker-compose up -d fileserver-0 fileserver-1 fileserver-2
+
 all-bin: api-bin worker-bin fs-bin
 
 run:

@@ -2,7 +2,6 @@ package fileserver
 
 import (
 	"bufio"
-	"container/list"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
@@ -28,10 +27,8 @@ type Handler interface {
 	DropAll(writer http.ResponseWriter, request *http.Request)
 	GetAll(writer http.ResponseWriter, request *http.Request)
 
-	// Sync related
-	InitialSync()
-	SyncHook(writer http.ResponseWriter, request *http.Request)
-	ExecuteSynchronization()
+	PeerDiscovery()
+	StartSync()
 }
 
 type fileServer struct {
@@ -39,15 +36,13 @@ type fileServer struct {
 	//This is dns of other statefulsets dns
 	selfHost           string
 	peerFileServerHost []string
-	syncMapFileLists   *sync.Map
-	syncQueue          *list.List
 }
 
 func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) Handler {
 
 	if _, err := os.Stat(pathToServe); os.IsNotExist(err) {
 		log.Infof("folder %s doesn't exists, creating...", pathToServe)
-		err = os.Mkdir(pathToServe, 0700)
+		err = os.Mkdir(pathToServe, 7777)
 		if err != nil {
 			log.Error(errors.Wrap(err, "Error initiating file server handler"))
 		}
@@ -57,17 +52,15 @@ func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) 
 		pathToServe:        pathToServe,
 		peerFileServerHost: peerFsHost,
 		selfHost:           host,
-		syncMapFileLists:   &sync.Map{},
-		syncQueue:          list.New(),
 	}
 }
 
-func (h *fileServer) Index(writer http.ResponseWriter, request *http.Request) {
+func (fs *fileServer) Index(writer http.ResponseWriter, request *http.Request) {
 	writer.Write([]byte("OK"))
 }
 
-func (h *fileServer) GetAll(writer http.ResponseWriter, request *http.Request) {
-	files, err := ioutil.ReadDir(h.pathToServe)
+func (fs *fileServer) GetAll(writer http.ResponseWriter, request *http.Request) {
+	files, err := ioutil.ReadDir(fs.pathToServe)
 	if err != nil {
 		log.Error(errors.Wrap(err, "Error ioutil.ReadDir"))
 	}
@@ -86,14 +79,14 @@ func (h *fileServer) GetAll(writer http.ResponseWriter, request *http.Request) {
 	writer.Write(b)
 }
 
-func (h *fileServer) HandleFileServer(writer http.ResponseWriter, request *http.Request) {
+func (fs *fileServer) HandleFileServer(writer http.ResponseWriter, request *http.Request) {
 	ctx := chi.RouteContext(request.Context())
 	pathPrefix := strings.TrimSuffix(ctx.RoutePattern(), "/*")
-	fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(h.pathToServe)))
-	fs.ServeHTTP(writer, request)
+	f := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(fs.pathToServe)))
+	f.ServeHTTP(writer, request)
 }
 
-func (h *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
+func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	reader, err := r.MultipartReader()
 	if err != nil {
 		log.Println(errors.Wrap(err, "Error MultipartReader"))
@@ -116,7 +109,7 @@ func (h *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	params, _ := url.ParseQuery(r.URL.RawQuery)
 	fileName := params.Get("filename")
 
-	f, err := os.Create(h.pathToServe + "/" + fileName)
+	f, err := os.Create(fs.pathToServe + "/" + fileName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -141,11 +134,10 @@ func (h *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	h.triggerSync()
 }
 
-func (h *fileServer) DropAll(w http.ResponseWriter, r *http.Request) {
-	files, err := ioutil.ReadDir(h.pathToServe)
+func (fs *fileServer) DropAll(w http.ResponseWriter, r *http.Request) {
+	files, err := ioutil.ReadDir(fs.pathToServe)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -156,7 +148,7 @@ func (h *fileServer) DropAll(w http.ResponseWriter, r *http.Request) {
 		go func(filename string) {
 			defer wg.Done()
 			w.Write([]byte(fmt.Sprintf("Removing %s\n", filename)))
-			err := os.Remove(h.pathToServe + "/" + filename)
+			err := os.Remove(fs.pathToServe + "/" + filename)
 			if err != nil {
 				log.Errorf("error removing %s: %s", filename, err)
 				w.Write([]byte(fmt.Sprintf("error removing %s: %s\n", filename, err)))

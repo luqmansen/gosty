@@ -17,7 +17,6 @@ func NewRouter(fsHandler Handler) *chi.Mux {
 	r.Post("/upload", fsHandler.HandleUpload)
 	r.Get("/drop", fsHandler.DropAll)
 	r.Get("/all", fsHandler.GetAll)
-	r.Post("/sync", fsHandler.SyncHook)
 
 	return r
 }

@@ -122,6 +122,51 @@ services:
       - "5672:5672"
       - "15672:15672"
 
+  fileserver-0:
+    image: luqmansen/gosty-fileserver
+    container_name: fileserver-0
+    hostname: fileserver-0
+    restart: always
+    volumes:
+      - ./storage0:/app/storage/
+      - ./config.env:/app/config.env
+    expose:
+      - 8001
+      - 22
+    environment:
+      PORT: "8001"
+      FILESERVER_PEER_HOST: "fileserver-1,fileserver-2"
+
+  fileserver-1:
+    image: luqmansen/gosty-fileserver
+    container_name: fileserver-1
+    hostname: fileserver-1
+    restart: always
+    volumes:
+      - ./storage1:/app/storage/
+      - ./config.env:/app/config.env
+    expose:
+      - 8001
+      - 22
+    environment:
+      PORT: "8001"
+      FILESERVER_PEER_HOST: "fileserver-0,fileserver-2"
+
+  fileserver-2:
+    image: luqmansen/gosty-fileserver
+    container_name: fileserver-2
+    hostname: fileserver-2
+    restart: always
+    volumes:
+      - ./storage2:/app/storage/
+      - ./config.env:/app/config.env
+    expose:
+      - 8001
+      - 22
+    environment:
+      PORT: "8001"
+      FILESERVER_PEER_HOST: "fileserver-1,fileserver-0"
+
   # This container doesn't related to application,
   # but very handy on development
   registry:
