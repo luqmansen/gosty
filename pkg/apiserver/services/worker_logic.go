@@ -75,7 +75,7 @@ func (wrk workerServices) workerWatcher() {
 	for {
 		// TODO [#18]: cache worker.GetAll() function
 		// Cache get all worker function and expire the cache
-		// when new worker registered
+		// when new worker registered or deleted
 		workerList, _ := wrk.GetAll()
 		for _, worker := range workerList {
 			wg.Add(1)
@@ -89,17 +89,17 @@ func (wrk workerServices) workerWatcher() {
 				retry, _ := workerRetryAttempt.LoadOrStore(w.WorkerPodName, 0)
 
 				if retry.(int) > failureThreshold {
-					log.Warnf("Ping to to ip %s worker %s failed >%d times, marking worker as terminated...",
+					log.Warnf("Ping to to ip %s worker %s failed >%d times, deleting worker...",
 						w.IpAddress, w.WorkerPodName, failureThreshold)
-					w.Status = models.WorkerStatusTerminated
 					//ideally, at this point, api server should invoke new worker, but we can't
 					//do it for now, leave this to kubernetes
 					if err := wrk.workerRepo.Delete(w.WorkerPodName); err != nil {
 						log.Errorf("Failed to delete worker %s, err: %s", w.WorkerPodName, err)
+					} else {
+						workerRetryAttempt.Delete(w.WorkerPodName)
+						log.Infof("Worker %s deleted", w.WorkerPodName)
+						return
 					}
-					log.Infof("Worker %s deleted", w.WorkerPodName)
-					workerRetryAttempt.Delete(w.WorkerPodName)
-					return
 				}
 				client := http.Client{Timeout: time.Duration(pingTimeout) * time.Second}
 				resp, err := client.Get(fmt.Sprintf("http://%s:8088/", w.IpAddress))
@@ -130,7 +130,9 @@ func (wrk workerServices) workerWatcher() {
 						return
 					}
 				} else {
-					log.Errorf("Response is not 200: %d", resp.StatusCode)
+					log.Errorf("Error ping worker %s, response code: %d", w.WorkerPodName, resp.StatusCode)
+					w.Status = models.WorkerStatusUnreachable
+					workerRetryAttempt.Store(w.WorkerPodName, retry.(int)+1)
 				}
 
 				w.UpdatedAt = time.Now()
