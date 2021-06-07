@@ -5,6 +5,12 @@ resources:
   - ../../gosty/
 
 patches:
+  - target:
+      kind: ConfigMap
+      name: gosty-config
+    path: configmaps.yaml
+
+
   #APISERVER
   - target:
       kind: Deployment

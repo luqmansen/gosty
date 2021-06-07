@@ -54,10 +54,12 @@ docker-web:
 	docker push luqmansen/gosty-web
 
 
-docker-web-local:
+push-docker-web-local:
 	yarn --cwd ./web/ build
 	docker build -t localhost:5000/gosty-web-dev -f docker/web.dev.Dockerfile .
 	docker push localhost:5000/gosty-web-dev
+
+restart-docker-web-local:
 	echo "y" | docker-compose rm -s web
 	docker-compose up -d web
 
@@ -65,9 +67,11 @@ docker-worker: worker-bin
 	docker build -t luqmansen/gosty-worker -f docker/worker.Dockerfile .
 	docker push luqmansen/gosty-worker
 
-docker-worker-local: worker-bin
+push-docker-worker-local: worker-bin
 	docker build -t localhost:5000/gosty-worker -f docker/worker.Dockerfile .
 	docker push localhost:5000/gosty-worker
+
+restart-docker-worker-local:
 	echo "y" | docker-compose rm -s worker
 	docker-compose up --scale worker=1 -d worker
 
@@ -75,9 +79,11 @@ docker-fs:  fs-bin
 	docker build -t luqmansen/gosty-fileserver -f docker/fileserver.Dockerfile .
 	docker push luqmansen/gosty-fileserver
 
-docker-fs-local:  fs-bin
+push-docker-fs-local:  fs-bin
 	docker build -t localhost:5000/gosty-fileserver -f docker/fileserver.Dockerfile .
 	docker push localhost:5000/gosty-fileserver
+
+restart-docker-fs-local: push-docker-fs-local
 	echo "y" | docker-compose rm -s fileserver
 	docker-compose up -d fileserver
 
@@ -86,15 +92,18 @@ docker-api:  api-bin
 	docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
 	docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
 
-docker-api-local:  api-bin
+push-docker-api-local:  api-bin
 	docker build -t localhost:5000/gosty-apiserver -f docker/apiserver.Dockerfile .
 	docker push localhost:5000/gosty-apiserver
+
+restart-docker-api-local: push-docker-api-local
 	echo "y" | docker-compose rm -s apiserver
 	docker-compose up -d apiserver
 
 
 push-all: docker-api docker-fs docker-worker docker-web
-push-all-local: docker-api-local docker-fs-local docker-worker-local docker-web-local
+push-all-local: push-docker-api-local push-docker-fs-local push-docker-worker-local push-docker-web-local
+restart-all-local: restart-docker-api-local restart-docker-fs-local restart-docker-worker-local restart-docker-web-local
 
 generate-mock:
 	mockgen --destination=mock/pkg/apiserver/repositories/rabbitmq/mock_rabbit.go --package mock_rabbitmq --source=pkg/apiserver/repositories/messaging.go

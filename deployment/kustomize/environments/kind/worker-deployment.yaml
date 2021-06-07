@@ -4,7 +4,7 @@ metadata:
   name: gosty-worker
   namespace: gosty
 spec:
-  replicas: 0
+  replicas: 1
   template:
     spec:
       containers:

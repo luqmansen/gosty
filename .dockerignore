@@ -6,5 +6,8 @@ volume/
 .git/
 playground/
 storage/
+/storage0/
+/storage1/
+/storage2/
 tmpworker/
 web/node_modules/

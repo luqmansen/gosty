@@ -124,7 +124,8 @@ func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Sched
 	// via env var.
 	fileSize, err := strconv.Atoi(util.GetEnv("FILE_MIN_SIZE_MB", "10")) // Default 10 MB (Skip this until merge task is done)
 	if err != nil {
-		log.Error(errors.Wrap(err, "Failed to convert size to mb"))
+		log.Error(errors.Wrap(err, "Failed to convert size to mb, using 10 MB"))
+		fileSize = 10
 	}
 
 	minSize := int64(fileSize * 1e+6) // convert Megabyte to Byte
@@ -188,8 +189,8 @@ func (s *schedulerServices) createSplitTask(video *models.Video, scheduler Sched
 	return nil
 }
 
-// Transcode video input to all representation, each of video represent as task
-// this function might be transcoding a part video (video with _00X name)
+// CreateTranscodeTask will Transcode video input to all representation, each of video
+// represent as task this function might be transcoding a part video (video with _00X name)
 func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	// check if previously from task split
 	// file name on task split contain random-name_001
@@ -284,8 +285,8 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 	}
 }
 
-// Merge task previously must be a split task, so the task parameter is models.Task
-// with TaskTranscode struct filled. This function will be invoked everytime a
+// CreateMergeTask Merge task previously must be a split task, so the task parameter
+// is models.Task with TaskTranscode struct filled. This function will be invoked everytime a
 // Transcode task is finished.
 //
 // This function will only merge chunk of video with specific resolution

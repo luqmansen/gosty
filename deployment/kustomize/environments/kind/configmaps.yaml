@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gosty-config
+  namespace: gosty
+data:
+
+  RABBITMQ_URI: "amqp://username:password@rabbitmq:5672"
+  MONGODB_URI: "mongodb://username:password@mongodb:27017/gosty?authSource=admin"

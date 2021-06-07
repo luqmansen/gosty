@@ -95,7 +95,8 @@ services:
       PORT: "8001"
       PEER_HOST: "0.0.0.0:8002"
 
-  mongo:
+  mongodb:
+    container_name: mongodb
     image: mongo:4.4.4-bionic
     restart: always
     environment:
@@ -110,6 +111,7 @@ services:
       - mongo-volume:/data/db
 
   rabbitmq:
+    container_name: rabbitmq
     image: rabbitmq:3.8.12-management-alpine
     volumes:
       - rabbitmq-volume-etc:/etc/rabbitmq/
