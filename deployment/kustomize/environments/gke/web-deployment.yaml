@@ -7,12 +7,13 @@ metadata:
 spec:
   replicas: 3
   template:
-    containers:
-      - name: gosty-web
-        resources:
-          requests:
-            cpu: "50m"
-            memory: "50Mi"
-          limits:
-            cpu: "256m"
-            memory: "256Mi"
+    spec:
+      containers:
+        - name: gosty-web
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "50Mi"
+            limits:
+              cpu: "256m"
+              memory: "256Mi"

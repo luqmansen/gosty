@@ -67,15 +67,15 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 ### RabbitMQ
 
 ```
-kubectl create -f k8s/rabbitmq/service.yaml # create nodePort service, skip if you don't need
-helm install rabbit bitnami/rabbitmq -f k8s/rabbitmq/helm-values.yaml --create-namespace --namespace gosty
+kubectl create -fs k8s/rabbitmq/service.yaml # create nodePort service, skip if you don't need
+helm install rabbit bitnami/rabbitmq -fs k8s/rabbitmq/helm-values.yaml --create-namespace --namespace gosty
 ```
 
 ### MongoDB
 
 ```
-kubectl create -f k8s/mongodb/service.yaml # create nodePort service, skip if you don't need
-helm install mongodb bitnami/mongodb -f k8s/mongodb/helm-values.yaml --create-namespace --namespace gosty
+kubectl create -fs k8s/mongodb/service.yaml # create nodePort service, skip if you don't need
+helm install mongodb bitnami/mongodb -fs k8s/mongodb/helm-values.yaml --create-namespace --namespace gosty
 ```
 
 ### API Server, File Server, Worker
@@ -83,7 +83,7 @@ helm install mongodb bitnami/mongodb -f k8s/mongodb/helm-values.yaml --create-na
 Apply the rest of k8s resource manifest
 
 ```bash
-kubect apply -f k8s/gosty
+kubect apply -fs k8s/gosty
 ```
 
 ### Elasticsearch-Fluentd-Kibana
@@ -92,7 +92,7 @@ This resource will be deployed on `fluentd-monitoring` namespace. This stack cur
 monitoring
 
 ```shell
-kubectl apply -f k8s/fluentd
+kubectl apply -fs k8s/fluentd
 ```
 
 ```shell
@@ -110,7 +110,7 @@ curl -sL run.linkerd.io/install | sh                                            
 install linkerd component
 
 ```
-kubectl apply -f k8s/linkerd/
+kubectl apply -fs k8s/linkerd/
 ```
 
 access linkerd dashboard
@@ -122,10 +122,10 @@ linkerd viz dashboard
 Injecting linkerd to rabbitmq, mongodb & ingress
 
 ```bash
-kubectl get statefulset -n gosty rabbit-rabbitmq -o yaml  | linkerd inject - | kubectl apply -f -
-kubectl get statefulset -n gosty mongodb -o yaml  | linkerd inject - | kubectl apply -f -
-kubectl get statefulset -n gosty -o yaml mongodb-arbiter | linkerd inject - | kubectl apply -f -   
-kubectl get deployment -n kube-system ingress-nginx-controller -o yaml | linkerd inject - | kubectl apply -f -                                               1 ↵
+kubectl get statefulset -n gosty rabbit-rabbitmq -o yaml  | linkerd inject - | kubectl apply -fs -
+kubectl get statefulset -n gosty mongodb -o yaml  | linkerd inject - | kubectl apply -fs -
+kubectl get statefulset -n gosty -o yaml mongodb-arbiter | linkerd inject - | kubectl apply -fs -   
+kubectl get deployment -n kube-system ingress-nginx-controller -o yaml | linkerd inject - | kubectl apply -fs -                                               1 ↵
 ```
 
 ## Additional
@@ -151,7 +151,7 @@ kubectl port-forward --namespace kube-system svc/registry 5000:80
 push the local image to minikube's local registry
 
 ```
-docker build -t localhost:5000/{image-name} -f docker/Dockerfile-{image-name} .
+docker build -t localhost:5000/{image-name} -fs docker/Dockerfile-{image-name} .
 docker push localhost:5000/{image-name}
 ```
 
@@ -178,7 +178,7 @@ mirrors:
 #### Using Docker compose
 
 ```shell
-docker-compose -f /home/luqman/Codespace/gosty/docker-compose-registry.yaml up -d registry
+docker-compose -fs /home/luqman/Codespace/gosty/docker-compose-registry.yaml up -d registry
 ```
 
 The pod will be exposed on 0.0.0.0:5000
@@ -210,8 +210,8 @@ the [reference](https://microk8s.io/docs/registry-private) for the setup
 I setup [spekt8](https://github.com/spekt8/spekt8) for cluster visualization
 
 ```
-kubectl create -f k8s/plugins/spekt8/fabric8-rbac.yaml 
-kubectl apply -f k8s/plugins/spekt8/spekt8-deployment.yaml 
+kubectl create -fs k8s/plugins/spekt8/fabric8-rbac.yaml 
+kubectl apply -fs k8s/plugins/spekt8/spekt8-deployment.yaml 
 kubectl port-forward -n gosty deployment/spekt8 3000:3000
 ```
 
@@ -232,27 +232,26 @@ cluster
 curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash
 ```
 
-### Run curl pod for debugging
+### Run Pod for Testing Upload File from Inside Container
 
 ```shell
 # omit --rm to keep instance after exit
-kubectl run curl-test --image=radial/busyboxplus:curl -i --tty --rm             
+kubectl run curl-test --image=marsblockchain/curl-git-jq-wget  -it -- sh             
 ```
 
-Testing to post a file
+Download The File
 
 ```bash
+# this is 20MB Test File
+wget --no-check-certificate -r 'https://docs.google.com/uc?export=download&id=102o0T6XeB0znP-r0dkvKhDYTObniockI' -O sony.mp4
+# This is 200MB Test File (Blender's Foundation Big Bucks Bunny)
+wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1mw1JHv739M46J6Jv5cXkVHb-_n7O0blK' -r -A 'uc*' -e robots=off -nd
 
 ```
 
 Post data via curl
-
 ```
-curl \
-  -X POST \
-  -H "Content-Type: multipart/form-data; boundary=----------------------------4ebf00fbcf09" \
-  --data-binary @output1080p.mp4 \
-  http://10.104.11.21/api/video/upload
+curl http://gosty-apiserver.gosty.svc.cluster.local/api/video/upload -F file=@sony.mp4 -v
 ```
 
 ## Issues
@@ -315,6 +314,15 @@ volume. If `erlang cookie` is not defined on secret, it will generated randomly 
 API, each node will have different cookie, so they can't work together. Remove previous volume to make sure cookie is
 renewed.
 
+**Debug K8s DNS**
+
+Some image has problem for dns resolving, example is this alpine 3.11 and 3.13 (used to use this) with
+this [issue](https://github.com/gliderlabs/docker-alpine/issues/539)
+Below command is to run one time pod to debug dns
+
+```shell
+kubectl run --restart=Never --rm -i --tty alpine --image=alpine:3.12 -- nslookup kube-dns.kube-system.svc.cluster.local
+```
 
  ___
 
@@ -324,6 +332,8 @@ renewed.
 - Currently, every worker will always download a copy of the file and process it on its local pod volume, then remove
   the original file, then send the processed file to file server, this can use a lot of bandwidth. This can be improved
   by using shared volume on the node, and check if other worker already download the file, then process it.
+- File Server synchronization should have use [lsyncd](https://github.com/axkibe/lsyncd) instead of reinventing the
+  wheel, will re-implement this later
 
 ## Acknowledgements
 
