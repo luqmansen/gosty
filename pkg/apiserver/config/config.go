@@ -44,11 +44,11 @@ func LoadConfig(path string) *Configuration {
 	log.Debugf("Split task minimum file: %s", viper.GetString("FILE_MIN_SIZE_MB"))
 	return conf
 }
-
 func (d Database) GetDatabaseUri() string {
 	if d.DbUri != "" {
 		return fmt.Sprint(d.DbUri)
 	}
+	// TODO: remove this part, just simplify to single connection string
 	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin",
 		d.Username, d.Password, d.Host, d.Port, d.Name)
 }

@@ -129,6 +129,8 @@ func (wrk workerServices) workerWatcher() {
 						}
 						return
 					}
+				} else {
+					log.Errorf("Response is not 200: %d", resp.StatusCode)
 				}
 
 				w.UpdatedAt = time.Now()

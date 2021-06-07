@@ -60,7 +60,7 @@ func main() {
 	// for development purposes
 	r := server.GetRouter()
 	dropEverythingRoute(r, cfg, mongoClient, rabbitClient)
-	getVersion(r)
+	util.GetVersionEndpoint(r, gitCommit)
 
 	server.Serve()
 }
@@ -124,11 +124,5 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 
 		_, _ = writer.Write([]byte("DROP SUCCESS"))
 
-	})
-}
-
-func getVersion(router *chi.Mux) {
-	router.Get("/version", func(writer http.ResponseWriter, request *http.Request) {
-		writer.Write([]byte(gitCommit))
 	})
 }

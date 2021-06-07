@@ -36,7 +36,7 @@ func main() {
 	fileServerHandler := fileserver.NewFileServerHandler(pathToServe, peerLists, address)
 	router := fileserver.NewRouter(fileServerHandler)
 	server := fileserver.NewServer(address, router)
-	getVersion(router)
+	util.GetVersionEndpoint(router, gitCommit)
 
 	go server.Serve()
 	// TODO: fix peer discovery
