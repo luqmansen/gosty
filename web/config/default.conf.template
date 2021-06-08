@@ -13,6 +13,7 @@ server {
     listen  [::]:80;
     server_name  localhost;
     client_max_body_size 2000M;
+    resolver kube-dns.kube-system.svc.cluster.local valid=30s;
 
     location / {
         root   /usr/share/nginx/html;
