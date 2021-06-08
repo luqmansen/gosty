@@ -130,7 +130,9 @@ func (wrk workerServices) workerWatcher() {
 						return
 					}
 				} else {
-					log.Errorf("Error ping worker %s, response code: %d", w.WorkerPodName, resp.StatusCode)
+					if resp != nil {
+						log.Errorf("Error ping worker %s, response code: %d", w.WorkerPodName, resp.StatusCode)
+					}
 					w.Status = models.WorkerStatusUnreachable
 					workerRetryAttempt.Store(w.WorkerPodName, retry.(int)+1)
 				}
