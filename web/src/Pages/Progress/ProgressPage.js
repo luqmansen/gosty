@@ -4,6 +4,7 @@ import '../../style/style.css';
 import {Column, Table} from 'react-virtualized';
 import {APISERVER_HOST, TASK_KIND, TASK_PROGRESS_ENDPOINT, TASK_STATUS} from "../../Constant";
 import {msToTime} from "../../Utils";
+import {tableData} from "./Tabledata";
 
 class ProgressPage extends Component {
 
@@ -86,59 +87,6 @@ class ProgressPage extends Component {
 
 
 
-const tableData = (v) => {
-    return (
-        <div>
-            <p><b>File : {v.origin_video.file_name}</b></p>
-            <p>Elapsed time: {msToTime(v.total_duration / 1e+6)}</p>
 
-            <Table
-                rowClassName='table-row'
-                headerHeight={40}
-                width={1000}
-                height={v.task_list.length * 40}
-                rowHeight={40}
-                rowCount={v.task_list.length}
-                rowGetter={({index}) => v.task_list[index]}
-            >
-                <Column
-                    label='Task Kind'
-                    dataKey='kind'
-                    width={300}
-                />
-                <Column
-                    label='Target'
-                    dataKey='target'
-                    width={300}
-                />
-                <Column
-                    label='Status'
-                    dataKey='status'
-                    width={250}
-                />
-                <Column
-                    label='Worker'
-                    dataKey='worker'
-                    width={250}
-                />
-                <Column
-                    label='task_submitted'
-                    dataKey='task_submitted'
-                    width={300}
-                />
-                <Column
-                    label='task_completed'
-                    dataKey='task_completed'
-                    width={300}
-                />
-                <Column
-                    label='duration'
-                    dataKey='task_duration'
-                    width={300}
-                />
-            </Table>
-        </div>
-    )
-}
 
 export default ProgressPage;
