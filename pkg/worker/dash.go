@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
@@ -62,15 +61,9 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 	)
 	log.Debug(cmd.String())
 
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	cmd.Dir = wd
-
-	err := cmd.Run()
+	err := util.CommandExecLogger(cmd)
 	if err != nil {
-		log.Error(fmt.Sprint(err) + ": " + stderr.String())
+		log.Error(err)
 		return err
 	}
 

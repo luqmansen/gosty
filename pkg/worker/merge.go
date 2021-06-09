@@ -174,16 +174,7 @@ func createNameFileList(filePath string, fileList []string) error {
 func concatDemuxer(fileListPath, outputPath string) error {
 	cmd := exec.Command("bash", "script/concat-demux.sh", fileListPath, outputPath)
 	log.Debug(cmd.String())
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	cmd.Dir = wd
-	err := cmd.Run()
-	if err != nil {
-		log.Errorf("%s: Error concating video, %s ", err.Error(), stderr.String())
-	}
-	return err
+	return util.CommandExecLogger(cmd)
 }
 
 //Deprecated, not stable for mp4 use Concat demuxer

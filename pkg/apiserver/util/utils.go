@@ -41,35 +41,46 @@ func GetVersionEndpoint(router *chi.Mux, gitCommit string) {
 	})
 }
 
-// CommandExecWrapper wrap exec.Command to log to stdoutPipe and stderrPipe
-func CommandExecWrapper(cmd *exec.Cmd) error {
+// CommandExecLogger wrap exec.Command to log to stdoutPipe and stderrPipe
+func CommandExecLogger(cmd *exec.Cmd) error {
 	stdoutPipe, _ := cmd.StdoutPipe()
 	stderrPipe, _ := cmd.StderrPipe()
+	quitChan := make(chan struct{})
 
 	go func() {
-		for {
-			reader := bufio.NewReader(stdoutPipe)
-			line, err := reader.ReadString('\n')
-			for err == nil {
-				fmt.Println(line)
-				line, err = reader.ReadString('\n')
+		select {
+		case <-quitChan:
+			log.Debug("Closing logger for stdout")
+			return
+		default:
+			for {
+				reader := bufio.NewReader(stdoutPipe)
+				line, err := reader.ReadString('\n')
+				for err == nil {
+					fmt.Println(line)
+					line, err = reader.ReadString('\n')
+				}
 			}
 		}
 	}()
 	go func() {
-		for {
-			reader := bufio.NewReader(stderrPipe)
-			line, err := reader.ReadString('\n')
-			for err == nil {
-				fmt.Println(line)
-				line, err = reader.ReadString('\n')
+		select {
+		case <-quitChan:
+			log.Debug("Closing logger for stderr")
+			return
+		default:
+			for {
+				reader := bufio.NewReader(stderrPipe)
+				line, err := reader.ReadString('\n')
+				for err == nil {
+					fmt.Println(line)
+					line, err = reader.ReadString('\n')
+				}
 			}
 		}
 	}()
 
-	if err := cmd.Run(); err != nil {
-		log.Error(err)
-		return err
-	}
-	return nil
+	err := cmd.Run()
+	close(quitChan)
+	return err
 }

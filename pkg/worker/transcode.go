@@ -33,14 +33,12 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 		return err
 	}
 
-	outBuff := &bytes.Buffer{}
 	cmd := fluentffmpeg.NewCommand("").
 		InputPath(originalFilePath).
 		OutputFormat("mp4").
 		Resolution(task.TaskTranscode.TargetRes). // the default is only set aspect ration, not scaling :(
 		VideoBitRate(task.TaskTranscode.TargetBitrate).
 		OutputPath(outputPath).
-		OutputLogs(outBuff).
 		Overwrite(true).
 		Build()
 
@@ -65,11 +63,9 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	}
 
 	log.Debug(cmd)
-	err = cmd.Run()
+	err = util.CommandExecLogger(cmd)
 	if err != nil {
 		log.Errorf("Transcode error: %s", err)
-		out, _ := ioutil.ReadAll(outBuff)
-		log.Debug(string(out))
 		return err
 	}
 
