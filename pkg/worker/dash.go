@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	log "github.com/sirupsen/logrus"
@@ -31,11 +32,27 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 				inputPath := fmt.Sprintf("%s/%s", workdir, vidName)
 				url := fmt.Sprintf("%s/files/%s", s.config.FileServer.GetFileServerUri(), vidName)
 				log.Debug(inputPath)
-				err := util.Download(inputPath, url)
-				if err != nil {
-					log.Errorf("worker.processTaskDash, url: %s, inputpath: %s, err: %s", url, inputPath, err)
+
+				downloadAndVerify := func() error {
+					err := util.Download(inputPath, url)
+					if err != nil {
+						log.Errorf("worker.processTaskDash, url: %s, inputpath: %s, err: %s", url, inputPath, err)
+						return err
+					}
+					cmd := exec.Command("MP4Box", "-info", inputPath)
+					err = util.CommandExecLogger(cmd)
+					if err != nil {
+						log.Error(err)
+						os.Remove(inputPath)
+						return err
+					}
+					return nil
+				}
+
+				if err := backoff.Retry(downloadAndVerify, backoff.NewConstantBackOff(1*time.Second)); err != nil {
 					errCh <- err
 				}
+
 			}(video.FileName)
 		}
 		wg.Wait() //need to make sure all files downloaded
