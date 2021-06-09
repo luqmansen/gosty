@@ -39,8 +39,9 @@ export const tableData = (v) => {
             <Column
                 label='Target'
                 dataKey='target'
-                width={150}
+                width={300}
             />
+
             <Column
                 label='Status'
                 dataKey='status'
