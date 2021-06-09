@@ -1,11 +1,14 @@
 package util
 
 import (
+	"bufio"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os/exec"
 	"strings"
 )
 
@@ -17,9 +20,9 @@ func GenerateID() string {
 func GetVersionEndpoint(router *chi.Mux, gitCommit string) {
 	router.Get("/version", func(w http.ResponseWriter, r *http.Request) {
 		version := struct {
-			Version string
+			Revision string
 		}{
-			Version: gitCommit,
+			Revision: gitCommit,
 		}
 		resp, err := json.Marshal(version)
 		if err != nil {
@@ -36,4 +39,37 @@ func GetVersionEndpoint(router *chi.Mux, gitCommit string) {
 			log.Error(err)
 		}
 	})
+}
+
+// CommandExecWrapper wrap exec.Command to log to stdoutPipe and stderrPipe
+func CommandExecWrapper(cmd *exec.Cmd) error {
+	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
+
+	go func() {
+		for {
+			reader := bufio.NewReader(stdoutPipe)
+			line, err := reader.ReadString('\n')
+			for err == nil {
+				fmt.Println(line)
+				line, err = reader.ReadString('\n')
+			}
+		}
+	}()
+	go func() {
+		for {
+			reader := bufio.NewReader(stderrPipe)
+			line, err := reader.ReadString('\n')
+			for err == nil {
+				fmt.Println(line)
+				line, err = reader.ReadString('\n')
+			}
+		}
+	}()
+
+	if err := cmd.Run(); err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
 }

@@ -47,15 +47,6 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 		return n < m
 	})
 
-	//create FIFOs for every video with format: absolute/path/filename_00X_WxH
-	var namedPipeList []string
-	for _, f := range fileList {
-		namedPipeList = append(namedPipeList, strings.Split(f, ".")[0])
-	}
-	if len(namedPipeList) == 0 {
-		return errors.New("worker.merge: no named pipelist created")
-	}
-
 	//What below code does is, split filename from
 	// "/path/to/tmpworker/filename-alsofilename-5_256x144.mp4"
 	// to  path/to/tmpworker/filename-alsofilename_256x144.mp4"
@@ -63,13 +54,13 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 	ext := strings.Split(strings.Split(splitName[2], "-")[0], "_")
 	outputFilePath := fmt.Sprintf("%s_%s", splitName[0], ext[1])
 
-	//merging using concat protocol + named pipe since currently we only support mp4
-	//https://trac.ffmpeg.org/wiki/Concatenate#protocol
-	if err := createPipeFile(namedPipeList); err != nil {
+	//merging using concat demuxer
+	//https://trac.ffmpeg.org/wiki/Concatenate#demuxer
+	if err := createNameFileList(splitName[0], fileList); err != nil {
 		return err
 	}
 
-	if err := s.concatOperation(fileList, namedPipeList, outputFilePath); err != nil {
+	if err := concatDemuxer(splitName[0], outputFilePath); err != nil {
 		return err
 	}
 
@@ -119,21 +110,31 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 		}(f)
 	}
 
-	//Removing named pipe file
-	// TODO [#13]:  (improvement) make the pipe generic name (eg: temp1)
-	// and can be reused to next process, might reducing io if the
-	// created pipe file is a lot
-	log.Debug("removing pipe file")
-	for _, f := range namedPipeList {
-		wg.Add(1)
-		go func(file string) {
-			defer wg.Done()
+	////Removing named pipe file
+	//// TODO [#13]:  (improvement) make the pipe generic name (eg: temp1)
+	//// and can be reused to next process, might reducing io if the
+	//// created pipe file is a lot
+	//log.Debug("removing pipe file")
+	//for _, f := range namedPipeList {
+	//	wg.Add(1)
+	//	go func(file string) {
+	//		defer wg.Done()
+	//
+	//		if err := os.Remove(file); err != nil {
+	//			log.Errorf("Error removing source file %s: %s", file, err)
+	//		}
+	//	}(f)
+	//}
 
-			if err := os.Remove(file); err != nil {
-				log.Errorf("Error removing source file %s: %s", file, err)
-			}
-		}(f)
-	}
+	log.Debug("removing concat video list file")
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		if err := os.Remove(splitName[0]); err != nil {
+			log.Errorf("Error removing source file %s: %s", splitName[0], err)
+		}
+	}()
 
 	fileName := strings.Split(outputFilePath, "/")
 	result := &models.Video{
@@ -156,6 +157,36 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 	}
 }
 
+func createNameFileList(filePath string, fileList []string) error {
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range fileList {
+		if _, err := f.WriteString(fmt.Sprintf("file '%s'\n", v)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func concatDemuxer(fileListPath, outputPath string) error {
+	cmd := exec.Command("bash", "script/concat-demux.sh", fileListPath, outputPath)
+	log.Debug(cmd.String())
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	cmd.Dir = wd
+	err := cmd.Run()
+	if err != nil {
+		log.Errorf("%s: Error concating video, %s ", err.Error(), stderr.String())
+	}
+	return err
+}
+
+//Deprecated, not stable for mp4 use Concat demuxer
 func createPipeFile(namedPipeList []string) error {
 	cmd := exec.Command("mkfifo", namedPipeList...)
 	log.Debug(cmd.String())
@@ -171,6 +202,7 @@ func createPipeFile(namedPipeList []string) error {
 	return err
 }
 
+//Deprecated, not stable for mp4 use Concat demuxer
 func (s *Svc) concatOperation(fileList, namedPipeList []string, outputFilePath string) error {
 	wg := sync.WaitGroup{}
 	errCh := make(chan error)
