@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"time"
 )
 
 func Upload(url string, values map[string]io.Reader) (err error) {
@@ -103,7 +104,7 @@ func Download(filepath string, url string) (err error) {
 		return nil
 	}
 
-	if err := backoff.Retry(get, backoff.NewExponentialBackOff()); err != nil {
+	if err := backoff.Retry(get, backoff.NewConstantBackOff(1*time.Second)); err != nil {
 		return err
 	}
 
