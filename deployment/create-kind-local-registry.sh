@@ -16,7 +16,10 @@ if [ "${running}" != 'true' ]; then
     registry:2.7.1
 fi
 
-# create a cluster with the local registry enabled in containerd
+run_mongo="$( echo "y" | docker-compose rm -s "${mongodb}" && docker-compose up -d "${mongodb}")"
+run_rabbit="$( echo "y" | docker-compose rm -s "${rabbitmq}" && docker-compose up -d "${rabbitmq}")"
+
+#create a cluster with the local registry enabled in containerd
 cat <<EOF | kind create cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -28,12 +31,10 @@ EOF
 
 # connect the registry to the cluster network
 # (the network may already be connected)
-fuser -k 27017/tcp
-fuser -k 5672/tcp
-docker-compose up -d "${rabbitmq}" "${mongodb}"
 docker network connect "kind" "${reg_name}" || true
 docker network connect "kind" "${rabbitmq}" || true
 docker network connect "kind" "${mongodb}" || true
+
 
 # Document the local registry
 # https://github.com/kubernetes/enhancements/tree/master/keps/sig-cluster-lifecycle/generic/1755-communicating-a-local-registry
