@@ -7,6 +7,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 )
 
@@ -34,9 +35,18 @@ func (server *Server) Serve() {
 	log.Infof("apiserver running on pod %s, listening to %s:%s server",
 		os.Getenv("HOSTNAME"), server.host, server.port)
 
-	loggedRouter := handlers.LoggingHandler(os.Stdout, server.router)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", server.host, server.port), loggedRouter)
-	if err != nil {
-		log.Println(err.Error())
-	}
+	go func() {
+		loggedRouter := handlers.LoggingHandler(os.Stdout, server.router)
+		err := http.ListenAndServe(fmt.Sprintf("%s:%s", server.host, server.port), loggedRouter)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}()
+	go func() {
+		err := http.ListenAndServe(":8089", nil)
+		if err != nil {
+			log.Error(err)
+		}
+	}()
+	select {}
 }

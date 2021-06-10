@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -46,41 +47,64 @@ func CommandExecLogger(cmd *exec.Cmd) error {
 	stdoutPipe, _ := cmd.StdoutPipe()
 	stderrPipe, _ := cmd.StderrPipe()
 	quitChan := make(chan struct{})
+	if err := cmd.Start(); err != nil {
+		log.Error(err)
+		return err
+	}
 
 	go func() {
-		select {
-		case <-quitChan:
-			log.Debug("Closing logger for stdout")
-			return
-		default:
-			for {
-				reader := bufio.NewReader(stdoutPipe)
-				line, err := reader.ReadString('\n')
-				for err == nil {
+		for {
+			reader := bufio.NewReader(stdoutPipe)
+			line, err := reader.ReadString('\n')
+
+			select {
+			case <-quitChan:
+				fmt.Println("asu exit out")
+				log.Infoln("Closing logger for stdout")
+				return
+			default:
+				if err == nil {
 					fmt.Println(line)
 					line, err = reader.ReadString('\n')
+				} else {
+					log.Error(err)
+				}
+
+			}
+		}
+
+	}()
+	go func() {
+		for {
+			reader := bufio.NewReader(stderrPipe)
+			line, err := reader.ReadString('\n')
+			select {
+			case <-quitChan:
+				fmt.Println("asu exit err")
+				log.Infoln("Closing logger for stderr")
+				return
+			default:
+				if err == nil {
+					fmt.Println(line)
+					line, err = reader.ReadString('\n')
+				} else {
+					log.Error(err)
 				}
 			}
 		}
 	}()
-	go func() {
-		select {
-		case <-quitChan:
-			log.Debug("Closing logger for stderr")
-			return
-		default:
-			for {
-				reader := bufio.NewReader(stderrPipe)
-				line, err := reader.ReadString('\n')
-				for err == nil {
-					fmt.Println(line)
-					line, err = reader.ReadString('\n')
-				}
-			}
-		}
-	}()
 
-	err := cmd.Run()
+	err := cmd.Wait()
+	if err != nil {
+		log.Error("error wait", err)
+	}
 	close(quitChan)
 	return err
+}
+
+func GetCaller() string {
+	if _, file, no, ok := runtime.Caller(1); ok {
+		return fmt.Sprintf("called from %s:%d", file, no)
+	}
+	return ""
 }

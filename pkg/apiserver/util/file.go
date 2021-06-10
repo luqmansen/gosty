@@ -59,6 +59,8 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 	var res *http.Response
 	post := func() (err error) {
 		client := http.Client{}
+		defer client.CloseIdleConnections()
+
 		res, err = client.Do(req)
 		if err != nil {
 			logrus.Errorf("Uploading file error: %s, url: %s", err, url)
@@ -82,7 +84,14 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 		if err != nil {
 			logrus.Error(string(b))
 		}
+
 	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+
 	logrus.Debugf("Upload to %s success", url)
 	return
 }

@@ -6,11 +6,14 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
+	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/luqmansen/gosty/pkg/worker"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -51,7 +54,9 @@ func main() {
 	// This is endpoint is for api server to check availability
 	// of this worker and this worker pod name
 	go func() {
-		http.HandleFunc("/", getHostname())
+		http.HandleFunc("/", getSystemInfo())
+		http.HandleFunc("/debug", debugGoroutine())
+
 		err := http.ListenAndServe(":8088", nil)
 		if err != nil {
 			log.Error(err)
@@ -70,7 +75,7 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 		var task models.Task
 		err := json.Unmarshal(msg.Body, &task)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("%s: %s", util.GetCaller(), err)
 		}
 		wrk.notifyApiServer(&task)
 		switch taskKind := task.Kind; taskKind {
@@ -204,11 +209,22 @@ func (wrk *svc) notifyApiServer(task *models.Task) {
 	}
 }
 
-func getHostname() func(w http.ResponseWriter, request *http.Request) {
+func getSystemInfo() func(w http.ResponseWriter, request *http.Request) {
 	containerHostname, _ := os.Hostname()
 	return func(w http.ResponseWriter, request *http.Request) {
-		data, _ := json.Marshal(map[string]string{"hostname": containerHostname})
+		info := map[string]interface{}{
+			"hostname": containerHostname,
+		}
+		data, _ := json.Marshal(info)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(data)
+	}
+}
+
+func debugGoroutine() func(w http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		buf := make([]byte, 1<<16)
+		runtime.Stack(buf, true)
+		writer.Write(buf)
 	}
 }

@@ -2,7 +2,6 @@ package fileserver
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi"
@@ -43,7 +42,7 @@ func NewFileServerHandler(pathToServe string, peerFsHost []string, host string) 
 
 	if _, err := os.Stat(pathToServe); os.IsNotExist(err) {
 		log.Infof("folder %s doesn't exists, creating...", pathToServe)
-		err = os.Mkdir(pathToServe, 7777)
+		err = os.Mkdir(pathToServe, 0777)
 		if err != nil {
 			log.Error(errors.Wrap(err, "Error initiating file server handler"))
 		}
@@ -88,7 +87,6 @@ func (fs *fileServer) HandleFileServer(writer http.ResponseWriter, request *http
 }
 
 func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
-	r = r.Clone(context.Background())
 	reader, err := r.MultipartReader()
 	if err != nil {
 		log.Error(errors.Wrap(err, "Error MultipartReader"))
@@ -98,7 +96,7 @@ func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 
 	p, err := reader.NextPart()
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Error reader.NextPart"))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -114,6 +112,7 @@ func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 
 	f, err := os.Create(fs.pathToServe + "/" + fileName)
 	if err != nil {
+		log.Error(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -126,6 +125,7 @@ func (fs *fileServer) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Written %v byte", written)
 	if err != nil {
 		log.Error(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	if err := f.Close(); err != nil {
