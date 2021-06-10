@@ -34,8 +34,9 @@ func (s *Svc) ProcessTaskSplit(task *models.Task) error {
 		"bash", wd+"/script/split.sh", fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName),
 		strconv.FormatInt(task.TaskSplit.SizePerVid, 10), "-c copy")
 	log.Debug(cmd.String())
-
-	err = util.CommandExecLogger(cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 	if err != nil {
 		log.Error(err)
 		return err

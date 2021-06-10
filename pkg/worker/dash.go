@@ -40,7 +40,9 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 						return err
 					}
 					cmd := exec.Command("MP4Box", "-info", inputPath)
-					err = util.CommandExecLogger(cmd)
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+					err = cmd.Run()
 					if err != nil {
 						log.Error(err)
 						os.Remove(inputPath)
@@ -77,8 +79,9 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 		strings.Join(fileList, " "),
 	)
 	log.Debug(cmd.String())
-
-	err := util.CommandExecLogger(cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 	if err != nil {
 		log.Error(err)
 		return err

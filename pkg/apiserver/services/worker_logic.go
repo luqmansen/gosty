@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
+	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -49,7 +50,7 @@ func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action
 		var worker models.Worker
 		err := json.Unmarshal(msg.Body, &worker)
 		if err != nil {
-			log.Error(err)
+			log.Error(util.GetCaller(), err)
 		}
 		// TODO [#10]:  add bulk upsert to reduce write
 		if err := wrk.workerRepo.Upsert(&worker); err != nil {
@@ -108,9 +109,9 @@ func (wrk workerServices) workerWatcher() {
 				}
 
 				if resp != nil && resp.StatusCode == http.StatusOK {
-					var body map[string]string
+					var body map[string]interface{}
 					if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-						log.Error(err)
+						log.Errorf("%s: %s", util.GetCaller(), err)
 					}
 
 					if body["hostname"] == w.WorkerPodName {

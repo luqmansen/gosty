@@ -1,14 +1,12 @@
 package worker
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -63,7 +61,9 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	}
 
 	log.Debug(cmd)
-	err = util.CommandExecLogger(cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 	if err != nil {
 		log.Errorf("Transcode error: %s", err)
 		return err
@@ -166,12 +166,10 @@ func (s Svc) ProcessTaskTranscodeAudio(task *models.Task) error {
 
 	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
 
-	outBuff := &bytes.Buffer{}
 	cmd := fluentffmpeg.NewCommand("").
 		InputPath(inputPath).
 		AudioCodec("aac").
 		OutputPath(outputPath).
-		OutputLogs(outBuff). // provide a io.Writer
 		Overwrite(true).
 		Build()
 
@@ -184,11 +182,11 @@ func (s Svc) ProcessTaskTranscodeAudio(task *models.Task) error {
 	}
 
 	log.Debug(cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		log.Errorf("Transcode error: %s", err)
-		out, _ := ioutil.ReadAll(outBuff)
-		log.Debug(string(out))
 		return err
 	}
 

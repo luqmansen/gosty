@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
@@ -34,13 +33,16 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 	if len(fileList) == 0 {
 		return errors.New("no file to merge")
 	}
+	log.Debug(fileList)
 
 	sort.Slice(fileList, func(i, j int) bool {
 		// Below function is to extract the number from string like this
 		// /app/tmpworker/9cbcd3f38f0f4f339b551f2c38c9bad6-767812846-10_854x480
 		// to just get the "10"
-		a := strings.Split(strings.Split(strings.Split(fileList[i], "/")[3], "-")[2], "_")[0]
-		b := strings.Split(strings.Split(strings.Split(fileList[j], "/")[3], "-")[2], "_")[0]
+		splitA := strings.Split(fileList[i], "/")
+		splitB := strings.Split(fileList[j], "/")
+		a := strings.Split(strings.Split(splitA[len(splitA)-1], "-")[2], "_")[0]
+		b := strings.Split(strings.Split(splitB[len(splitB)-1], "-")[2], "_")[0]
 		n, _ := strconv.Atoi(a)
 		m, _ := strconv.Atoi(b)
 
@@ -174,21 +176,20 @@ func createNameFileList(filePath string, fileList []string) error {
 func concatDemuxer(fileListPath, outputPath string) error {
 	cmd := exec.Command("bash", "script/concat-demux.sh", fileListPath, outputPath)
 	log.Debug(cmd.String())
-	return util.CommandExecLogger(cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 //Deprecated, not stable for mp4 use Concat demuxer
 func createPipeFile(namedPipeList []string) error {
 	cmd := exec.Command("mkfifo", namedPipeList...)
 	log.Debug(cmd.String())
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	cmd.Dir = wd
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		log.Errorf("%s: Error making pipe file, %s ", err.Error(), stderr.String())
+		log.Errorf("Error making pipe file, %s ", err.Error())
 	}
 	return err
 }
@@ -210,14 +211,11 @@ func (s *Svc) concatOperation(fileList, namedPipeList []string, outputFilePath s
 			splitArgs := strings.Split(args, " ")
 			cmd := exec.Command("ffmpeg", splitArgs...)
 			log.Debug(cmd.String())
-			var out bytes.Buffer
-			var stderr bytes.Buffer
-			cmd.Stdout = &out
-			cmd.Stderr = &stderr
-			cmd.Dir = wd
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 			err := cmd.Run()
 			if err != nil {
-				log.Errorf("%s: Error writing to pipe for %s, %s ", err.Error(), stderr.String(), filename)
+				log.Errorf("Error writing to pipe for %s, %s ", filename, err.Error())
 				errCh <- err
 			}
 		}(f, namedPipeList[idx])
@@ -230,15 +228,12 @@ func (s *Svc) concatOperation(fileList, namedPipeList []string, outputFilePath s
 		//this stupid exec somehow can't find the file, must run the command line via bash
 		cmd := exec.Command("bash", "script/concat.sh", strings.Join(namedPipeList, "|"), outputFilePath)
 		log.Debug(cmd.String())
-		var out bytes.Buffer
-		var stderr bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = &stderr
-		cmd.Dir = wd
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		fmt.Println(cmd.Dir)
 		if err != nil {
-			log.Errorf("%s: Error concating pipe, %s", err.Error(), stderr.String())
+			log.Errorf("Error concating pipe, %s", err.Error())
 			errCh <- err
 		}
 	}()

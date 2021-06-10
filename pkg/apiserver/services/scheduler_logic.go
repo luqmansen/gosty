@@ -463,7 +463,7 @@ func (s schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface
 		msg := w.(amqp.Delivery)
 		var task models.Task
 		if err := json.Unmarshal(msg.Body, &task); err != nil {
-			log.Error(err)
+			log.Errorf("%s: %s", util.GetCaller(), err)
 		}
 
 		if err := s.taskRepo.Update(&task); err != nil {
@@ -485,10 +485,19 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 		err := json.Unmarshal(msg.Body, &task)
 		if err != nil {
 			// less likely to happen
-			log.Error(err)
+			log.Errorf("%s: %s", util.GetCaller(), err)
 		}
 
-		log.Debugf("Updating task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
+		additionalInfo := make(log.Fields)
+		if task.Kind == models.TaskTranscode {
+			additionalInfo["target_res"] = task.TaskTranscode.TargetRes
+			additionalInfo["file_name"] = task.TaskTranscode.TargetRes
+		} else if task.Kind == models.TaskMerge {
+			additionalInfo["res"] = strconv.Itoa(task.TaskMerge.Result.Width) + "x" + strconv.Itoa(task.TaskMerge.Result.Height)
+		} else if task.Kind == models.TaskSplit {
+			additionalInfo["split_num"] = len(task.TaskSplit.SplitedVideo)
+		}
+		log.WithFields(additionalInfo).Debugf("Updating task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
 		log.Debugf("Updating filename %s", task.OriginVideo.FileName)
 
 		err = s.taskRepo.Update(&task)
@@ -660,7 +669,7 @@ func postSchedulingEvent(postActionChan chan models.TaskPostAction) {
 			err := json.Unmarshal(d.Message.Body, &task)
 			if err != nil {
 				// worst case is if ack or nack is error, the task logger will be nil
-				log.Errorf("scheduler.postSchedulingEvent: failed to unmarshal json %s", err)
+				log.Errorf("%s: %s", util.GetCaller(), err)
 			}
 
 			if d.Err != nil {
