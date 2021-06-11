@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/keepeye/logrus-filename"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
@@ -14,6 +15,9 @@ func LoadConfig(path string) *Configuration {
 		log.SetLevel(log.DebugLevel)
 		log.SetOutput(os.Stdout)
 	}
+	filenameHook := filename.NewHook()
+	filenameHook.Field = "SRC"
+	log.AddHook(filenameHook)
 
 	formatter := &prefixed.TextFormatter{
 		ForceColors:     true,
