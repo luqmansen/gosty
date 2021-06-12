@@ -2,7 +2,6 @@
 package fileserver
 
 import (
-	"bufio"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -68,31 +67,8 @@ func (fs *fileServer) StartSync() {
 			log.Infof("Start synchronizing with %s", hostAddr)
 			cmd := exec.Command("bash", "script/lsyncd.sh", hostAddr, fs.pathToServe)
 			log.Debug(cmd.String())
-
-			stdoutPipe, _ := cmd.StdoutPipe()
-			stderrPipe, _ := cmd.StderrPipe()
-
-			go func() {
-				for {
-					reader := bufio.NewReader(stdoutPipe)
-					line, err := reader.ReadString('\n')
-					for err == nil {
-						fmt.Println(line)
-						line, err = reader.ReadString('\n')
-					}
-				}
-			}()
-			go func() {
-				for {
-					reader := bufio.NewReader(stderrPipe)
-					line, err := reader.ReadString('\n')
-					for err == nil {
-						fmt.Println(line)
-						line, err = reader.ReadString('\n')
-					}
-				}
-			}()
-
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				log.Errorf("Synchronizing with %s failed to start: %s", hostAddr, err)
 			} else {

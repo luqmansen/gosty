@@ -41,7 +41,13 @@ func main() {
 	go server.Serve()
 	// TODO: fix peer discovery
 	//go fileServerHandler.PeerDiscovery()
-	go fileServerHandler.StartSync()
+
+	//quick and dirty to make fileserver-0 sync to other replica
+	if strings.Contains(selfHost, "0") {
+		// only run lsycnd on primary because it doesn't support the other way
+		// https://stackoverflow.com/questions/36457567/use-lsyncd-to-update-a-local-folder-with-a-remote-source
+		go fileServerHandler.StartSync()
+	}
 
 	select {}
 }
