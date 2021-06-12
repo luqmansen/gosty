@@ -3,7 +3,7 @@ cat > config$1 << EOF
         default.rsync,
         source    = "$2/",
         target    = "$1:/$2/",
-        delay     = 5,
+        delay     = 3,
         rsync     = {
             archive  = true,
             compress = true,
@@ -14,8 +14,10 @@ cat > config$1 << EOF
     }
 EOF
 
-# Note: Current workaround to set the delay to 5 second, this to prevent
+# Updated note: need to find optimal delay sync number
+
+# Note: Current workaround to set the delay to 3 second, this to prevent
 # weird behavior for bidirectional sync. Make sure your file can be fully written
-# in 5 second, else increase the delay (slower replication)
+# in 3 second, else increase the delay (slower replication)
 
 /usr/bin/lsyncd -nodaemon -log scarce -insist config$1
