@@ -16,6 +16,8 @@ import (
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"sync"
 )
 
 var gitCommit string
@@ -69,60 +71,85 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 	router.Get("/drop", func(writer http.ResponseWriter, request *http.Request) {
 
 		//drop mongo collection
-		_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))
-		err := mongoClient.Database("gosty").Drop(context.Background())
-		if err != nil {
-			_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
-		}
+		wg := &sync.WaitGroup{}
+
+		wg.Add(3)
+
+		go func() {
+			defer wg.Done()
+
+			_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", "db")))
+			err := mongoClient.Database("gosty").Drop(context.Background())
+			if err != nil {
+				_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
+			}
+		}()
 
 		//drop rabbitmq queue
-		ch, err := rabbitConn.Channel()
-		if err != nil {
-			log.Error()
-		}
-		if ch == nil {
-			writer.Write([]byte("Failed drop, channel is nil"))
-			return
-		}
+		go func() {
+			defer wg.Done()
 
-		queue := []string{
-			services.MessageBrokerQueueTaskUpdateStatus,
-			services.MessageBrokerQueueTaskFinished,
-			services.MessageBrokerQueueTaskNew,
-			//services.WorkerStatus,
-			services.WorkerAssigned,
-			services.WorkerNew,
-		}
-
-		for _, q := range queue {
-			_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
-			_, err = ch.QueuePurge(q, true)
+			ch, err := rabbitConn.Channel()
 			if err != nil {
-				writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
+				log.Error()
 			}
-		}
-		err = ch.Close()
-		if err != nil {
-			writer.Write([]byte(fmt.Sprintf("Error close connection: %s", err)))
-		}
+			if ch == nil {
+				writer.Write([]byte("Failed drop, channel is nil"))
+				return
+			}
+
+			queue := []string{
+				services.MessageBrokerQueueTaskUpdateStatus,
+				services.MessageBrokerQueueTaskFinished,
+				services.MessageBrokerQueueTaskNew,
+				//services.WorkerStatus,
+				services.WorkerAssigned,
+				services.WorkerNew,
+			}
+
+			for _, q := range queue {
+				_, _ = writer.Write([]byte(fmt.Sprintf("Dropping %s\n", q)))
+				_, err = ch.QueuePurge(q, true)
+				if err != nil {
+					writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", q, err)))
+				}
+			}
+			err = ch.Close()
+			if err != nil {
+				writer.Write([]byte(fmt.Sprintf("Error close connection: %s", err)))
+			}
+		}()
 
 		//drop all on fileserver
-		resp, err := http.Get(cfg.FileServer.GetFileServerUri() + "/drop")
-		if err != nil {
-			log.Error(err)
-		}
-		if resp != nil {
-			if resp.StatusCode != http.StatusNoContent {
-				writer.Write([]byte("failed to drop file server data\n"))
+		go func() {
+			defer wg.Done()
+
+			finalUri := ""
+			uri, _ := url.ParseRequestURI(cfg.FileServer.GetFileServerUri())
+			if uri == nil {
+				finalUri = cfg.FileServer.GetFileServerUri()
+			} else {
+				uri.Host = "gosty-fileserver-0." + uri.Host
+				finalUri = uri.String()
 			}
-			body, err := ioutil.ReadAll(resp.Body)
+			resp, err := http.Get(finalUri + "/drop")
 			if err != nil {
 				log.Error(err)
 			}
-			writer.Write(body)
-		}
+			if resp != nil {
+				if resp.StatusCode != http.StatusNoContent {
+					writer.Write([]byte("failed to drop file server data\n"))
+				}
+				body, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					log.Error(err)
+				}
+				writer.Write(body)
+			}
 
+		}()
+
+		wg.Wait()
 		_, _ = writer.Write([]byte("DROP SUCCESS"))
-
 	})
 }

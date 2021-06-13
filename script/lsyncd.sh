@@ -1,13 +1,17 @@
-cat > config$1 << EOF
+cat > config_$1 << EOF
+    settings {
+        inotifyMode = "CloseWrite",
+        maxProcesses = 20,
+        insist = true,
+        nodaemon = true
+    }
+
     sync {
         default.rsync,
         source    = "$2/",
         target    = "$1:$2/",
         delay     = 2,
         rsync     = {
-            archive  = true,
-            compress = true,
-            update   = true,
             temp_dir = "/tmp/",
             rsh      = "sshpass -p root ssh  -o 'StrictHostKeyChecking no'"
         }
@@ -20,4 +24,4 @@ EOF
 # weird behavior for bidirectional sync. Make sure your file can be fully written
 # in 3 second, else increase the delay (slower replication)
 
-/usr/bin/lsyncd -nodaemon -log all -insist config$1
+/usr/bin/lsyncd -nodaemon -log all config_$1
