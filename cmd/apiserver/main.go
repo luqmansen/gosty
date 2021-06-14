@@ -10,6 +10,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories/rabbitmq"
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
+	"github.com/patrickmn/go-cache"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 )
 
 var gitCommit string
@@ -42,9 +44,10 @@ func main() {
 	sseServer.CreateStream(services.WorkerHTTPEventStream)
 	sseServer.CreateStream(services.TaskHTTPEventStream)
 
-	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit, sseServer)
-	workerSvc := services.NewWorkerService(workerRepo, rabbit, sseServer)
-	videoSvc := services.NewVideoService(vidRepo, schedulerSvc)
+	c := cache.New(5*time.Minute, 10*time.Minute)
+	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit, sseServer, c)
+	workerSvc := services.NewWorkerService(workerRepo, rabbit, sseServer, c)
+	videoSvc := services.NewVideoService(vidRepo, schedulerSvc, c)
 
 	go schedulerSvc.ReadMessages()
 	go workerSvc.ReadMessage()

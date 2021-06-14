@@ -7,6 +7,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
@@ -26,30 +27,47 @@ type schedulerServices struct {
 	videoRepo repositories.VideoRepository
 	messenger repositories.Messenger
 	sse       *sse.Server
+	cache     *cache.Cache
 }
+
+const (
+	KeyGetAllTaskProgress = "GetAllTaskProgress"
+)
 
 func NewSchedulerService(
 	taskRepo repositories.TaskRepository,
 	videoRepo repositories.VideoRepository,
 	messenger repositories.Messenger,
 	sse *sse.Server,
+	cache *cache.Cache,
 ) Scheduler {
 	return &schedulerServices{
 		taskRepo:  taskRepo,
 		videoRepo: videoRepo,
 		messenger: messenger,
 		sse:       sse,
+		cache:     cache,
 	}
 }
 
-func (s schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressResponse) {
+func (s *schedulerServices) GetAllTaskProgress() (result []*models.TaskProgressResponse) {
 	//for every task from db, group them if they are from the same video
-	allTask, err := s.taskRepo.GetAll(-1)
-	if err != nil {
-		log.Error(err)
-	}
-	if len(allTask) == 0 {
-		return nil
+	var err error
+	var allTask []*models.Task
+
+	res, found := s.cache.Get(KeyGetAllTaskProgress)
+	if found {
+		allTask = res.([]*models.Task)
+	} else {
+		allTask, err = s.taskRepo.GetAll(-1)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+		if len(allTask) == 0 {
+			return nil
+		}
+		s.cache.Set(KeyGetAllTaskProgress, allTask, 30*time.Second)
 	}
 
 	tempTask := make(map[string][]*models.Task)
@@ -458,7 +476,7 @@ func (_ *schedulerServices) createTranscodeTaskFromSplitTask(task *models.Task, 
 	return errs.Wait()
 }
 
-func (s schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface{}) {
+func (s *schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface{}) {
 	for w := range updateTaskStatusQueue {
 		msg := w.(amqp.Delivery)
 		var task models.Task
@@ -472,12 +490,14 @@ func (s schedulerServices) updateTaskStatus(updateTaskStatusQueue chan interface
 			if err = msg.Ack(false); err != nil {
 				log.Error(err)
 			}
+			// delete cache after update task repo
+			s.cache.Delete(KeyGetAllTaskProgress)
 		}
 		s.publishTaskEvent()
 	}
 }
 
-func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) {
+func (s *schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) {
 	// TODO [#9]:  Refactor this repetitive message ack
 	for t := range finishedTask {
 		msg := t.(amqp.Delivery)
@@ -507,6 +527,9 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 			log.Errorf("Failed to update task %s : %s", task.Id, err)
 		}
 
+		// delete cache after update task repo
+		s.cache.Delete(KeyGetAllTaskProgress)
+
 		switch taskKind := task.Kind; taskKind {
 		case models.TaskSplit:
 			//save each splitted video into its own record
@@ -517,7 +540,7 @@ func (s schedulerServices) scheduleTaskFromQueue(finishedTask chan interface{}) 
 				break
 			}
 
-			if err := s.createTranscodeTaskFromSplitTask(&task, &s); err != nil {
+			if err := s.createTranscodeTaskFromSplitTask(&task, s); err != nil {
 				log.Errorf("Failed to createTranscodeTaskFromSplitTask: %s", err)
 				if err := msg.Nack(false, true); err != nil {
 					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())

@@ -41,7 +41,11 @@ func NewVideoHandler(cfg *config.Configuration, videoService services.VideoServi
 
 func (h video) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 
-	vid := h.videoService.GetAll()
+	vid, err := h.videoService.GetAll()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	if len(vid) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return

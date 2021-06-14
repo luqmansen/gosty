@@ -6,6 +6,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
+	"github.com/patrickmn/go-cache"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -16,15 +17,21 @@ import (
 	"time"
 )
 
+const (
+	KeyGetAllWorker = "KeyGetAllWorker"
+)
+
 func NewWorkerService(
 	workerRepo repositories.WorkerRepository,
 	mb repositories.Messenger,
 	sse *sse.Server,
+	cache *cache.Cache,
 ) WorkerService {
 	return &workerServices{
 		mb:         mb,
 		workerRepo: workerRepo,
 		sse:        sse,
+		cache:      cache,
 	}
 }
 
@@ -174,13 +181,20 @@ func (wrk workerServices) Get(workerName string) models.Worker {
 	panic("implement me")
 }
 
-func (wrk workerServices) GetAll() ([]*models.Worker, error) {
-	w, err := wrk.workerRepo.GetAll(100)
-	if err != nil {
-		log.Error(err)
-		return nil, err
+func (wrk *workerServices) GetAll() ([]*models.Worker, error) {
+	res, found := wrk.cache.Get(KeyGetAllWorker)
+	if found {
+		return res.([]*models.Worker), nil
+	} else {
+		w, err := wrk.workerRepo.GetAll(100)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+		wrk.cache.Set(KeyGetAllWorker, w, 30*time.Second)
+
+		return w, nil
 	}
-	return w, nil
 }
 
 func (wrk workerServices) Update(workerName string) models.Worker {

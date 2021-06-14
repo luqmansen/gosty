@@ -6,5 +6,5 @@ import (
 
 type VideoService interface {
 	Inspect(filePath string) models.Video
-	GetAll() []*models.Video
+	GetAll() ([]*models.Video, error)
 }

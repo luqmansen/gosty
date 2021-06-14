@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
+	"github.com/patrickmn/go-cache"
 	"github.com/r3labs/sse/v2"
 )
 
@@ -20,6 +21,7 @@ type workerServices struct {
 	workerRepo repositories.WorkerRepository
 	mb         repositories.Messenger
 	sse        *sse.Server
+	cache      *cache.Cache
 }
 
 type WorkerService interface {

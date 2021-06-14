@@ -4,20 +4,27 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	fluentffmpeg "github.com/modfy/fluent-ffmpeg"
+	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type videoServices struct {
 	vidRepo      repositories.VideoRepository
 	schedulerSvc Scheduler
+	cache        *cache.Cache
 }
 
-func NewVideoService(vidRepo repositories.VideoRepository, schedulerSvc Scheduler) VideoService {
-	return &videoServices{vidRepo, schedulerSvc}
+const (
+	KeyGetAllVideo = "KeyGetAllVideo"
+)
+
+func NewVideoService(vidRepo repositories.VideoRepository, schedulerSvc Scheduler, cache *cache.Cache) VideoService {
+	return &videoServices{vidRepo, schedulerSvc, cache}
 }
 
 func (v videoServices) Inspect(file string) models.Video {
@@ -71,10 +78,18 @@ func (v videoServices) Inspect(file string) models.Video {
 	return video
 }
 
-func (v videoServices) GetAll() (vids []*models.Video) {
-	vids, err := v.vidRepo.GetAvailable(100)
-	if err != nil {
-		log.Error(err)
+func (v *videoServices) GetAll() (vids []*models.Video, err error) {
+	res, found := v.cache.Get(KeyGetAllVideo)
+	if found {
+		return res.([]*models.Video), nil
+	} else {
+		vids, err = v.vidRepo.GetAvailable(100)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+		v.cache.Set(KeyGetAllVideo, vids, 30*time.Second)
+
+		return vids, nil
 	}
-	return
 }
