@@ -64,19 +64,19 @@ func main() {
 
 	// for development purposes
 	r := server.GetRouter()
-	dropEverythingRoute(r, cfg, mongoClient, rabbitClient)
+	dropEverythingRoute(r, cfg, mongoClient, rabbitClient, c)
 	util.GetVersionEndpoint(r, gitCommit)
 
 	server.Serve()
 }
 
-func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient *mongo2.Client, rabbitConn *amqp.Connection) {
+func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient *mongo2.Client, rabbitConn *amqp.Connection, c *cache.Cache) {
 	router.Get("/drop", func(writer http.ResponseWriter, request *http.Request) {
 
 		//drop mongo collection
 		wg := &sync.WaitGroup{}
 
-		wg.Add(3)
+		wg.Add(4)
 
 		go func() {
 			defer wg.Done()
@@ -86,6 +86,11 @@ func dropEverythingRoute(router *chi.Mux, cfg *config.Configuration, mongoClient
 			if err != nil {
 				_, _ = writer.Write([]byte(fmt.Sprintf("Error dropping %s: %s", "db", err)))
 			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			c.Flush()
 		}()
 
 		//drop rabbitmq queue
