@@ -66,6 +66,7 @@ func (wrk workerServices) workerStateUpdate(workerQueue chan interface{}, action
 			if err = msg.Ack(false); err != nil {
 				log.Errorf("Failed to update worker status: %s", err)
 			}
+			wrk.cache.Delete(KeyGetAllWorker)
 			wrk.publishWorkerEvent()
 		}
 	}
