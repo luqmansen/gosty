@@ -22,21 +22,21 @@ metadata:
     linkerd.io/extension: viz
     component: metrics-api
 rules:
-- apiGroups: ["extensions", "apps"]
-  resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
-  verbs: ["list", "get", "watch"]
-- apiGroups: ["extensions", "batch"]
-  resources: ["cronjobs", "jobs"]
-  verbs: ["list" , "get", "watch"]
-- apiGroups: [""]
-  resources: ["pods", "endpoints", "services", "replicationcontrollers", "namespaces"]
-  verbs: ["list", "get", "watch"]
-- apiGroups: ["linkerd.io"]
-  resources: ["serviceprofiles"]
-  verbs: ["list", "get", "watch"]
-- apiGroups: ["split.smi-spec.io"]
-  resources: ["trafficsplits"]
-  verbs: ["list", "get", "watch"]
+  - apiGroups: [ "extensions", "apps" ]
+    resources: [ "daemonsets", "deployments", "replicasets", "statefulsets" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "extensions", "batch" ]
+    resources: [ "cronjobs", "jobs" ]
+    verbs: [ "list" , "get", "watch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods", "endpoints", "services", "replicationcontrollers", "namespaces" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "linkerd.io" ]
+    resources: [ "serviceprofiles" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "split.smi-spec.io" ]
+    resources: [ "trafficsplits" ]
+    verbs: [ "list", "get", "watch" ]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -50,9 +50,9 @@ roleRef:
   kind: ClusterRole
   name: linkerd-linkerd-viz-metrics-api
 subjects:
-- kind: ServiceAccount
-  name: metrics-api
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: metrics-api
+    namespace: linkerd-viz
 ---
 kind: ServiceAccount
 apiVersion: v1
@@ -87,9 +87,9 @@ metadata:
     linkerd.io/extension: viz
     component: prometheus
 rules:
-- apiGroups: [""]
-  resources: ["nodes", "nodes/proxy", "pods"]
-  verbs: ["get", "list", "watch"]
+  - apiGroups: [ "" ]
+    resources: [ "nodes", "nodes/proxy", "pods" ]
+    verbs: [ "get", "list", "watch" ]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -103,9 +103,9 @@ roleRef:
   kind: ClusterRole
   name: linkerd-linkerd-viz-prometheus
 subjects:
-- kind: ServiceAccount
-  name: prometheus
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: linkerd-viz
 ---
 kind: ServiceAccount
 apiVersion: v1
@@ -128,15 +128,15 @@ metadata:
     linkerd.io/extension: viz
     component: tap
 rules:
-- apiGroups: [""]
-  resources: ["pods", "services", "replicationcontrollers", "namespaces", "nodes"]
-  verbs: ["list", "get", "watch"]
-- apiGroups: ["extensions", "apps"]
-  resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
-  verbs: ["list", "get", "watch"]
-- apiGroups: ["extensions", "batch"]
-  resources: ["cronjobs", "jobs"]
-  verbs: ["list" , "get", "watch"]
+  - apiGroups: [ "" ]
+    resources: [ "pods", "services", "replicationcontrollers", "namespaces", "nodes" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "extensions", "apps" ]
+    resources: [ "daemonsets", "deployments", "replicasets", "statefulsets" ]
+    verbs: [ "list", "get", "watch" ]
+  - apiGroups: [ "extensions", "batch" ]
+    resources: [ "cronjobs", "jobs" ]
+    verbs: [ "list" , "get", "watch" ]
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -146,12 +146,12 @@ metadata:
     linkerd.io/extension: viz
     component: tap
 rules:
-- apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["list"]
-- apiGroups: ["tap.linkerd.io"]
-  resources: ["*"]
-  verbs: ["watch"]
+  - apiGroups: [ "" ]
+    resources: [ "namespaces" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "tap.linkerd.io" ]
+    resources: [ "*" ]
+    verbs: [ "watch" ]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -165,9 +165,9 @@ roleRef:
   kind: ClusterRole
   name: linkerd-linkerd-viz-tap
 subjects:
-- kind: ServiceAccount
-  name: tap
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: tap
+    namespace: linkerd-viz
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -181,9 +181,9 @@ roleRef:
   kind: ClusterRole
   name: system:auth-delegator
 subjects:
-- kind: ServiceAccount
-  name: tap
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: tap
+    namespace: linkerd-viz
 ---
 kind: ServiceAccount
 apiVersion: v1
@@ -209,9 +209,9 @@ roleRef:
   kind: Role
   name: extension-apiserver-authentication-reader
 subjects:
-- kind: ServiceAccount
-  name: tap
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: tap
+    namespace: linkerd-viz
 ---
 kind: Secret
 apiVersion: v1
@@ -259,19 +259,19 @@ metadata:
     component: web
     namespace: linkerd
 rules:
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["get"]
-  resourceNames: ["linkerd-config"]
-- apiGroups: [""]
-  resources: ["namespaces", "configmaps"]
-  verbs: ["get"]
-- apiGroups: [""]
-  resources: ["serviceaccounts", "pods"]
-  verbs: ["list"]
-- apiGroups: ["apps"]
-  resources: ["replicasets"]
-  verbs: ["list"]
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get" ]
+    resourceNames: [ "linkerd-config" ]
+  - apiGroups: [ "" ]
+    resources: [ "namespaces", "configmaps" ]
+    verbs: [ "get" ]
+  - apiGroups: [ "" ]
+    resources: [ "serviceaccounts", "pods" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "apps" ]
+    resources: [ "replicasets" ]
+    verbs: [ "list" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -287,9 +287,9 @@ roleRef:
   name: web
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- kind: ServiceAccount
-  name: web
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: web
+    namespace: linkerd-viz
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -299,24 +299,24 @@ metadata:
     linkerd.io/extension: viz
     component: web
 rules:
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["clusterroles", "clusterrolebindings"]
-  verbs: ["list"]
-- apiGroups: ["apiextensions.k8s.io"]
-  resources: ["customresourcedefinitions"]
-  verbs: ["list"]
-- apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
-  verbs: ["list"]
-- apiGroups: ["policy"]
-  resources: ["podsecuritypolicies"]
-  verbs: ["list"]
-- apiGroups: ["linkerd.io"]
-  resources: ["serviceprofiles"]
-  verbs: ["list"]
-- apiGroups: ["apiregistration.k8s.io"]
-  resources: ["apiservices"]
-  verbs: ["get"]
+  - apiGroups: [ "rbac.authorization.k8s.io" ]
+    resources: [ "clusterroles", "clusterrolebindings" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "apiextensions.k8s.io" ]
+    resources: [ "customresourcedefinitions" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "admissionregistration.k8s.io" ]
+    resources: [ "mutatingwebhookconfigurations", "validatingwebhookconfigurations" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "policy" ]
+    resources: [ "podsecuritypolicies" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "linkerd.io" ]
+    resources: [ "serviceprofiles" ]
+    verbs: [ "list" ]
+  - apiGroups: [ "apiregistration.k8s.io" ]
+    resources: [ "apiservices" ]
+    verbs: [ "get" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -330,9 +330,9 @@ roleRef:
   name: linkerd-linkerd-viz-web-check
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- kind: ServiceAccount
-  name: web
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: web
+    namespace: linkerd-viz
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -346,9 +346,9 @@ roleRef:
   kind: ClusterRole
   name: linkerd-linkerd-viz-tap-admin
 subjects:
-- kind: ServiceAccount
-  name: web
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: web
+    namespace: linkerd-viz
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -358,9 +358,9 @@ metadata:
     linkerd.io/extension: viz
     component: web
 rules:
-- apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["list"]
+  - apiGroups: [ "" ]
+    resources: [ "namespaces" ]
+    verbs: [ "list" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -374,9 +374,9 @@ roleRef:
   name: linkerd-linkerd-viz-web-api
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- kind: ServiceAccount
-  name: web
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: web
+    namespace: linkerd-viz
 ---
 kind: ServiceAccount
 apiVersion: v1
@@ -401,18 +401,18 @@ roleRef:
   name: psp
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- kind: ServiceAccount
-  name: tap
-  namespace: linkerd-viz
-- kind: ServiceAccount
-  name: web
-  namespace: linkerd-viz
-- kind: ServiceAccount
-  name: grafana
-  namespace: linkerd-viz
-- kind: ServiceAccount
-  name: prometheus
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: tap
+    namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: web
+    namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: grafana
+    namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: linkerd-viz
 ---
 ###
 ### Metrics API
@@ -433,9 +433,9 @@ spec:
     linkerd.io/extension: viz
     component: metrics-api
   ports:
-  - name: http
-    port: 8085
-    targetPort: 8085
+    - name: http
+      port: 8085
+      targetPort: 8085
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -468,32 +468,31 @@ spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
       containers:
-      - args:
-        - -controller-namespace=linkerd
-        - -log-level=info
-        - -cluster-domain=cluster.local
-        - -prometheus-url=http://prometheus.linkerd-viz.svc.cluster.local:9090
-        image: cr.l5d.io/linkerd/metrics-api:stable-2.10.2
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /ping
-            port: 9995
-          initialDelaySeconds: 10
-        name: metrics-api
-        ports:
-        - containerPort: 8085
-          name: http
-        - containerPort: 9995
-          name: admin-http
-        readinessProbe:
-          failureThreshold: 7
-          httpGet:
-            path: /ready
-            port: 9995
-        resources:
-        securityContext:
-          runAsUser: 2103
+        - args:
+            - -controller-namespace=linkerd
+            - -log-level=info
+            - -cluster-domain=cluster.local
+            - -prometheus-url=http://prometheus.linkerd-viz.svc.cluster.local:9090
+          image: cr.l5d.io/linkerd/metrics-api:stable-2.10.2
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9995
+            initialDelaySeconds: 10
+          name: metrics-api
+          ports:
+            - containerPort: 8085
+              name: http
+            - containerPort: 9995
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9995
+          securityContext:
+            runAsUser: 2103
       serviceAccountName: metrics-api
 ---
 ###
@@ -570,9 +569,9 @@ spec:
     linkerd.io/extension: viz
     component: grafana
   ports:
-  - name: http
-    port: 3000
-    targetPort: 3000
+    - name: http
+      port: 3000
+      targetPort: 3000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -607,51 +606,50 @@ spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
       containers:
-      - env:
-        - name: GF_PATHS_DATA
-          value: /data
-        # Force using the go-based DNS resolver instead of the OS' to avoid failures in some environments
-        # see https://github.com/grafana/grafana/issues/20096
-        - name: GODEBUG
-          value: netdns=go
-        image: cr.l5d.io/linkerd/grafana:stable-2.10.2
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /api/health
-            port: 3000
-          initialDelaySeconds: 30
-        name: grafana
-        ports:
-        - containerPort: 3000
-          name: http
-        readinessProbe:
-          httpGet:
-            path: /api/health
-            port: 3000
-        resources:
-        securityContext:
-          runAsUser: 472
-        volumeMounts:
-        - mountPath: /data
-          name: data
-        - mountPath: /etc/grafana
-          name: grafana-config
-          readOnly: true
+        - env:
+            - name: GF_PATHS_DATA
+              value: /data
+            # Force using the go-based DNS resolver instead of the OS' to avoid failures in some environments
+            # see https://github.com/grafana/grafana/issues/20096
+            - name: GODEBUG
+              value: netdns=go
+          image: cr.l5d.io/linkerd/grafana:stable-2.10.2
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+          name: grafana
+          ports:
+            - containerPort: 3000
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+          securityContext:
+            runAsUser: 472
+          volumeMounts:
+            - mountPath: /data
+              name: data
+            - mountPath: /etc/grafana
+              name: grafana-config
+              readOnly: true
       serviceAccountName: grafana
       volumes:
-      - emptyDir: {}
-        name: data
-      - configMap:
-          items:
-          - key: grafana.ini
-            path: grafana.ini
-          - key: datasources.yaml
-            path: provisioning/datasources/datasources.yaml
-          - key: dashboards.yaml
-            path: provisioning/dashboards/dashboards.yaml
+        - emptyDir: { }
+          name: data
+        - configMap:
+            items:
+              - key: grafana.ini
+                path: grafana.ini
+              - key: datasources.yaml
+                path: provisioning/datasources/datasources.yaml
+              - key: dashboards.yaml
+                path: provisioning/dashboards/dashboards.yaml
+            name: grafana-config
           name: grafana-config
-        name: grafana-config
 ---
 ###
 ### Prometheus
@@ -818,9 +816,9 @@ spec:
     linkerd.io/extension: viz
     component: prometheus
   ports:
-  - name: admin-http
-    port: 9090
-    targetPort: 9090
+    - name: admin-http
+      port: 9090
+      targetPort: 9090
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -857,48 +855,63 @@ spec:
       securityContext:
         fsGroup: 65534
       containers:
-      - args:
-        - --log.level=info
-        - --config.file=/etc/prometheus/prometheus.yml
-        - --storage.tsdb.path=/data
-        - --storage.tsdb.retention.time=6h
-        image: prom/prometheus:v2.19.3
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /-/healthy
-            port: 9090
-          initialDelaySeconds: 30
-          timeoutSeconds: 30
-        name: prometheus
-        ports:
-        - containerPort: 9090
-          name: admin-http
-        readinessProbe:
-          httpGet:
-            path: /-/ready
-            port: 9090
-          initialDelaySeconds: 30
-          timeoutSeconds: 30
-        resources:
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 65534
-          runAsGroup: 65534
-        volumeMounts:
-        - mountPath: /data
-          name: data
-        - mountPath: /etc/prometheus/prometheus.yml
-          name: prometheus-config
-          subPath: prometheus.yml
-          readOnly: true
+        - args:
+            - --log.level=info
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/data
+            - --storage.tsdb.retention.time=15d
+          image: prom/prometheus:v2.19.3
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          name: prometheus
+          ports:
+            - containerPort: 9090
+              name: admin-http
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          volumeMounts:
+            - mountPath: /data
+              name: data
+            - mountPath: /etc/prometheus/prometheus.yml
+              name: prometheus-config
+              subPath: prometheus.yml
+              readOnly: true
       serviceAccountName: prometheus
+
       volumes:
-      - name: data
-        emptyDir: {}
-      - configMap:
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-pv-claim
+
+        - configMap:
+            name: prometheus-config
           name: prometheus-config
-        name: prometheus-config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: linkerd-viz
+  name: prometheus-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 10Gi
 ---
 ###
 ### Tap
@@ -920,12 +933,12 @@ spec:
     linkerd.io/extension: viz
     component: tap
   ports:
-  - name: grpc
-    port: 8088
-    targetPort: 8088
-  - name: apiserver
-    port: 443
-    targetPort: apiserver
+    - name: grpc
+      port: 8088
+      targetPort: 8088
+    - name: apiserver
+      port: 443
+      targetPort: apiserver
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -961,43 +974,42 @@ spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
       containers:
-      - args:
-        - api
-        - -api-namespace=linkerd
-        - -log-level=info
-        - -identity-trust-domain=cluster.local
-        image: cr.l5d.io/linkerd/tap:stable-2.10.2
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /ping
-            port: 9998
-          initialDelaySeconds: 10
-        name: tap
-        ports:
-        - containerPort: 8088
-          name: grpc
-        - containerPort: 8089
-          name: apiserver
-        - containerPort: 9998
-          name: admin-http
-        readinessProbe:
-          failureThreshold: 7
-          httpGet:
-            path: /ready
-            port: 9998
-        resources:
-        securityContext:
-          runAsUser: 2103
-        volumeMounts:
-        - mountPath: /var/run/linkerd/tls
-          name: tls
-          readOnly: true
+        - args:
+            - api
+            - -api-namespace=linkerd
+            - -log-level=info
+            - -identity-trust-domain=cluster.local
+          image: cr.l5d.io/linkerd/tap:stable-2.10.2
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9998
+            initialDelaySeconds: 10
+          name: tap
+          ports:
+            - containerPort: 8088
+              name: grpc
+            - containerPort: 8089
+              name: apiserver
+            - containerPort: 9998
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9998
+          securityContext:
+            runAsUser: 2103
+          volumeMounts:
+            - mountPath: /var/run/linkerd/tls
+              name: tls
+              readOnly: true
       serviceAccountName: tap
       volumes:
-      - name: tls
-        secret:
-          secretName: tap-k8s-tls
+        - name: tls
+          secret:
+            secretName: tap-k8s-tls
 ---
 ###
 ### Tap Injector RBAC
@@ -1009,9 +1021,9 @@ metadata:
   labels:
     linkerd.io/extension: viz
 rules:
-- apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["get", "list", "watch"]
+  - apiGroups: [ "" ]
+    resources: [ "namespaces" ]
+    verbs: [ "get", "list", "watch" ]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1020,9 +1032,9 @@ metadata:
   labels:
     linkerd.io/extension: viz
 subjects:
-- kind: ServiceAccount
-  name: tap-injector
-  namespace: linkerd-viz
+  - kind: ServiceAccount
+    name: tap-injector
+    namespace: linkerd-viz
 roleRef:
   kind: ClusterRole
   name: linkerd-tap-injector
@@ -1055,22 +1067,22 @@ metadata:
   labels:
     linkerd.io/extension: viz
 webhooks:
-- name: tap-injector.linkerd.io
-  clientConfig:
-    service:
-      name: tap-injector
-      namespace: linkerd-viz
-      path: "/"
-    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURRVENDQWltZ0F3SUJBZ0lSQUltT3dxYW5JVFN1RStsU3NteVBnMEF3RFFZSktvWklodmNOQVFFTEJRQXcKSnpFbE1DTUdBMVVFQXhNY2RHRndMV2x1YW1WamRHOXlMbXhwYm10bGNtUXRkbWw2TG5OMll6QWVGdzB5TVRBMgpNRGd3TURBMk1ERmFGdzB5TWpBMk1EZ3dNREEyTURGYU1DY3hKVEFqQmdOVkJBTVRISFJoY0MxcGJtcGxZM1J2CmNpNXNhVzVyWlhKa0xYWnBlaTV6ZG1Nd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUIKQVFEZ3ZmNFpHTm41a1NkbGV6bWdIbGNaYzg3Q3FIRjVoTDV2ZWZ6WEhUWUNHUE81M3QwcVNLdGY0b2RxK2J4dApVcGtYRkdNSUQ0UkxtbCtKQ2hXek1TYlBldEJKN0ZSZGloekp1L1lFSUp1TFhjWUlKWnJaY0RVVGdRcDk5MHJHCmV3Y1Y2ajdYYnlNZTNidnNEbXRYU1d4ZU1BOUV0bEFReWNPOWNkL1BRVGJDUUkvR2ZFNjFpUWFLYmNQTkxycXQKZzltRUNQYlZnZzRaZmRmbzBmT0hQRTlPeFB6Z1lGOTE0emQ2N3VGYUlEM0NoYlVFQ2tkVnlhZmpiQ20rdUZoRgpQM3FjZ2RCMXp3Qi96S3ZpNm1RNmR5QnhMeElEbElBSnJXUTM2VDlkeGpNajBFb3d6am55bkpZQ2RXQ0llamlRCjJmMWN6RUxVSVpZYzNNR1J0bEZsRFdqOUFnTUJBQUdqYURCbU1BNEdBMVVkRHdFQi93UUVBd0lGb0RBZEJnTlYKSFNVRUZqQVVCZ2dyQmdFRkJRY0RBUVlJS3dZQkJRVUhBd0l3REFZRFZSMFRBUUgvQkFJd0FEQW5CZ05WSFJFRQpJREFlZ2h4MFlYQXRhVzVxWldOMGIzSXViR2x1YTJWeVpDMTJhWG91YzNaak1BMEdDU3FHU0liM0RRRUJDd1VBCkE0SUJBUUFST3oxTmUrR3JnUGpOWVNiU24xemFQeTVKR0VUNmFQYW9KQ1Z3RE5IUXkzVlFsT0J6ajZLaWtaa3UKUldqZFpYc0p3cWtNM3FidE9ubXdHWVVVdmJNWDJnVWVaZzM3bDluTmlaSTJJSWUwT2lNWmlVWkx6Qm5pUU1Bbwoxblc4QXJPK09Td0FzaDBxLzlVYjZjWXpETG10aVhOTXh6bDB4UFY0aDJJYnFtTFA4c2tlSUVUQzBNbzBTckFmCmx6dGQ5RTJaOTZCM1VsVVVyZFVteDJsRGxXZk1JOWNRVy9EVk1ET2t1aVk2L29iK3lIakRwYi9xWklpbS8zbEwKSUJmRWpkWGkvY2VISU9hK3hDOW84NnYySzJNWk9LNXVTMXlxU08xeHh5OGpZcHlCUXpTOFFLMWxRcUsveWFWdAorZThPUFRIcXgvaURFVlhVWHZEbDMyM0VrNGVvCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0=
-  failurePolicy: Ignore
-  admissionReviewVersions: ["v1", "v1beta1"]
-  reinvocationPolicy: IfNeeded
-  rules:
-  - operations: [ "CREATE" ]
-    apiGroups: [""]
-    apiVersions: ["v1"]
-    resources: ["pods"]
-  sideEffects: None
+  - name: tap-injector.linkerd.io
+    clientConfig:
+      service:
+        name: tap-injector
+        namespace: linkerd-viz
+        path: "/"
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURRVENDQWltZ0F3SUJBZ0lSQUltT3dxYW5JVFN1RStsU3NteVBnMEF3RFFZSktvWklodmNOQVFFTEJRQXcKSnpFbE1DTUdBMVVFQXhNY2RHRndMV2x1YW1WamRHOXlMbXhwYm10bGNtUXRkbWw2TG5OMll6QWVGdzB5TVRBMgpNRGd3TURBMk1ERmFGdzB5TWpBMk1EZ3dNREEyTURGYU1DY3hKVEFqQmdOVkJBTVRISFJoY0MxcGJtcGxZM1J2CmNpNXNhVzVyWlhKa0xYWnBlaTV6ZG1Nd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUIKQVFEZ3ZmNFpHTm41a1NkbGV6bWdIbGNaYzg3Q3FIRjVoTDV2ZWZ6WEhUWUNHUE81M3QwcVNLdGY0b2RxK2J4dApVcGtYRkdNSUQ0UkxtbCtKQ2hXek1TYlBldEJKN0ZSZGloekp1L1lFSUp1TFhjWUlKWnJaY0RVVGdRcDk5MHJHCmV3Y1Y2ajdYYnlNZTNidnNEbXRYU1d4ZU1BOUV0bEFReWNPOWNkL1BRVGJDUUkvR2ZFNjFpUWFLYmNQTkxycXQKZzltRUNQYlZnZzRaZmRmbzBmT0hQRTlPeFB6Z1lGOTE0emQ2N3VGYUlEM0NoYlVFQ2tkVnlhZmpiQ20rdUZoRgpQM3FjZ2RCMXp3Qi96S3ZpNm1RNmR5QnhMeElEbElBSnJXUTM2VDlkeGpNajBFb3d6am55bkpZQ2RXQ0llamlRCjJmMWN6RUxVSVpZYzNNR1J0bEZsRFdqOUFnTUJBQUdqYURCbU1BNEdBMVVkRHdFQi93UUVBd0lGb0RBZEJnTlYKSFNVRUZqQVVCZ2dyQmdFRkJRY0RBUVlJS3dZQkJRVUhBd0l3REFZRFZSMFRBUUgvQkFJd0FEQW5CZ05WSFJFRQpJREFlZ2h4MFlYQXRhVzVxWldOMGIzSXViR2x1YTJWeVpDMTJhWG91YzNaak1BMEdDU3FHU0liM0RRRUJDd1VBCkE0SUJBUUFST3oxTmUrR3JnUGpOWVNiU24xemFQeTVKR0VUNmFQYW9KQ1Z3RE5IUXkzVlFsT0J6ajZLaWtaa3UKUldqZFpYc0p3cWtNM3FidE9ubXdHWVVVdmJNWDJnVWVaZzM3bDluTmlaSTJJSWUwT2lNWmlVWkx6Qm5pUU1Bbwoxblc4QXJPK09Td0FzaDBxLzlVYjZjWXpETG10aVhOTXh6bDB4UFY0aDJJYnFtTFA4c2tlSUVUQzBNbzBTckFmCmx6dGQ5RTJaOTZCM1VsVVVyZFVteDJsRGxXZk1JOWNRVy9EVk1ET2t1aVk2L29iK3lIakRwYi9xWklpbS8zbEwKSUJmRWpkWGkvY2VISU9hK3hDOW84NnYySzJNWk9LNXVTMXlxU08xeHh5OGpZcHlCUXpTOFFLMWxRcUsveWFWdAorZThPUFRIcXgvaURFVlhVWHZEbDMyM0VrNGVvCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0=
+    failurePolicy: Ignore
+    admissionReviewVersions: [ "v1", "v1beta1" ]
+    reinvocationPolicy: IfNeeded
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [ "" ]
+        apiVersions: [ "v1" ]
+        resources: [ "pods" ]
+    sideEffects: None
 ---
 ###
 ### Tap Injector
@@ -1091,9 +1103,9 @@ spec:
     linkerd.io/extension: viz
     component: tap-injector
   ports:
-  - name: tap-injector
-    port: 443
-    targetPort: tap-injector
+    - name: tap-injector
+      port: 443
+      targetPort: tap-injector
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -1124,40 +1136,39 @@ spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
       containers:
-      - args:
-        - injector
-        - -tap-service-name=tap.linkerd-viz.serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
-        - -log-level=info
-        image: cr.l5d.io/linkerd/tap:stable-2.10.2
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /ping
-            port: 9995
-          initialDelaySeconds: 10
-        name: tap-injector
-        ports:
-        - containerPort: 8443
+        - args:
+            - injector
+            - -tap-service-name=tap.linkerd-viz.serviceaccount.identity.$(_l5d_ns).$(_l5d_trustdomain)
+            - -log-level=info
+          image: cr.l5d.io/linkerd/tap:stable-2.10.2
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9995
+            initialDelaySeconds: 10
           name: tap-injector
-        - containerPort: 9995
-          name: admin-http
-        readinessProbe:
-          failureThreshold: 7
-          httpGet:
-            path: /ready
-            port: 9995
-        resources:
-        securityContext:
-          runAsUser: 2103
-        volumeMounts:
-        - mountPath: /var/run/linkerd/tls
-          name: tls
-          readOnly: true
+          ports:
+            - containerPort: 8443
+              name: tap-injector
+            - containerPort: 9995
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9995
+          securityContext:
+            runAsUser: 2103
+          volumeMounts:
+            - mountPath: /var/run/linkerd/tls
+              name: tls
+              readOnly: true
       serviceAccountName: tap-injector
       volumes:
-      - name: tls
-        secret:
-          secretName: tap-injector-k8s-tls
+        - name: tls
+          secret:
+            secretName: tap-injector-k8s-tls
 ---
 ###
 ### Web
@@ -1174,17 +1185,17 @@ metadata:
   annotations:
     linkerd.io/created-by: linkerd/helm stable-2.10.2
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     linkerd.io/extension: viz
     component: web
   ports:
-  - name: http
-    port: 8084
-    targetPort: 8084
-  - name: admin-http
-    port: 9994
-    targetPort: 9994
+    - name: http
+      port: 8084
+      targetPort: 8084
+    - name: admin-http
+      port: 9994
+      targetPort: 9994
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1219,34 +1230,32 @@ spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
       containers:
-      - args:
-        - -linkerd-controller-api-addr=linkerd-controller-api.linkerd.svc.cluster.local:8085
-        - -linkerd-metrics-api-addr=metrics-api.linkerd-viz.svc.cluster.local:8085
-        - -cluster-domain=cluster.local
-        - -grafana-addr=grafana.linkerd-viz.svc.cluster.local:3000
-        - -controller-namespace=linkerd
-        - -viz-namespace=linkerd-viz
-        - -log-level=info
-        - -enforced-host=^(localhost|127\.0\.0\.1|web\.linkerd-viz\.svc\.cluster\.local|web\.linkerd-viz\.svc|\[::1\])(:\d+)?$
-        image: cr.l5d.io/linkerd/web:stable-2.10.2
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /ping
-            port: 9994
-          initialDelaySeconds: 10
-        name: web
-        ports:
-        - containerPort: 8084
-          name: http
-        - containerPort: 9994
-          name: admin-http
-        readinessProbe:
-          failureThreshold: 7
-          httpGet:
-            path: /ready
-            port: 9994
-        resources:
-        securityContext:
-          runAsUser: 2103
+        - args:
+            - -linkerd-controller-api-addr=linkerd-controller-api.linkerd.svc.cluster.local:8085
+            - -linkerd-metrics-api-addr=metrics-api.linkerd-viz.svc.cluster.local:8085
+            - -cluster-domain=cluster.local
+            - -grafana-addr=grafana.linkerd-viz.svc.cluster.local:3000
+            - -controller-namespace=linkerd
+            - -viz-namespace=linkerd-viz
+            - -log-level=info
+          image: cr.l5d.io/linkerd/web:stable-2.10.2
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9994
+            initialDelaySeconds: 10
+          name: web
+          ports:
+            - containerPort: 8084
+              name: http
+            - containerPort: 9994
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9994
+          securityContext:
+            runAsUser: 2103
       serviceAccountName: web
