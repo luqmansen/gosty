@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -67,9 +66,10 @@ func Upload(uri string, values map[string]io.Reader) (err error) {
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	var res *http.Response
+	client := http.Client{}
+	defer client.CloseIdleConnections()
+
 	post := func() (err error) {
-		client := http.Client{}
-		defer client.CloseIdleConnections()
 
 		res, err = client.Do(req)
 		if err != nil {
@@ -80,27 +80,17 @@ func Upload(uri string, values map[string]io.Reader) (err error) {
 			log.Errorf("Uploading file error: %d, uri: %s", res.StatusCode, uri)
 			return errors.New(fmt.Sprintf("Failed to uploads to %s, status code : %d", uri, res.StatusCode))
 		}
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				log.Error(err)
+			}
+		}()
 		return
 	}
-
-	if err := backoff.Retry(post, backoff.NewExponentialBackOff()); err != nil {
+	back := backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 20)
+	if err := backoff.Retry(post, back); err != nil {
 		return err
 	}
-
-	// Check the response
-	if res.StatusCode >= 400 {
-		err = fmt.Errorf("bad status: %s", res.Status)
-		b, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Error(string(b))
-		}
-
-	}
-	defer func() {
-		if err := res.Body.Close(); err != nil {
-			log.Error(err)
-		}
-	}()
 
 	log.Debugf("Upload to %s success", uri)
 	return
@@ -123,7 +113,8 @@ func Download(filepath string, uri string) (err error) {
 		return nil
 	}
 
-	if err := backoff.Retry(get, backoff.NewConstantBackOff(1*time.Second)); err != nil {
+	back := backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 20)
+	if err := backoff.Retry(get, back); err != nil {
 		return err
 	}
 
