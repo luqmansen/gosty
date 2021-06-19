@@ -64,6 +64,12 @@ spec:
       port: 80
       name: http
       targetPort: 8000
+
+    - protocol: TCP
+      port: 8089
+      name: pprof
+      targetPort: 8089
+
     - protocol: TCP
       port: 8086
       name: healthcheck

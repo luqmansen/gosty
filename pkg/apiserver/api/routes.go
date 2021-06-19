@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/r3labs/sse/v2"
+	"net/http"
 	"time"
 )
 
@@ -14,6 +15,11 @@ func NewRouter(
 	videoHandler VideoHandler,
 ) *chi.Mux {
 	r := initRouter()
+
+	r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		writer.Write([]byte("gosty"))
+	})
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/worker", func(r chi.Router) {
@@ -28,6 +34,7 @@ func NewRouter(
 
 		r.Route("/scheduler", func(r chi.Router) {
 			r.Get("/progress", schedulerHandler.GetAllTaskProgress)
+			r.Get("/progress/update", schedulerHandler.GetAllTaskProgress)
 		})
 
 	})
