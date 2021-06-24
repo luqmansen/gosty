@@ -5,9 +5,11 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
 )
 
 type SchedulerHandler interface {
+	GetTaskUpdate(w http.ResponseWriter, r *http.Request)
 	GetAllTaskProgress(w http.ResponseWriter, r *http.Request)
 	Post(w http.ResponseWriter, r *http.Request)
 }
@@ -39,6 +41,12 @@ func (s scheduler) GetAllTaskProgress(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 	return
+}
+
+// GetTaskUpdate will update query last update from task repository
+func (s scheduler) GetTaskUpdate(w http.ResponseWriter, r *http.Request) {
+	// add this for testing purposes
+	os.Exit(1)
 }
 
 func (s scheduler) Post(w http.ResponseWriter, r *http.Request) {

@@ -34,7 +34,7 @@ func NewRouter(
 
 		r.Route("/scheduler", func(r chi.Router) {
 			r.Get("/progress", schedulerHandler.GetAllTaskProgress)
-			r.Get("/progress/update", schedulerHandler.GetAllTaskProgress)
+			r.Get("/progress/update", schedulerHandler.GetTaskUpdate)
 		})
 
 	})
