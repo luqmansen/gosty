@@ -39,7 +39,6 @@ func main() {
 
 	rabbitClient := rabbitmq.NewRabbitMQConn(cfg.MessageBroker.GetMessageBrokerUri())
 	rabbit := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
-	go rabbit.ResourcesWatcher()
 	sseServer := sse.New()
 	sseServer.CreateStream(services.WorkerHTTPEventStream)
 	sseServer.CreateStream(services.TaskHTTPEventStream)

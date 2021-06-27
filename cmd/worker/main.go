@@ -29,7 +29,6 @@ func main() {
 
 	rabbitClient := rabbitmq.NewRabbitMQConn(cfg.MessageBroker.GetMessageBrokerUri())
 	mb := rabbitmq.NewRepository(cfg.MessageBroker.GetMessageBrokerUri(), rabbitClient)
-	go mb.ResourcesWatcher()
 	workerSvc := worker.NewWorkerService(mb, cfg)
 
 	// TODO [#3]:  Storage repository initiation should be handled by storage service

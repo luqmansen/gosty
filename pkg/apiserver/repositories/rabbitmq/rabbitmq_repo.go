@@ -11,6 +11,7 @@ type rabbitRepo struct {
 	uri  string
 	conn *amqp.Connection
 	channel
+	connectionWatcherChan chan error
 }
 
 /*
@@ -26,12 +27,12 @@ type channel struct {
 	publisherChan    *amqp.Channel
 }
 
-func initChannel(connection *amqp.Connection, name string) *amqp.Channel {
+func initRabbitMQChannel(connection *amqp.Connection, name string) *amqp.Channel {
 	c := make(chan *amqp.Error)
 	go func() {
 		err := <-c
 		log.Errorf("trying to reconnect: %s", err.Error())
-		initChannel(connection, name)
+		initRabbitMQChannel(connection, name)
 	}()
 	rmqChannel, err := connection.Channel()
 	if err != nil {
@@ -46,15 +47,18 @@ func initChannel(connection *amqp.Connection, name string) *amqp.Channel {
 func NewRepository(uri string, client *amqp.Connection) repositories.Messenger {
 	log.Debugf("Rabbitmq uri: %s", uri)
 
+	connWatcher := make(chan error)
+
 	return &rabbitRepo{
 		uri:  uri,
 		conn: client,
 		channel: channel{
-			setQosChan:       initChannel(client, "setQos"),
-			queueDeclareChan: initChannel(client, "queueDeclare"),
-			consumerChan:     initChannel(client, "consumer"),
-			publisherChan:    initChannel(client, "publisher"),
+			setQosChan:       initRabbitMQChannel(client, "setQos"),
+			queueDeclareChan: initRabbitMQChannel(client, "queueDeclare"),
+			consumerChan:     initRabbitMQChannel(client, "consumer"),
+			publisherChan:    initRabbitMQChannel(client, "publisher"),
 		},
+		connectionWatcherChan: connWatcher,
 	}
 }
 
@@ -68,7 +72,8 @@ func NewRabbitMQConn(connectionUri string) (conn *amqp.Connection) {
 
 	conn, err := amqp.Dial(connectionUri)
 	if err != nil {
-		log.Fatalf("cannot connect to rabbitmq: %s", err.Error())
+		log.Errorf("cannot connect to rabbitmq: %s", err.Error())
+		NewRabbitMQConn(connectionUri)
 	}
 	if conn != nil {
 		conn.NotifyClose(c)
@@ -77,52 +82,9 @@ func NewRabbitMQConn(connectionUri string) (conn *amqp.Connection) {
 	return conn
 }
 
-// RabbitMqWatcher will be endpoint of all resource
+// ResourcesWatcher will be endpoint of all resource
 // that need to be watched related to rabbitmq
-func (r *rabbitRepo) ResourcesWatcher() {
-	log.Infof("Starting rabbitmq resource watcher")
-	go r.channelWatcher(r.queueDeclareChan)
-	go r.channelWatcher(r.publisherChan)
-
-	go r.connectionWatcher()
-
-	forever := make(chan bool)
-	<-forever
-}
-
-func (r *rabbitRepo) connectionWatcher() {
-	log.Info("Starting rabbitmq connection watcher")
-	c := make(chan *amqp.Error)
-	go r.conn.NotifyClose(c)
-	for {
-		select {
-		case err := <-c:
-			log.Errorf("trying to reconnect: %s", err.Error())
-			r.conn = NewRabbitMQConn(r.uri)
-			r.conn.NotifyClose(c)
-		}
-	}
-}
-
-func (r *rabbitRepo) channelWatcher(channel *amqp.Channel) {
-	log.Info("Starting rabbitmq channel watcher")
-	c := make(chan *amqp.Error)
-	go channel.NotifyClose(c)
-	for {
-		select {
-		case err := <-c:
-			log.Errorf("trying to reconnect: %s", err)
-			ch, channelErr := r.conn.Channel()
-			if channelErr != nil {
-				log.Errorf("Error to reopen channel, %s", channelErr)
-			} else {
-				channel = ch
-				channel.NotifyClose(c)
-			}
-		}
-	}
-
-}
+func (r *rabbitRepo) ResourcesWatcher() {}
 
 func (r *rabbitRepo) Publish(data interface{}, queueName string) (err error) {
 
