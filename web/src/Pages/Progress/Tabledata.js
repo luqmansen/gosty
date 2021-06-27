@@ -3,7 +3,7 @@ import {Column, Table} from "react-virtualized";
 
 const calculateElapsedTime = (data) => {
     let second;
-    let first = new Date(data.task_list[0].task_submitted)
+    let first = new Date(data.task_list[0].task_started)
     let last = data.task_list[data.task_list.length-1];
     if (last.task_completed !== "0001-01-01T00:00:00Z"){
         second = new Date(last.task_completed)
@@ -55,6 +55,11 @@ export const tableData = (v) => {
             <Column
                 label='task_submitted'
                 dataKey='task_submitted'
+                width={300}
+            />
+            <Column
+                label='task_started'
+                dataKey='task_started'
                 width={300}
             />
             <Column
