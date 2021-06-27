@@ -155,6 +155,7 @@ func (s *Svc) ProcessTaskDash(task *models.Task) error {
 	case err = <-errCh:
 		return err
 	case <-waitCh:
+		task.TaskStarted = start
 		task.TaskDuration = time.Since(start)
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone

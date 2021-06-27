@@ -146,6 +146,7 @@ func (s *Svc) ProcessTaskSplit(task *models.Task) error {
 		task.Status = models.TaskStatusFailed
 		return err
 	case <-waitCh:
+		task.TaskStarted = start
 		task.TaskDuration = time.Since(start)
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone

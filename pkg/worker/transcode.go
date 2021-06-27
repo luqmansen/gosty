@@ -34,8 +34,8 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	cmd := fluentffmpeg.NewCommand("").
 		InputPath(originalFilePath).
 		OutputFormat("mp4").
-		Resolution(task.TaskTranscode.TargetRes). // the default is only set aspect ration, not scaling :(
-		VideoBitRate(task.TaskTranscode.TargetBitrate).
+		//Resolution(task.TaskTranscode.TargetRes). // the default is only set aspect ration, not scaling :(
+		//VideoBitRate(task.TaskTranscode.TargetBitrate).
 		OutputPath(outputPath).
 		Overwrite(true).
 		Build()
@@ -43,18 +43,25 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 	//too bad this wrapper doesn't support additional arguments
 	output := cmd.Args[len(cmd.Args)-1]
 	cmd.Args = cmd.Args[:len(cmd.Args)-1]
-	addArgs := []string{
-		"-c:v", "libx264",
-		"-x264opts", "keyint=24:min-keyint=24:no-scenecut",
-		// https://stackoverflow.com/questions/60368162/conversion-failed-2-frames-left-in-the-queue-on-closing-ffmpeg
-		"-max_muxing_queue_size", "9999",
-		"-bufsize", strconv.Itoa(2 * task.TaskTranscode.TargetBitrate),
-		"-vf", fmt.Sprintf("scale=-2:%s", strings.Split(task.TaskTranscode.TargetRes, "x")[1]),
-		"-tune", "zerolatency",
-		//Note temporary solution: currently we copy the whole audio to same video,
-		//since there is a problem for generating DASH with audio via cmd exec
-		"-c:a", "copy",
-		output}
+
+	// Commented to change the transcoding command same with morph, so the comparison
+	// can be more accurate
+	//addArgs := []string{
+	//	"-c:v", "libx264",
+	//	"-x264opts", "keyint=24:min-keyint=24:no-scenecut",
+	//	// https://stackoverflow.com/questions/60368162/conversion-failed-2-frames-left-in-the-queue-on-closing-ffmpeg
+	//	"-max_muxing_queue_size", "9999",
+	//	"-bufsize", strconv.Itoa(2 * task.TaskTranscode.TargetBitrate),
+	//	"-vf", fmt.Sprintf("scale=-2:%s", strings.Split(task.TaskTranscode.TargetRes, "x")[1]),
+	//	"-tune", "zerolatency",
+	//	//Note temporary solution: currently we copy the whole audio to same video,
+	//	//since there is a problem for generating DASH with audio via cmd exec
+	//	"-c:a", "copy",
+	//	output}
+
+	//This is the command is used originally by morph
+	//TODO: change the transcoding argument to be configurable
+	addArgs := []string{"-strict", "-2", "-s", task.TaskTranscode.TargetRes, output}
 
 	for _, v := range addArgs {
 		cmd.Args = append(cmd.Args, v)
@@ -138,6 +145,7 @@ func (s *Svc) ProcessTaskTranscodeVideo(task *models.Task) error {
 		task.Status = models.TaskStatusFailed
 		return err
 	case <-waitCh:
+		task.TaskStarted = start
 		task.TaskDuration = time.Since(start)
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone

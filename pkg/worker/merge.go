@@ -151,6 +151,7 @@ func (s *Svc) ProcessTaskMerge(task *models.Task) error {
 		// possible error is when uploading file failed
 		return err
 	case <-waitCh:
+		task.TaskStarted = start
 		task.TaskDuration = time.Since(start)
 		task.TaskCompleted = time.Now()
 		task.Status = models.TaskStatusDone

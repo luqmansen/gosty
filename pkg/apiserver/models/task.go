@@ -56,6 +56,7 @@ type (
 		Worker string     `gorm:"size:255" json:"worker"`
 
 		TaskSubmitted time.Time     `json:"task_submitted"` // time (approx <1ms) when task submitted to queue
+		TaskStarted   time.Time     `json:"task_started"`
 		TaskCompleted time.Time     `json:"task_completed"` // time when task finished by worker
 		TaskDuration  time.Duration `json:"task_duration"`
 	}
