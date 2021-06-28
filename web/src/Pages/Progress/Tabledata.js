@@ -3,21 +3,18 @@ import {Column, Table} from "react-virtualized";
 
 const calculateElapsedTime = (data) => {
     let end;
+
     let start = new Date(data.task_list[0].task_started)
 
     let last = data.task_list[data.task_list.length-1];
 
-    if (last.task_completed !== "0001-01-01T00:00:00Z"){
-        end = new Date(last.task_completed)
+    if (last.task_completed === "0001-01-01T00:00:00Z"){
+        end = Date.now()
     } else {
-        end = new Date(); // now
+        end = new Date(last.task_completed).getTime()
     }
+
     let et = Math.abs(end-start)
-    console.log(end)
-    console.log("complete" , last.task_completed)
-    console.log(start)
-    console.log(et)
-    console.log(msToTime(et))
     return msToTime(et)
 }
 
@@ -57,22 +54,22 @@ export const tableData = (v) => {
             <Column
                 label='Worker'
                 dataKey='worker'
-                width={300}
+                width={350}
             />
             <Column
                 label='task_submitted'
                 dataKey='task_submitted'
-                width={250}
+                width={350}
             />
             <Column
                 label='task_started'
                 dataKey='task_started'
-                width={250}
+                width={350}
             />
             <Column
                 label='task_completed'
                 dataKey='task_completed'
-                width={250}
+                width={350}
             />
             <Column
                 label='duration'

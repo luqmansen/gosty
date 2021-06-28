@@ -28,6 +28,12 @@ export function parseISOString(s) {
     let b = s.split(/\D+/);
     let d = new Date(Date.UTC(b[0], --b[1], b[2], b[3], b[4], b[5], b[6]))
 
-    return d.getFullYear() + "-" + d.getUTCMonth() + "-" + d.getUTCDate() + " " +
+    return d.getFullYear() + "-" + (d.getUTCMonth()+1) + "-" + d.getUTCDate() + " " +
         d.getUTCHours() + ':' + d.getUTCMinutes() + ':' + d.getUTCSeconds()
+}
+
+export function parseISOStringToDate(s) {
+    let b = s.split(/\D+/);
+    console.log(b)
+    return new Date(Date.UTC(b[0], --b[1], b[2], b[3], b[4], b[5], b[6]));
 }

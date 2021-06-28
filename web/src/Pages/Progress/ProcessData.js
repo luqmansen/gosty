@@ -8,9 +8,9 @@ export const processData = (blocks) => {
             t.status = TASK_STATUS[t.status]
             t.task_duration = msToTime(t.task_duration / 1e+6)
             t.no = idx + 1
-            t.task_started = parseISOString(t.task_started)
-            t.task_submitted = parseISOString(t.task_submitted)
-            t.task_completed = parseISOString(t.task_completed)
+            // t.task_started = parseISOString(t.task_started)
+            // t.task_submitted = parseISOString(t.task_submitted)
+            // t.task_completed = parseISOString(t.task_completed)
             t.worker = t.worker.split("-").slice(1).join("-")
 
             if (t.task_transcode != null) {
