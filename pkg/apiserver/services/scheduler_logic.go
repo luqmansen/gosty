@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/r3labs/sse/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/sync/errgroup"
@@ -235,6 +236,20 @@ func (s schedulerServices) CreateTranscodeTask(task *models.Task) error {
 		{"res": "3840x2160", "br": 13_000_000},
 		{"res": "7680x4320", "br": 20_000_000},
 	}
+
+	//TODO: make the used res configurable when do the request
+	// instead of configured via env var like this, this is only temporary quick solution
+	optionRes := viper.Get("USED_RES") // list of used res, comma separated value eg: 256x144,426x240
+	if optionRes != nil {
+		var updatedUsedRes []map[string]interface{}
+		for _, v := range availRes {
+			if strings.Contains(optionRes.(string), v["res"].(string)) {
+				updatedUsedRes = append(updatedUsedRes, v)
+			}
+		}
+		availRes = updatedUsedRes
+	}
+
 	var target []map[string]interface{}
 	for _, v := range availRes {
 		//compare original videoToTranscode height with available resolution
