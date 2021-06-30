@@ -17,6 +17,10 @@ spec:
     metadata:
       annotations:
         linkerd.io/inject: enabled
+        config.linkerd.io/proxy-memory-request: 50Mi
+        config.linkerd.io/proxy-memory-limit: 256Mi
+        config.linkerd.io/proxy-cpu-request: 50m
+        config.linkerd.io/proxy-cpu-limit: 256m
       labels:
         app: gosty-apiserver
 
@@ -27,6 +31,8 @@ spec:
             - podAffinityTerm:
                 topologyKey: topology.kubernetes.io/hostname
               weight: 100
+
+      terminationGracePeriodSeconds: 5
 
       containers:
         - image: luqmansen/gosty-apiserver:latest
@@ -42,13 +48,18 @@ spec:
             httpGet:
               path: /live
               port: 8086
-            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 5
+            initialDelaySeconds: 5
 
           readinessProbe:
             httpGet:
               path: /ready
               port: 8086
-            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 5
+            initialDelaySeconds: 3
+
 ---
 apiVersion: v1
 kind: Service

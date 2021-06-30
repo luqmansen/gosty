@@ -1,0 +1,12 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gosty-ingress
+  namespace: gosty
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: gosty-ip
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+spec:
+  backend:
+    serviceName: gosty-apiserver
+    servicePort: 80
