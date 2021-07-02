@@ -1,7 +1,7 @@
 upstream fileserver{
-     server  gosty-fileserver-0.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
-     server  gosty-fileserver-1.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
-     server  gosty-fileserver-2.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
+     server  ${GOSTY_FILESERVER_SERVICE_HOST}:${GOSTY_FILESERVER_SERVICE_PORT};
+#     server  gosty-fileserver-1.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
+#     server  gosty-fileserver-2.gosty-fileserver-headless.gosty.svc.cluster.local:${GOSTY_FILESERVER_SERVICE_PORT};
 }
 
 upstream apiserver{
@@ -13,7 +13,7 @@ server {
     listen  [::]:80;
     server_name  localhost;
     client_max_body_size 2000M;
-    resolver kube-dns.kube-system.svc.cluster.local valid=30s;
+    resolver 127.0.0.1 valid=30s; #prevent nginx from crash if upstream is not available
 
     location / {
         root   /usr/share/nginx/html;
