@@ -18,6 +18,14 @@ const calculateElapsedTime = (data) => {
     return msToTime(et)
 }
 
+const getWorkerNumber = (data) => {
+    let workerList = []
+        data.task_list.forEach((j, idx) => {
+            workerList.push(j.worker)
+        })
+    return new Set(workerList).size
+}
+
 export const tableData = (v) => {
     let data = ""
     if (v.task_list.length > 0) {
@@ -85,6 +93,7 @@ export const tableData = (v) => {
             <p><b>File : {v.origin_video.file_name}</b></p>
             <p>Elapsed Time: {calculateElapsedTime(v)}</p>
             <p>Accumulated Worker Time: {msToTime(v.total_duration / 1e+6)}</p>
+            <p>Worker Number: {getWorkerNumber(v)}</p>
             {data}
         </div>
     )
