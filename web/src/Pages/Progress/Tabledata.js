@@ -21,7 +21,9 @@ const calculateElapsedTime = (data) => {
 const getWorkerNumber = (data) => {
     let workerList = []
         data.task_list.forEach((j, idx) => {
-            workerList.push(j.worker)
+            if (j.worker !== ""){
+                workerList.push(j.worker)
+            }
         })
     return new Set(workerList).size
 }
