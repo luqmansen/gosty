@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
@@ -34,14 +35,17 @@ func initRabbitMQChannel(connection *amqp.Connection, name string) *amqp.Channel
 		log.Errorf("trying to reconnect: %s", err.Error())
 		initRabbitMQChannel(connection, name)
 	}()
-	rmqChannel, err := connection.Channel()
-	if err != nil {
-		log.Errorf("Failed to init %s channel: %s", name, err)
+	if connection != nil {
+		rmqChannel, err := connection.Channel()
+		if err != nil {
+			log.Errorf("Failed to init %s channel: %s", name, err)
+		}
+		if rmqChannel != nil {
+			rmqChannel.NotifyClose(c)
+		}
+		return rmqChannel
 	}
-	if rmqChannel != nil {
-		rmqChannel.NotifyClose(c)
-	}
-	return rmqChannel
+	return nil
 }
 
 func NewRepository(uri string, client *amqp.Connection) repositories.Messenger {
@@ -77,8 +81,11 @@ func NewRabbitMQConn(connectionUri string) (conn *amqp.Connection) {
 	}
 	if conn != nil {
 		conn.NotifyClose(c)
+		return conn
+	} else {
+		log.Fatalf("Connection is nil, retrying")
+		NewRabbitMQConn(connectionUri)
 	}
-
 	return conn
 }
 
@@ -146,7 +153,7 @@ func (r *rabbitRepo) ReadMessage(result chan<- interface{}, queueName string, se
 	ch, err := r.conn.Channel()
 	if ch != nil {
 		if setQos {
-			err = ch.Qos(1, 0, true)
+			err = ch.Qos(viper.GetInt("TASK_PREFETCH_COUNT"), 0, true)
 			defer func() {
 				if err := ch.Close(); err != nil {
 					log.Errorf("Failed to close channel on read message: %s", err)
