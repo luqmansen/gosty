@@ -18,6 +18,12 @@ import {processData} from "./ProcessData";
 const ProgressPageV2 = () => {
 
     const [data, setData] = useState([])
+    let search = window.location.search;
+    let params = new URLSearchParams(search);
+    let showAnalytics = params.get('analytics');
+    if (showAnalytics == null){
+        showAnalytics = false
+    }
 
     useEffect(() => {
         (async () => {
@@ -52,7 +58,7 @@ const ProgressPageV2 = () => {
                 <h1>Task Progress</h1>
                 {(() => {
                     if (data.length > 0) {
-                        return (data.map(v => tableData(v)))
+                        return (data.map(v => tableData(v, showAnalytics)))
                     } else {
                         return (
                             <p>No Task</p>

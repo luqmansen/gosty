@@ -38,7 +38,6 @@ const getWorkerNumber = (data) => {
 const getAvgCpuUsagePerNamespace = (data) => {
     let startAndEnd = getStartAndEnd(data)
     let start = startAndEnd[0].toString().slice(0, -3)
-    console.log("Start from avg CPU: ", start)
     let end = startAndEnd[1].toString().slice(0, -3)
     let query = `/query_range?query=sum (rate (container_cpu_usage_seconds_total{image!="",kubernetes_io_hostname=~"^.*$"}[1m])) by (namespace)&start=${start}&end=${end}&step=10`
     var req = new XMLHttpRequest();
@@ -93,7 +92,6 @@ const getAvgMemoryPerDeployment = (data) => {
     let startAndEnd = getStartAndEnd(data)
     let start = startAndEnd[0].toString().slice(0, -3)
     let end = startAndEnd[1].toString().slice(0, -3)
-    console.log("Start from avg memory: ", start)
     let query = `/query_range?query=sum (container_memory_working_set_bytes{image!="",kubernetes_io_hostname=~"^.*$",namespace="gosty"}) by (container)&start=${start}&end=${end}&step=10`
 
     let req = new XMLHttpRequest();
@@ -104,7 +102,6 @@ const getAvgMemoryPerDeployment = (data) => {
     let jsonData = JSON.parse(req.response)
     if (jsonData.data) {
         let resultData = jsonData.data.result
-        console.log(resultData)
         if (resultData.length > 0) {
             let avgApiServer = 0;
             resultData[1].values.forEach((val, _) => avgApiServer += parseFloat(val[1]))
@@ -114,8 +111,6 @@ const getAvgMemoryPerDeployment = (data) => {
             resultData[3].values.forEach((val, _) => avgWeb += parseFloat(val[1]))
             let avgWorker = 0;
             resultData[4].values.forEach((val, _) => avgWorker += parseFloat(val[1]))
-            console.log("raw sum :", avgWorker)
-            console.log("data length :", resultData[4].values.length)
             return <ul>
                 <li>Apiserver: {((avgApiServer/resultData[1].values.length) * 1e-6).toFixed()} MB</li>
                 <li>Filserver: {((avgFileServer/resultData[2].values.length) * 1e-6).toFixed()} MB</li>
@@ -127,7 +122,7 @@ const getAvgMemoryPerDeployment = (data) => {
 }
 
 
-export const tableData = (v) => {
+export const tableData = (v, showAnalytic) => {
     let data = ""
     if (v.task_list.length > 0) {
         data = (<Table
@@ -191,7 +186,7 @@ export const tableData = (v) => {
     }
 
     let analytics = ""
-    if (window.location.pathname === "/progress/analytics") {
+    if (showAnalytic) {
         analytics = <div>
             <p>Resource Summary:</p>
             <li>Worker Number: {getWorkerNumber(v)}</li>
