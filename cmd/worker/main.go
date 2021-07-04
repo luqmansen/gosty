@@ -70,36 +70,18 @@ func main() {
 func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 	// TODO [#4]:  refactor ack and publish part of this loop
 	for t := range newTaskData {
-		msg := t.(amqp.Delivery)
-		var task models.Task
-		err := json.Unmarshal(msg.Body, &task)
-		if err != nil {
-			log.Errorf("%s: %s", util.GetCaller(), err)
-		}
-		wrk.notifyApiServer(&task)
-		switch taskKind := task.Kind; taskKind {
-		case models.TaskSplit:
-			err = wrk.ProcessTaskSplit(&task)
+		t := t
+		go func() {
+			msg := t.(amqp.Delivery)
+			var task models.Task
+			err := json.Unmarshal(msg.Body, &task)
 			if err != nil {
-				log.Error(err)
-				if err := msg.Nack(false, true); err != nil {
-					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
-				}
+				log.Errorf("%s: %s", util.GetCaller(), err)
 			}
-			if err == nil {
-				if err = msg.Ack(false); err != nil {
-					log.Error(err)
-				}
-				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
-					log.Error(err)
-				}
-				wrk.notifyApiServer(nil)
-			}
-
-		case models.TaskTranscode:
-			switch txType := task.TaskTranscode.TranscodeType; txType {
-			case models.TranscodeVideo:
-				err = wrk.ProcessTaskTranscodeVideo(&task)
+			wrk.notifyApiServer(&task)
+			switch taskKind := task.Kind; taskKind {
+			case models.TaskSplit:
+				err = wrk.ProcessTaskSplit(&task)
 				if err != nil {
 					log.Error(err)
 					if err := msg.Nack(false, true); err != nil {
@@ -116,8 +98,47 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 					wrk.notifyApiServer(nil)
 				}
 
-			case models.TranscodeAudio:
-				err = wrk.ProcessTaskTranscodeAudio(&task)
+			case models.TaskTranscode:
+				switch txType := task.TaskTranscode.TranscodeType; txType {
+				case models.TranscodeVideo:
+					err = wrk.ProcessTaskTranscodeVideo(&task)
+					if err != nil {
+						log.Error(err)
+						if err := msg.Nack(false, true); err != nil {
+							log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+						}
+					}
+					if err == nil {
+						if err = msg.Ack(false); err != nil {
+							log.Error(err)
+						}
+						if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+							log.Error(err)
+						}
+						wrk.notifyApiServer(nil)
+					}
+
+				case models.TranscodeAudio:
+					err = wrk.ProcessTaskTranscodeAudio(&task)
+					if err != nil {
+						log.Error(err)
+						if err := msg.Nack(false, true); err != nil {
+							log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+						}
+					}
+					if err == nil {
+						if err = msg.Ack(false); err != nil {
+							log.Error(err)
+						}
+						if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+							log.Error(err)
+						}
+						wrk.notifyApiServer(nil)
+					}
+
+				}
+			case models.TaskMerge:
+				err = wrk.ProcessTaskMerge(&task)
 				if err != nil {
 					log.Error(err)
 					if err := msg.Nack(false, true); err != nil {
@@ -134,49 +155,31 @@ func (wrk *svc) processNewTask(newTaskData chan interface{}) {
 					wrk.notifyApiServer(nil)
 				}
 
-			}
-		case models.TaskMerge:
-			err = wrk.ProcessTaskMerge(&task)
-			if err != nil {
-				log.Error(err)
-				if err := msg.Nack(false, true); err != nil {
-					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
-				}
-			}
-			if err == nil {
-				if err = msg.Ack(false); err != nil {
+			case models.TaskDash:
+				err = wrk.ProcessTaskDash(&task)
+				if err != nil {
 					log.Error(err)
+					if err := msg.Nack(false, true); err != nil {
+						log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
+					}
 				}
-				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
-					log.Error(err)
+				if err == nil {
+					if err = msg.Ack(false); err != nil {
+						log.Error(err)
+					}
+					if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
+						log.Error(err)
+					}
+					wrk.notifyApiServer(nil)
 				}
+			default:
 				wrk.notifyApiServer(nil)
-			}
-
-		case models.TaskDash:
-			err = wrk.ProcessTaskDash(&task)
-			if err != nil {
-				log.Error(err)
-				if err := msg.Nack(false, true); err != nil {
-					log.Errorf("failed to requeue failed task, id: %s", task.Id.String())
-				}
-			}
-			if err == nil {
-				if err = msg.Ack(false); err != nil {
+				log.Error("No task kind found")
+				if err = msg.Nack(false, true); err != nil {
 					log.Error(err)
 				}
-				if err = wrk.GetMessageBroker().Publish(&task, services.MessageBrokerQueueTaskFinished); err != nil {
-					log.Error(err)
-				}
-				wrk.notifyApiServer(nil)
 			}
-		default:
-			wrk.notifyApiServer(nil)
-			log.Error("No task kind found")
-			if err = msg.Nack(false, true); err != nil {
-				log.Error(err)
-			}
-		}
+		}()
 	}
 }
 
