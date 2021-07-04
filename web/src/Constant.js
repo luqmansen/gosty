@@ -1,7 +1,8 @@
 export const APISERVER_HOST = "api"
-//export const APISERVER_HOST = "http://localhost:8000/api"
+// export const APISERVER_HOST = "http://34.72.201.178/api"
 export const FILESERVER_HOST = "files"
-//export const FILESERVER_HOST = "http://localhost:8001/files"
+// export const FILESERVER_HOST = "http://34.72.201.178/files"
+export const GRAFANA_API_ENDPOINT = "http://luqmansen-cors-anywhere.herokuapp.com/http://34.134.106.216:8084/grafana/api/datasources/proxy/1/api/v1"
 
 export const EVENTSTREAM_ENDPOINT = "/events"
 export const WORKER_STREAM_NAME = "worker"
