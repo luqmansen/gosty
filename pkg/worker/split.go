@@ -6,6 +6,7 @@ import (
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -29,10 +30,18 @@ func (s *Svc) ProcessTaskSplit(task *models.Task) error {
 	}
 
 	log.Debugf("Processing task %s,  id: %s", models.TASK_NAME_ENUM[task.Kind], task.Id.Hex())
+	var cmd *exec.Cmd
 
-	cmd := exec.Command(
-		"bash", wd+"/script/split.sh", fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName),
-		strconv.FormatInt(task.TaskSplit.SizePerVid, 10), "-c copy")
+	if viper.GetString("SPLIT_METHOD") == "TIME" {
+		cmd = exec.Command(
+			"bash", wd+"/script/split-time.sh", fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName),
+			viper.GetString("SPLIT_SEGMENT_TIME"))
+	} else { // default is split by size
+		cmd = exec.Command(
+			"bash", wd+"/script/split.sh", fmt.Sprintf("%s/%s", workdir, task.TaskSplit.Video.FileName),
+			strconv.FormatInt(task.TaskSplit.SizePerVid, 10), "-c copy")
+	}
+
 	log.Debug(cmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
