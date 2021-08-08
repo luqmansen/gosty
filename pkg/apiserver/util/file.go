@@ -21,7 +21,8 @@ func Upload(uri string, values map[string]io.Reader) (err error) {
 	if err != nil {
 		log.Error(err)
 	}
-	newUri.Host = "gosty-fileserver-0." + newUri.Host
+	//newUri.Host = "gosty-fileserver-0." + newUri.Host
+	newUri.Host = newUri.Host
 	uri = newUri.String()
 
 	// Prepare a form that you will submit to that URL.

@@ -8,3 +8,4 @@ resources:
   - fileserver.yaml
   - web.yaml
   - worker.yaml
+  - rbac.yaml

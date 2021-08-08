@@ -1,3 +1,5 @@
+# TODO: clean-up makefile
+
 GOOS=linux
 GOPATH:=$(shell go env GOPATH)
 CPUCOUNT:=$(shell grep -c ^processor /proc/cpuinfo)
@@ -87,9 +89,16 @@ restart-docker-fs-local: push-docker-fs-local
 	echo "y" | docker-compose rm -s fileserver
 	docker-compose up -d fileserver
 
+docker-minikube: api-bin fs-bin worker-bin
+	eval $(minikube -p minikube docker-env)
+	yarn --cwd ./web/ build
+	docker build -t gosty-web -f docker/web.dev.Dockerfile .
+	docker build -t gosty-worker -f docker/worker.Dockerfile .
+	docker build -t gosty-fileserver -f docker/fileserver.Dockerfile .
+	docker build -t gosty-apiserver -f docker/apiserver.Dockerfile .
+
 
 docker-api:  api-bin
-	docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
 	docker build -t luqmansen/gosty-apiserver -f docker/apiserver.Dockerfile .
 
 push-docker-api-local:  api-bin

@@ -1,13 +1,10 @@
-resources:
-  - ../../gosty
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
+resources:
+  - ../../gosty/
 
 patches:
-#  - target:
-  #      kind: ConfigMap
-  #      name: gosty-config
-  #    path: configmaps.yaml
-
   #APISERVER
   - target:
       kind: Deployment
@@ -15,24 +12,26 @@ patches:
     path: apiserver-deployment.yaml
 
   - target:
+      kind: Service
+      name: gosty-apiserver
+    path: apiserver-service.yaml
+
+  #WEB
+  - target:
       kind: Deployment
       name: gosty-web
     path: web-deployment.yaml
-
   - target:
       kind: Service
       name: gosty-web
     path: web-service.yaml
+
   #FILESERVER
   - target:
       kind: StatefulSet
       name: gosty-fileserver
     path: fileserver-deployment.yaml
 
-  - target:
-      kind: Service
-      name: gosty-fileserver
-    path: fileserver-service.yaml
   #WORKER
   - target:
       kind: Deployment

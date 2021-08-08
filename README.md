@@ -84,6 +84,11 @@ Deploy using kustomize
 kustomize build deployment/kustomize/environments/gke | kubectl apply -f -
 ```
 
+### Using Minikube
+```
+kustomize build deployment/kustomize/environments/minikube | kubectl apply -f -
+```
+
 ## Deployment
 
 ### Deploy on GKE
@@ -332,7 +337,7 @@ fetch gce_instance
 ### Resize gke cluster to 0 when not used
 To save some bill
 ```
-gcloud container clusters resize cluster-1 --zone=us-central1-a --num-nodes=0
+gcloud container clusters resize ${CLUSTER_NAME} --zone=us-central1-a --num-nodes=0
 ```
 
 ## Issues

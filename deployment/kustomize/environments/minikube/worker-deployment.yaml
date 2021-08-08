@@ -3,18 +3,12 @@ kind: Deployment
 metadata:
   name: gosty-worker
   namespace: gosty
-
 spec:
   replicas: 1
   template:
     spec:
       containers:
         - name: gosty-worker
-          resources:
-            requests:
-              cpu: "1"
-              memory: "1Gi"
-            limits:
-              cpu: "1"
-              memory: "1Gi"
+          image: gosty-worker
+          imagePullPolicy: Never
 
