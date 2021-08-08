@@ -1,18 +1,61 @@
-# gosty
+# Gosty
 
-**\*readme needs a lot of update**
+Scalable cloud transcoding service on Kubernetes
 
-Kubernetes's compliance scalable cloud transcoding service
+## Table of Content
+ - [Gosty](#gosty)
+   * [Table of Content](#table-of-content)
+   * [System Overview](#system-overview)
+   * [Development](#development)
+     + [Requirements](#requirements)
+     + [Using Docker compose](#using-docker-compose)
+     + [Using docker container](#using-docker-container)
+     + [Using Kind](#using-kind)
+   * [Deployment](#deployment)
+     + [Deploy on GKE](#deploy-on-gke)
+       - [Using Managed RabbitMQ and MongoDB](#using-managed-rabbitmq-and-mongodb)
+       - [Deploy RabbitMQ and MongoDB inside Cluster](#deploy-rabbitmq-and-mongodb-inside-cluster)
+     + [RabbitMQ](#rabbitmq)
+     + [MongoDB](#mongodb)
+     + [API Server, File Server, Worker](#api-server--file-server--worker)
+     + [Elasticsearch-Fluentd-Kibana](#elasticsearch-fluentd-kibana)
+     + [Linkerd](#linkerd)
+   * [Additional](#additional)
+     + [Local Image Registry](#local-image-registry)
+       - [Using minikube's local registry](#using-minikube-s-local-registry)
+       - [Using microk8s local registry](#using-microk8s-local-registry)
+     + [K3s local registry](#k3s-local-registry)
+       - [Using Docker compose](#using-docker-compose-1)
+       - [K8s manifest adjustment](#k8s-manifest-adjustment)
+     + [Spekt8](#spekt8)
+     + [Dashboard](#dashboard)
+     + [Chaos Mesh](#chaos-mesh)
+     + [Testing](#testing)
+     + [Resize gke cluster to 0 when not used](#resize-gke-cluster-to-0-when-not-used)
+   * [Issues](#issues)
+   * [What can be improved](#what-can-be-improved)
+   * [Todo](#todo)
+   * [Acknowledgements](#acknowledgements)
+ 
+ <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
-## Architecture diagram
+---
+
+## System Overview
 
 <img width="60%" src="https://github.com/luqmansen/gosty/wiki/out/Diagram/sys-design-overview.png" />
 <br>
-<small>*Diagram need revision</small>
 
-___
+---
 
 ## Development
+### Requirements 
+- go 16.7 
+- docker
+- docker-compose
+- npm
+- yarn
+- minikube
 
 ### Using Docker compose
 
@@ -30,14 +73,24 @@ docker run -p 8001:8001 --network=minikube localhost:5000/gosty-fileserver
 docker run --network minikube -e GOSTY_FILESERVER_SERVICE_HOST=192.168.49.4 localhost:5000/gosty-worker
 ```
 
+### Using Kind
+Init the kind cluster (mongodb and rabbitmq will run on host machine using docker-compose)
+```
+bash ./hack/create-kind-local-registry.sh
+```
+
+Deploy using kustomize
+```
+kustomize build deployment/kustomize/environments/gke | kubectl apply -f -
+```
+
 ## Deployment
 
 ### Deploy on GKE
 
 Init cluster script
-
 ```bash
-bash ./deployment/create-cluster.sh
+bash ./hack/create-cluster.sh
 ```
 
 #### Using Managed RabbitMQ and MongoDB
@@ -46,15 +99,6 @@ Set your mongodb & rabbitmq secret on configmap (change to secret if you want, m
 
 Then apply linkerd & gosty component
 
-
-Add additional kubernetes avg cpu usage panel
-```
-sum (rate (container_cpu_usage_seconds_total{image!="",kubernetes_io_hostname=~"^$Node$",namespace="gosty"}[1m]))
-```
-
-```bash
-kubectl apply -k deployment/kustomize/environtment/gke
-```
 
 #### Deploy RabbitMQ and MongoDB inside Cluster
 
@@ -89,7 +133,7 @@ helm install mongodb bitnami/mongodb -fs deployment/k8s/mongodb/helm-values.yaml
 Apply the rest of k8s resource manifest
 
 ```bash
-kubect apply -fs k8s/gosty
+kustomize build deployment/kustomize/environments/gke | kubectl apply -f -
 ```
 
 ### Elasticsearch-Fluentd-Kibana
@@ -98,7 +142,7 @@ This resource will be deployed on `fluentd-monitoring` namespace. This stack cur
 monitoring
 
 ```shell
-kubectl apply -fs k8s/fluentd
+kubectl apply -fs ./deployment/k8s/fluentd
 ```
 
 ```shell
@@ -116,7 +160,7 @@ curl -sL run.linkerd.io/install | sh                                            
 install linkerd component
 
 ```
-kubectl apply -fs k8s/linkerd/
+kubectl apply -fs deployment/k8s/linkerd/manifest
 ```
 
 access linkerd dashboard
@@ -134,15 +178,20 @@ kubectl get statefulset -n gosty -o yaml mongodb-arbiter | linkerd inject - | ku
 kubectl get deployment -n kube-system ingress-nginx-controller -o yaml | linkerd inject - | kubectl apply -fs -                                               1 ↵
 ```
 
+PromQL for Add additional kubernetes avg cpu usage in grafana dashboard
+```
+sum (rate (container_cpu_usage_seconds_total{image!="",kubernetes_io_hostname=~"^$Node$",namespace="gosty"}[1m]))
+```
+
 ## Additional
 
 ### Local Image Registry
 
-I run local image registry on my machine for faster dev purposes
+Run local image registry on my machine for faster dev purposes
 
 #### Using minikube's local registry
 
-In case you want to run it inside kubernetes cluste (minikube), enable minikube local registry
+In case you want to run it inside kubernetes cluster (minikube), enable minikube local registry
 
 ```
 minikube addons enable registry
@@ -184,7 +233,7 @@ mirrors:
 #### Using Docker compose
 
 ```shell
-docker-compose -fs /home/luqman/Codespace/gosty/docker-compose-registry.yaml up -d registry
+docker-compose -fs docker-compose-registry.yaml up -d registry
 ```
 
 The pod will be exposed on 0.0.0.0:5000
@@ -200,24 +249,13 @@ spec:
       image: localhost:<registry's cluster ip/container registry's ip>/{image-name}:latest 
 ```
 
-**Issues**<br>
-For some reason, minikube's registry addons doesn't have mounted volume, so everytime Minikube restart, re-push the
-image, I create makefile command for this
-
-```
-make push-all
-```
-
-Microk8s private registry communication need to be https, else it won't work, here is
-the [reference](https://microk8s.io/docs/registry-private) for the setup
-
 ### Spekt8
 
 I setup [spekt8](https://github.com/spekt8/spekt8) for cluster visualization
 
 ```
-kubectl create -fs k8s/plugins/spekt8/fabric8-rbac.yaml 
-kubectl apply -fs k8s/plugins/spekt8/spekt8-deployment.yaml 
+kubectl create -fs ./deployment/k8s/plugins/spekt8/fabric8-rbac.yaml 
+kubectl apply -fs ./deployment/k8s/plugins/spekt8/spekt8-deployment.yaml 
 kubectl port-forward -n gosty deployment/spekt8 3000:3000
 ```
 
@@ -238,7 +276,9 @@ cluster
 curl -sSL https://mirrors.chaos-mesh.org/v1.1.2/install.sh | bash
 ```
 
-### Run Pod for Testing Upload File from Inside Container
+### Testing
+
+***Run Pod for Testing Upload File from Inside Container***
 
 ```shell
 # omit --rm to keep instance after exit
@@ -270,23 +310,27 @@ python cli_submit.py -l bunny.mp4 -s 854x480
 
 ```
 
-### Execute Flaky Endpoint
+***Execute Flaky Endpoint***
 
 ```shell
- while true; do  sleep 60 && curl "http://34.134.157.70/api/scheduler/progress/update"; done                     
+ while true; do  sleep 60 && curl "http://34.134.157.70/api/scheduler/progress/update"; done # change the ip accordingly                     
 ```
 
-### GCP Compute Metrics MQL for get average  load (for morph comparison)
-#### CPU
+***GCP Compute Metrics MQL for get average  load (for morph comparison)***
+- CPU
+```
 fetch gce_instance
 | metric 'compute.googleapis.com/instance/cpu/utilization'
 | group_by 25m , [value_utilization_aggregate: aggregate(value.utilization)/25]
-#### Memory
+```
+- Memory
+```
 fetch gce_instance
 | metric 'agent.googleapis.com/memory/percent_used'
 | group_by 25m , [value_percent_used_mean: aggregate(value.percent_used)/25.15]
-
+```
 ### Resize gke cluster to 0 when not used
+To save some bill
 ```
 gcloud container clusters resize cluster-1 --zone=us-central1-a --num-nodes=0
 ```
@@ -361,18 +405,22 @@ Below command is to run one time pod to debug dns
 kubectl run --restart=Never --rm -i --tty alpine --image=alpine:3.12 -- nslookup kube-dns.kube-system.svc.cluster.local
 ```
 
- ___
+**Private registry on MikroK8S
+Microk8s private registry communication need to be https, else it won't work, here is
+the [reference](https://microk8s.io/docs/registry-private) for the setup
+
 
 ## What can be improved
 
-- Use more proper permanent storage system
+- Use more proper permanent storage system (consider using object storage, eg: minio, gcs)
 - Currently, every worker will always download a copy of the file and process it on its local pod volume, then remove
   the original file, then send the processed file to file server, this can use a lot of bandwidth. This can be improved
   by using shared volume on the node, and check if other worker already download the file, then process it.
-- File Server synchronization should have use [lsyncd](https://github.com/axkibe/lsyncd) instead of reinventing the
-  wheel, will re-implement this later
+  
+## Todo
+- Run experiment using static mode in CPU Manager K8S 
 
 ## Acknowledgements
 
-Credit to [gibbok](https://github.com/gibbok) for [video player](https://github.com/gibbok/react-video-list) web client,
-which I modify for this project use case   
+- Credit to [gibbok](https://github.com/gibbok) for [video player](https://github.com/gibbok/react-video-list) in web client,
+(Heavily modified for this project use case)   
