@@ -1,12 +1,13 @@
 package api
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/r3labs/sse/v2"
-	"net/http"
-	"time"
 )
 
 func NewRouter(
@@ -24,7 +25,7 @@ func NewRouter(
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/worker", func(r chi.Router) {
 			r.Get("/", workerHandler.GetWorkerInfo)
-			r.Post("/", workerHandler.Post)
+			r.Post("/scale", workerHandler.ScaleHandler)
 		})
 
 		r.Route("/video", func(r chi.Router) {

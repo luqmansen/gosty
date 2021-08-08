@@ -2,14 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"github.com/luqmansen/gosty/pkg/apiserver/services"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type WorkerHandler interface {
 	GetWorkerInfo(w http.ResponseWriter, r *http.Request)
-	Post(w http.ResponseWriter, r *http.Request)
+	ScaleHandler(w http.ResponseWriter, r *http.Request)
 }
 
 type worker struct {
@@ -21,25 +23,26 @@ func NewWorkerHandler(workerSvc services.WorkerService) WorkerHandler {
 
 }
 
-func (h worker) GetWorkerInfo(w http.ResponseWriter, r *http.Request) {
-	wrk, err := h.workerSvc.GetAll()
+func (wrk worker) GetWorkerInfo(w http.ResponseWriter, r *http.Request) {
+	workerList, err := wrk.workerSvc.GetAll()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if len(wrk) == 0 {
+	if len(workerList) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	resp, err := json.Marshal(wrk)
+	resp, err := json.Marshal(workerList)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
 	if err != nil {
 		log.Error(err)
@@ -47,6 +50,36 @@ func (h worker) GetWorkerInfo(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (h worker) Post(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+func (wrk worker) ScaleHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.PostFormValue("replicanum")
+	if query == "" {
+		errResp := map[string]interface{}{"error": "Replica num can't be empty"}
+		resp, _ := json.Marshal(errResp)
+		w.Write(resp)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	replicaNum, err := strconv.Atoi(query)
+	if err != nil {
+		errResp := map[string]interface{}{"error": "replica number should be integer"}
+		resp, _ := json.Marshal(errResp)
+		w.Write(resp)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	sc, err := wrk.workerSvc.Scale(int32(replicaNum))
+	if err != nil {
+		//todo: create models for response
+		errResp := map[string]interface{}{"error": err}
+		resp, _ := json.Marshal(errResp)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(resp)
+	}
+
+	resp, _ := json.Marshal(sc)
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }

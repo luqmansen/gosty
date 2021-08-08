@@ -2,6 +2,9 @@ package worker
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
@@ -9,9 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"net"
-	"os"
-	"time"
 )
 
 type Services interface {
@@ -38,9 +38,8 @@ var (
 type Svc struct {
 	messageBroker repositories.Messenger
 	// TODO [#14]:  implement this storage repository
-	storage repositories.StorageRepository
-	worker  *models.Worker
-	config  *config.Configuration
+	worker *models.Worker
+	config *config.Configuration
 }
 
 func NewWorkerService(mb repositories.Messenger, conf *config.Configuration) Services {
@@ -87,22 +86,13 @@ func (s *Svc) RegisterWorker() {
 }
 
 func getWorkerHost() string {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Error("failed to dial to outbound, falling back to use env")
-		_, found := os.LookupEnv("KUBERNETES_SERVICE_HOST")
-		if found {
-			// this means we're on k8s env
-			return viper.GetString("POD_IP")
-		} else {
-			// could be inside docker container
-			return viper.GetString("HOSTNAME")
-		}
+	_, found := os.LookupEnv("KUBERNETES_SERVICE_HOST")
+	if found {
+		// this means we're on k8s env
+		return viper.GetString("POD_IP")
+	} else {
+		// could be inside docker container
+		containerHostname, _ := os.Hostname()
+		return containerHostname
 	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP.String()
-
 }

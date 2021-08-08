@@ -1,8 +1,14 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/luqmansen/gosty/pkg/apiserver/models"
 	"github.com/luqmansen/gosty/pkg/apiserver/repositories"
 	"github.com/luqmansen/gosty/pkg/apiserver/util"
@@ -11,14 +17,17 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
-	"net/http"
-	"strconv"
-	"sync"
-	"time"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
 	KeyGetAllWorker = "KeyGetAllWorker"
+
+	//Todo: change this hardcoded string to get from k8s downward API
+	deploymentNamespace  = "gosty"
+	workerDeploymentName = "gosty-worker"
 )
 
 func NewWorkerService(
@@ -26,12 +35,14 @@ func NewWorkerService(
 	mb repositories.Messenger,
 	sse *sse.Server,
 	cache *cache.Cache,
+	k8sClient *kubernetes.Clientset,
 ) WorkerService {
 	return &workerServices{
 		mb:         mb,
 		workerRepo: workerRepo,
 		sse:        sse,
 		cache:      cache,
+		k8sClient:  k8sClient,
 	}
 }
 
@@ -174,10 +185,6 @@ func (wrk workerServices) publishWorkerEvent() {
 	})
 }
 
-func (wrk workerServices) Create() error {
-	panic("implement me")
-}
-
 func (wrk workerServices) Get(workerName string) models.Worker {
 	panic("implement me")
 }
@@ -204,4 +211,28 @@ func (wrk workerServices) Update(workerName string) models.Worker {
 
 func (wrk workerServices) Terminate(workerName string) error {
 	panic("implement me")
+}
+
+func (wrk workerServices) Scale(replicaNum int32) (*autoscalingv1.Scale, error) {
+
+	scaleRequest, err := wrk.k8sClient.AppsV1().
+		Deployments(deploymentNamespace).
+		GetScale(context.TODO(), workerDeploymentName, metav1.GetOptions{})
+	if err != nil {
+		log.Errorf("Error getting scale request: %s ", err)
+		return nil, err
+	}
+
+	sc := *scaleRequest
+	sc.Spec.Replicas = replicaNum
+
+	updateScale, err := wrk.k8sClient.AppsV1().
+		Deployments(deploymentNamespace).
+		UpdateScale(context.TODO(), workerDeploymentName, &sc, metav1.UpdateOptions{})
+	if err != nil {
+		log.Errorf("Error when update scale request: %s ", err)
+		return nil, err
+	}
+
+	return updateScale, nil
 }

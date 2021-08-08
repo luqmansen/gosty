@@ -3,6 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"sync"
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/luqmansen/gosty/pkg/apiserver/api"
 	"github.com/luqmansen/gosty/pkg/apiserver/config"
@@ -15,11 +21,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	mongo2 "go.mongodb.org/mongo-driver/mongo"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"sync"
-	"time"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var gitCommit string
@@ -44,8 +47,18 @@ func main() {
 	sseServer.CreateStream(services.TaskHTTPEventStream)
 
 	c := cache.New(5*time.Minute, 10*time.Minute)
+
+	k8sConfig, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatalf("Failed to init cluster config: %s", err.Error())
+	}
+	k8sClient, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		log.Fatalf("Failed create K8s client: %s", err.Error())
+	}
+
 	schedulerSvc := services.NewSchedulerService(taskRepo, vidRepo, rabbit, sseServer, c)
-	workerSvc := services.NewWorkerService(workerRepo, rabbit, sseServer, c)
+	workerSvc := services.NewWorkerService(workerRepo, rabbit, sseServer, c, k8sClient)
 	videoSvc := services.NewVideoService(vidRepo, schedulerSvc, c)
 
 	go schedulerSvc.ReadMessages()
