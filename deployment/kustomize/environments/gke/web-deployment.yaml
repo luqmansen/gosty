@@ -5,15 +5,28 @@ metadata:
   namespace: gosty
 
 spec:
-  replicas: 3
+  replicas: 1
   template:
     spec:
       containers:
         - name: gosty-web
           resources:
             requests:
-              cpu: "50m"
+              cpu: "20m"
               memory: "50Mi"
             limits:
               cpu: "256m"
               memory: "256Mi"
+
+#          volumeMounts:
+#            - mountPath: /etc/nginx/templates/
+#              name: gosty-config
+#              readOnly: true
+#
+#      volumes:
+#        - name: gosty-config
+#          configMap:
+#            name: gosty-config
+#            items:
+#              - key: default.conf.template
+#                path: default.conf.template

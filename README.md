@@ -46,6 +46,12 @@ Set your mongodb & rabbitmq secret on configmap (change to secret if you want, m
 
 Then apply linkerd & gosty component
 
+
+Add additional kubernetes avg cpu usage panel
+```
+sum (rate (container_cpu_usage_seconds_total{image!="",kubernetes_io_hostname=~"^$Node$",namespace="gosty"}[1m]))
+```
+
 ```bash
 kubectl apply -k deployment/kustomize/environtment/gke
 ```
@@ -74,8 +80,8 @@ helm install rabbit bitnami/rabbitmq -fs k8s/rabbitmq/helm-values.yaml --create-
 ### MongoDB
 
 ```
-kubectl create -fs k8s/mongodb/service.yaml # create nodePort service, skip if you don't need
-helm install mongodb bitnami/mongodb -fs k8s/mongodb/helm-values.yaml --create-namespace --namespace gosty
+kubectl create -fs deployment/k8s/mongodb/service.yaml # create nodePort service, skip if you don't need
+helm install mongodb bitnami/mongodb -fs deployment/k8s/mongodb/helm-values.yaml --create-namespace --namespace gosty
 ```
 
 ### API Server, File Server, Worker
@@ -245,13 +251,44 @@ Download The File
 # this is 20MB Test File
 wget --no-check-certificate -r 'https://docs.google.com/uc?export=download&id=102o0T6XeB0znP-r0dkvKhDYTObniockI' -O sony.mp4
 # This is 200MB Test File (Blender's Foundation Big Bucks Bunny)
-wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1mw1JHv739M46J6Jv5cXkVHb-_n7O0blK' -r -A 'uc*' -e robots=off -nd
+wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1mw1JHv739M46J6Jv5cXkVHb-_n7O0blK' -r -A 'uc*' -e robots=off -nd # will download 2 files
+mv uc?export\=download\&confirm\=uuRp\&id\=1mw1JHv739M46J6Jv5cXkVHb-_n7O0blK bunny.mp4 #rename the files
 
 ```
 
 Post data via curl
 ```
+curl http://gosty-apiserver.gosty.svc.cluster.local/api/video/upload -F file=@bunny.mp4 -v
+curl http://34.149.27.149/api/video/upload -F file=@bunny.mp4 -v
 curl http://gosty-apiserver.gosty.svc.cluster.local/api/video/upload -F file=@sony.mp4 -v
+```
+
+Submit query to morph
+```
+python cli_submit.py -l bunny.mp4 -s 256x144 426x240 640x360 854x480 1280x720 1920x1080
+python cli_submit.py -l bunny.mp4 -s 854x480
+
+```
+
+### Execute Flaky Endpoint
+
+```shell
+ while true; do  sleep 60 && curl "http://34.134.157.70/api/scheduler/progress/update"; done                     
+```
+
+### GCP Compute Metrics MQL for get average  load (for morph comparison)
+#### CPU
+fetch gce_instance
+| metric 'compute.googleapis.com/instance/cpu/utilization'
+| group_by 25m , [value_utilization_aggregate: aggregate(value.utilization)/25]
+#### Memory
+fetch gce_instance
+| metric 'agent.googleapis.com/memory/percent_used'
+| group_by 25m , [value_percent_used_mean: aggregate(value.percent_used)/25.15]
+
+### Resize gke cluster to 0 when not used
+```
+gcloud container clusters resize cluster-1 --zone=us-central1-a --num-nodes=0
 ```
 
 ## Issues

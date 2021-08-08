@@ -33,9 +33,9 @@ def uptime_check(url_test: str, delay: int, run_min: int, file):
 
 
 def avg_time(filename):
-    f = open(filename)
-    data = json.load(f)
-    f.close()
+    fs = open(filename)
+    data = json.load(fs)
+    fs.close()
 
     elapsed = sum(d["elapsed_time"] for d in data) / len(data)
     actual_resp = sum(d["actual_request_time"] for d in data) / len(data)
@@ -43,9 +43,9 @@ def avg_time(filename):
 
 
 def status_code(filename):
-    f = open(filename)
-    data = json.load(f)
-    f.close()
+    fs = open(filename)
+    data = json.load(fs)
+    fs.close()
 
     status_200 = len([d["status"] for d in data if d["status"] == 200])
     status_400 = len([d["status"] for d in data if 400 <= d["status"] < 500])
@@ -61,17 +61,17 @@ def main():
     parser.add_argument('--min', help="how many minute to run", type=float, required=True)
 
     args = parser.parse_args()
-    filename = f'{datetime.now()}.json'
+    filename = fs'{datetime.now()}.json'
     with open(filename, 'w') as fout:
         uptime_check(args.url, args.delay, args.min, fout)
 
     avgtime = avg_time(filename)
-    print(f"\naverage elapsed_time:{avgtime[0]}")
-    print(f"average actual response:{avgtime[1]}")
+    print(fs"\naverage elapsed_time:{avgtime[0]}")
+    print(fs"average actual response:{avgtime[1]}")
     status = status_code(filename)
-    print(f"request cnt status 200: {status[0]}")
-    print(f"request cnt status 400: {status[1]}")
-    print(f"request cnt status 500: {status[2]}")
+    print(fs"request cnt status 200: {status[0]}")
+    print(fs"request cnt status 400: {status[1]}")
+    print(fs"request cnt status 500: {status[2]}")
 
 
 if __name__ == '__main__':

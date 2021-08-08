@@ -34,6 +34,10 @@ services:
   apiserver:
     image: localhost:5000/gosty-apiserver
     restart: always
+    depends_on:
+      - mongo
+      - rabbitmq
+      - fileserver
     ports:
       - "8000:8000"
       - "8086:8086"
@@ -65,6 +69,10 @@ services:
   worker:
     image: localhost:5000/gosty-worker
     restart: always
+    depends_on:
+      - mongo
+      - rabbitmq
+      - fileserver
     expose:
       - "8088"
     environment:
@@ -95,8 +103,8 @@ services:
       PORT: "8001"
       PEER_HOST: "0.0.0.0:8002"
 
-  mongodb:
-    container_name: mongodb
+  mongo:
+    container_name: mongo
     image: mongo:4.4.4-bionic
     restart: always
     environment:
@@ -124,50 +132,20 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  fileserver-0:
-    image: luqmansen/gosty-fileserver
-    container_name: fileserver-0
-    hostname: fileserver-0
-    restart: always
-    volumes:
-      - ./storage0:/app/storage/
-      - ./config.env:/app/config.env
-    expose:
-      - 8001
-      - 22
-    environment:
-      PORT: "8001"
-      FILESERVER_PEER_HOST: "fileserver-1,fileserver-2"
-
-  fileserver-1:
-    image: luqmansen/gosty-fileserver
-    container_name: fileserver-1
-    hostname: fileserver-1
-    restart: always
-    volumes:
-      - ./storage1:/app/storage/
-      - ./config.env:/app/config.env
-    expose:
-      - 8001
-      - 22
-    environment:
-      PORT: "8001"
-      FILESERVER_PEER_HOST: "fileserver-0,fileserver-2"
-
-  fileserver-2:
-    image: luqmansen/gosty-fileserver
-    container_name: fileserver-2
-    hostname: fileserver-2
-    restart: always
-    volumes:
-      - ./storage2:/app/storage/
-      - ./config.env:/app/config.env
-    expose:
-      - 8001
-      - 22
-    environment:
-      PORT: "8001"
-      FILESERVER_PEER_HOST: "fileserver-1,fileserver-0"
+  #  fileserver-0:
+  #    image: luqmansen/gosty-fileserver
+  #    container_name: fileserver-0
+  #    hostname: fileserver-0
+  #    restart: always
+  #    volumes:
+  #      - ./storage0:/app/storage/
+  #      - ./config.env:/app/config.env
+  #    expose:
+  #      - 8001
+  #      - 22
+  #    environment:
+  #      PORT: "8001"
+  #      FILESERVER_PEER_HOST: "fileserver-1,fileserver-2"
 
   # This container doesn't related to application,
   # but very handy on development

@@ -2,6 +2,9 @@ import {msToTime} from "../../Utils";
 import {Column, Table} from "react-virtualized";
 import {GRAFANA_API_ENDPOINT} from "../../Constant";
 
+
+const headers = {"x-powered-by": "CORS Anywhere"}
+
 const getStartAndEnd = (data) => {
     let end;
 
