@@ -32,22 +32,21 @@ func (wrk worker) GetWorkerInfo(w http.ResponseWriter, r *http.Request) {
 	if len(workerList) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
-	} else {
-		w.WriteHeader(http.StatusOK)
 	}
 
 	resp, err := json.Marshal(workerList)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("Failed to marshal worker list: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Error(err)
 	}
-	return
 }
 
 func (wrk worker) ScaleHandler(w http.ResponseWriter, r *http.Request) {
