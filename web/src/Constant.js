@@ -11,6 +11,7 @@ export const TASK_STREAM_NAME = "task"
 export const VIDEO_UPLOAD_ENDPOINT = "/video/upload"
 export const VIDEO_PLAYLIST_ENDPOINT = "/video/playlist"
 export const WORKER_STATUS_ENDPOINT = "/worker/"
+export const WORKER_SCALE_ENDPOINT = "/worker/scale"
 export const TASK_PROGRESS_ENDPOINT = "/scheduler/progress"
 
 export const WORKER_STATUS_READY = "READY"

@@ -5,12 +5,12 @@ import {
     Route,
 } from "react-router-dom";
 import PlayerPage from "./Pages/VideoPlayer/PlayerPage";
-import WorkerPage from "./Pages/Worker/WorkerPage";
+import WorkerList from "./Pages/Worker/WorkerList";
 import ProgressPage from "./Pages/Progress/ProgressPage";
 import Header from "./Components/Header";
 import VideoUpload from "./Pages/VideoUpload/VideoUpload";
-import WorkerPageV2 from "./Pages/Worker/WorkerPageV2";
 import ProgressPageV2 from "./Pages/Progress/ProgressPageV2";
+import WorkerPage from "./Pages/Worker/WorkerPage";
 
 export default function BasicExample() {
     return (
@@ -23,10 +23,10 @@ export default function BasicExample() {
                         <PlayerPage />
                     </Route>
                     <Route path="/worker">
-                        <WorkerPageV2 />
+                        <WorkerPage/>
                     </Route>
                     <Route path="/workerv1">
-                        <WorkerPage />
+                        <WorkerList />
                     </Route>
                     <Route path="/progressv1">
                         <ProgressPage />

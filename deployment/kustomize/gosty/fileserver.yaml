@@ -1,17 +1,17 @@
-#apiVersion: v1
-#kind: Service
-#metadata:
-#  name: gosty-fileserver
-#  namespace: gosty
-#spec:
-#  type: ClusterIP
-#  selector:
-#    app: gosty-fileserver
-#  ports:
-#    - protocol: TCP
-#      port: 80
-#      targetPort: 8001
-#---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gosty-fileserver
+  namespace: gosty
+spec:
+  type: ClusterIP
+  selector:
+    app: gosty-fileserver
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8001
+---
 apiVersion: v1
 kind: Service
 metadata:

@@ -32,8 +32,14 @@ patches:
       name: gosty-fileserver
     path: fileserver-deployment.yaml
 
+  - target:
+      kind: Service
+      name: gosty-fileserver
+    path: fileserver-service.yaml
+
   #WORKER
   - target:
       kind: Deployment
       name: gosty-worker
     path: worker-deployment.yaml
+

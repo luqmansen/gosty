@@ -5,10 +5,10 @@ import {
     APISERVER_HOST,
     WORKER_STATUS,
     EVENTSTREAM_ENDPOINT,
-    WORKER_STREAM_NAME, TASK_PROGRESS_ENDPOINT, WORKER_STATUS_ENDPOINT, WORKER_STATUS_TERMINATED
+    WORKER_STREAM_NAME, WORKER_STATUS_ENDPOINT, WORKER_STATUS_TERMINATED
 } from "../../Constant";
 
-const WorkerPageV2 = () => {
+const WorkerListV2 = () => {
 
     const [data, setData] = useState([])
 
@@ -27,7 +27,7 @@ const WorkerPageV2 = () => {
         let eventSource = new EventSource(`${APISERVER_HOST}${EVENTSTREAM_ENDPOINT}?stream=${WORKER_STREAM_NAME}`)
         eventSource.onmessage = (event) => {
             let d = JSON.parse(event.data)
-            if ((d) && (d.length > 0)){
+            if ((d) && (d.length > 0)) {
                 d.sort(
                     (a, b) => {
                         if (a.status < b.status) {
@@ -65,7 +65,7 @@ const WorkerPageV2 = () => {
                 }
             })
         }
-        if (filtered.length > 0){
+        if (filtered.length > 0) {
             setData(filtered)
         } else {
             setData(blocks) // if no data, display previously terminated worker
@@ -75,8 +75,6 @@ const WorkerPageV2 = () => {
 
     if (data.length > 0) {
         return (
-            <div className="container">
-                <h1>Worker List</h1>
                 <Table
                     rowClassName='table-row'
                     headerHeight={40}
@@ -118,20 +116,14 @@ const WorkerPageV2 = () => {
                         width={300}
                     />
                 </Table>
-            </div>
         )
     } else {
         return (
-            <>
-                <div className="container">
-                    <h1>Worker List</h1>
-                    <p>No Worker Available</p>
-                </div>
-            </>
+            <p>No Worker Available</p>
         )
     }
 
 
 }
 
-export default WorkerPageV2;
+export default WorkerListV2;
