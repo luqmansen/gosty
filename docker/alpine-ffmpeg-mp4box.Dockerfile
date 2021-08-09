@@ -30,7 +30,7 @@ RUN    buildDeps="build-base \
        expat-dev" && \
        apk  add --no-cache --update ${buildDeps} ffmpeg libxslt openssl libpng bash exiv2 && \
        rm -rf !$/.git && \
-       git clone https://github.com/gpac/gpac.git /tmp/gpac && \
+       git clone --depth 1 --branch v1.0.1 https://github.com/gpac/gpac.git /tmp/gpac && \
        cd /tmp/gpac && \
        ./configure --static-mp4box --use-zlib=no && \
        JOB=$((2*$(nproc))) && \
