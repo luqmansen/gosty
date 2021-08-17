@@ -1,13 +1,21 @@
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
-  name: pod-kill-example
-  namespace: chaos-testing
+  name: apiserver-pod-kill
+  namespace: gosty
+  labels: null
+  annotations:
+    experiment.chaos-mesh.org/pause: 'true'
 spec:
-  action: pod-kill
-  mode: one
   selector:
     namespaces:
-      - appns
+      - gosty
+    labelSelectors:
+      app: gosty-apiserver
   scheduler:
-    cron: "@every 1m"
+    cron: '@every 60s'
+  action: pod-kill
+  mode: one
+  value: ''
+  containerName: ''
+  gracePeriod: 5
