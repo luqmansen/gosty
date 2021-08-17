@@ -18,4 +18,4 @@ spec:
   mode: one
   value: ''
   containerName: ''
-  gracePeriod: 5
+  gracePeriod: 0
