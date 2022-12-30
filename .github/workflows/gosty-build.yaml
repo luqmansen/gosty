@@ -21,7 +21,7 @@ jobs:
           make worker-bin
 
       - name: Publish to Dockerhub
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: luqmansen/gosty-worker
           dockerfile: docker/worker.Dockerfile
@@ -43,7 +43,7 @@ jobs:
           make fs-bin
 
       - name: Publish to Dockerhub
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: luqmansen/gosty-fileserver
           dockerfile: docker/fileserver.Dockerfile
@@ -70,7 +70,7 @@ jobs:
           make api-bin
 
       - name: Publish to Dockerhub
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: luqmansen/gosty-apiserver
           dockerfile: docker/apiserver.Dockerfile
@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@master
 
       - name: Publish to Dockerhub
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         env:
           DOCKER_BUILDKIT: 1
         with:
